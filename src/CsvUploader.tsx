@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Papa from 'papaparse';
-import { Container, Row, Col, Button, Table } from 'react-bootstrap';
+import { Container, Row, Col, Table } from 'react-bootstrap';
 
 const CsvUploader: React.FC = () => {
   const [tableData, setTableData] = useState<string[][]>([]);
