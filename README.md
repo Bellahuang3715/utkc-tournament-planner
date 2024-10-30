@@ -1,70 +1,131 @@
-# Getting Started with Create React App
+<!-- ABOUT THE PROJECT -->
+## About The Project
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+The Kendo Tournament Planner is a web application developed to address current gaps in organizing and managing kendo tournaments. This project, currently in its design and early development stages, was initiated through a partnership with the University of Toronto (UofT) Kendo Club to help streamline the current tournament planning workflow for their annual tournament, which hosts 300+ participants. The app will:
 
-## Available Scripts
+1) automate bracket generation using custom criteria
+2) integrate a user-friendly interface for dynamic score input, and 
+3) support real-time collaboration with a centralized history,
 
-In the project directory, you can run:
+thereby reducing human errors and bias, significantly improving the experience for organizers, participants, and spectators alike. The UofT Kendo Club executive team (the client) is actively involved in defining and refining project requirements and specifications, ensuring the application meets the unique needs of large-scale tournament management.
 
-### `npm start`
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Design Tools
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+* [![Figma][Figma.com]][Figma-url]
+* [![Lucidchart][Lucidchart.com]][Lucidchart-url]
 
-### `npm test`
+### Programming Tools
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Frontend
 
-### `npm run build`
+* [![React][React.js]][React-url]
+* [![Bootstrap][Bootstrap.com]][Bootstrap-url]
+* [![TailwindCSS][TailwindCSS.com]][TailwindCSS-url]
+* [![TypeScript][TypeScript.com]][TypeScript-url]
+* [![Redux][Redux.com]][Redux-url]
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Backend
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+* [![Express.js][Express.com]][Express-url]
+* [![Node.js][Node.com]][Node-url]
+* [![PostgreSQL][PostgreSQL.com]][PostgreSQL-url]
+* [![Firebase][Firebase.com]][Firebase-url]
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-### `npm run eject`
+<!-- GETTING STARTED -->
+## Getting Started
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Development
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Clone this repo
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```shell
+git clone https://github.com/Bellahuang3715/utkc-tournament-planner.git
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Create a virtual environment (Optional)
 
-## Learn More
+```shell
+python3 -m venv <env_name>
+source <env_name>/bin/activate
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Go into the frontend folder
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```shell
+cd frontend
+```
 
-### Code Splitting
+Bring up the React project
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```shell
+npm install
+npm start
+```
 
-### Analyzing the Bundle Size
+### Prerequisites
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+TBD
 
-### Making a Progressive Web App
+### Installation
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+TBD
 
-### Advanced Configuration
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+<!-- Troubleshooting -->
+## Troubleshooting
 
-### Deployment
+TBD
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+<!-- ROADMAP -->
+## Roadmap
 
-### `npm run build` fails to minify
+- [ ] Feature 1
+- [ ] Feature 2
+- [ ] Feature 3
+    - [ ] Nested Feature
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+<!-- ACKNOWLEDGMENTS -->
+## Acknowledgments
+
+* The template of this README.md file was taken from https://github.com/othneildrew/Best-README-Template/blob/main/BLANK_README.md
+* []()
+* []()
+
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[Figma.com]: https://img.shields.io/badge/Figma-F24E1E?style=for-the-badge&logo=figma&logoColor=white
+[Figma-url]: https://www.figma.com/
+
+[Lucidchart.com]: https://img.shields.io/badge/Lucidchart-FF9D00?style=for-the-badge&logo=lucidchart&logoColor=white
+[Lucidchart-url]: https://www.lucidchart.com/
+
+[React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
+[React-url]: https://reactjs.org/
+
+[TailwindCSS.com]: https://img.shields.io/badge/TailwindCSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white
+[TailwindCSS-url]: https://tailwindcss.com/
+
+[Bootstrap.com]: https://img.shields.io/badge/Bootstrap-563D7C?style=for-the-badge&logo=bootstrap&logoColor=white
+[Bootstrap-url]: https://getbootstrap.com
+
+[TypeScript.com]: https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white
+[TypeScript-url]: https://www.typescriptlang.org/
+
+[Redux.com]: https://img.shields.io/badge/Redux-764ABC?style=for-the-badge&logo=redux&logoColor=white
+[Redux-url]: https://redux.js.org/
+
+[Express.com]: https://img.shields.io/badge/Express.js-404D59?style=for-the-badge&logo=express&logoColor=white
+[Express-url]: https://expressjs.com/
+
+[Node.com]: https://img.shields.io/badge/Node.js-8CC84B?style=for-the-badge&logo=node.js&logoColor=white
+[Node-url]: https://nodejs.org/
+
+[PostgreSQL.com]: https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white
+[PostgreSQL-url]: https://www.postgresql.org/
+
+[Firebase.com]: https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=white
+[Firebase-url]: https://firebase.google.com/
