@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button, ListGroup, Container, Row, Col, Modal, Form } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const EventsListPage: React.FC = () => {
   const [events, setEvents] = useState<string[]>([]);
@@ -13,22 +14,7 @@ const EventsListPage: React.FC = () => {
 
   const navigate = useNavigate();
 
-  const addEvent = () => {
-    const newEvent = `${eventName} - ${location} - ${description} - ${eventStartDate} to ${eventEndDate}`;
-    setEvents([...events, newEvent]);
 
-    navigate('/new-event', {
-      state: {
-        eventName,
-        eventStartDate,
-        eventEndDate,
-        location,
-        description
-      }
-    });
-
-    handleCloseModal();
-  };
 
   const handleShowModal = () => setShowModal(true);
   const handleCloseModal = () => {
@@ -132,7 +118,7 @@ const EventsListPage: React.FC = () => {
           <Button variant="secondary" onClick={handleCloseModal}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={addEvent}>
+          <Button variant="primary">
             Create Event
           </Button>
         </Modal.Footer>
