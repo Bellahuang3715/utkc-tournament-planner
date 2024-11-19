@@ -5,6 +5,14 @@ The project is open-sourced and designed to foster collaboration and learning am
 
 ***NOTE***: Never work on or push code to `main`. Use your issue branches!!
 
+## Licensing and Usage
+By contributing to this project, you agree to abide by its license:
+- The code is licensed for educational and non-commercial use only.
+- Commercial use or unauthorized deployment of this project is prohibited.
+- Any modifications or contributions must retain the original licensing terms.
+
+For questions regarding contributions or licensing, feel free to reach out to me.
+
 ## Getting Started
 
 Please reach out me (Bella Huang, Lead Developer & Project Manager) to indicate your interest.
@@ -17,7 +25,7 @@ Please reach out me (Bella Huang, Lead Developer & Project Manager) to indicate 
 git clone https://github.com/Bellahuang3715/utkc-tournament-planner.git
 cd utkc-tournament-planner
 ```
-3. (Optional) Create a virtual environment
+3. (Optional, but recommended) Create a virtual environment
 ```bash
 python3 -m venv <env_name>
 source <env_name>/bin/activate
@@ -61,11 +69,12 @@ To maintain a clear and organized Git history, please follow these naming conven
 |-------------|--------------------------------------|--------------------------------------|
 | `feature/`  | New features or enhancements         | `feature/1-add-user-authentication`    |
 | `bugfix/`   | Fixes for bugs or issues             | `bugfix/2-fix-login-redirect`          |
-| `hotfix/`   | Urgent fixes for production          | `hotfix/3-correct-data-typo`           |
-| `refactor/` | Refactoring or code improvements     | `refactor/4-clean-dashboard-component` |
-| `docs/`     | Documentation updates or changes     | `docs/5-update-readme-contributing`    |
-| `test/`     | Adding or updating tests             | `test/6-add-api-test-coverage`         |
-| `other/`    | Non-functional tasks (e.g., CI/CD)   | `other/7-update-dependencies`          |
+| `refactor/` | Refactoring or code improvements     | `refactor/3-clean-dashboard-component` |
+| `docs/`     | Documentation updates or changes     | `docs/4-update-readme-contributing`    |
+| `test/`     | Adding or updating tests             | `test/5-add-api-test-coverage`         |
+| `build/`    | Build components (e.g., CI/CD)   | `build/6-update-dependencies`          |
+| `chore/`    | Miscellaneous tasks   | `chore/7-modify-gitignore`          |
+
 
 
 ## During Development
@@ -86,3 +95,34 @@ To maintain a clear and organized Git history, please follow these naming conven
 3. Add the appropriate files to commit: `git add <file_name>` (or `git add .` to commit all changes)
 4. Create a new commit: `git commit -m "<quality message>"`
 5. Push the commit to GitHub: `git push`
+
+## Learning Resources
+
+[React.js YT Tutorial by Mosh](https://www.youtube.com/watch?v=SqcY0GlETPk)
+
+
+[React.js Guided Tutorial](https://react.dev/learn)
+
+
+[React useState Hook](https://www.youtube.com/watch?v=4pO-HcG2igk)
+
+
+[React useEffect Hook](https://www.youtube.com/watch?v=gv9ugDJ1ynU)
+
+
+[Flask Routing Tutorial](https://www.youtube.com/watch?v=27Fjrlx4s-o)
+
+
+[CSS Tutorial](https://www.youtube.com/watch?v=yfoY53QXEnI)
+
+
+[CSS Flexbox Tutorial](https://www.youtube.com/watch?v=u044iM9xsWU)
+
+
+[CSS Flexbox Cheatsheet](https://css-tricks.com/snippets/css/a-guide-to-flexbox/)
+
+
+[Refactoring UI](https://www.refactoringui.com/)
+
+
+[MDN Docs](https://developer.mozilla.org/en-US/)

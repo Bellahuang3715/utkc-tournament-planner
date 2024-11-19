@@ -36,47 +36,18 @@ Backend
 <!-- GETTING STARTED -->
 ## Getting Started
 
-### Development
+Please review the [Contributor's Guide](.github/CONTRIBUTING.md).
 
-Clone this repo
+<!-- LICENSE -->
 
-```shell
-git clone https://github.com/Bellahuang3715/utkc-tournament-planner.git
-```
+## License
+This project is licensed under a custom non-commercial license. See [LICENSE](LICENSE) for details.
 
-Create a virtual environment (Optional)
+### Key Points:
+- The code is open for review and educational purposes.
+- Commercial use or unauthorized deployment is strictly prohibited.
+- For inquiries about usage or contributions, please contact me (Bella Huang, Lead Developer & Project Manager).
 
-```shell
-python3 -m venv <env_name>
-source <env_name>/bin/activate
-```
-
-Go into the frontend folder
-
-```shell
-cd frontend
-```
-
-Bring up the React project
-
-```shell
-npm install
-npm start
-```
-
-### Prerequisites
-
-TBD
-
-### Installation
-
-TBD
-
-
-<!-- Troubleshooting -->
-## Troubleshooting
-
-TBD
 
 <!-- ROADMAP -->
 ## Roadmap
@@ -91,8 +62,6 @@ TBD
 ## Acknowledgments
 
 * The template of this README.md file was taken from https://github.com/othneildrew/Best-README-Template/blob/main/BLANK_README.md
-* []()
-* []()
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
