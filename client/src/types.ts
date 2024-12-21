@@ -15,3 +15,16 @@ export interface Participant {
   rank: string;
   dojo: string;
 }
+
+export interface File {
+  id: string;
+  name: string;
+  type: 'file';
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  type: 'folder';
+  children: Array<File | Folder>;
+}

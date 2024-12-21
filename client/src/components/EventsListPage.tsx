@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Button, ListGroup, Container, Row, Col, Modal, Form } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const EventsListPage: React.FC = () => {
@@ -12,7 +11,6 @@ const EventsListPage: React.FC = () => {
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
 
-  const navigate = useNavigate();
 
 
 

@@ -1,10 +1,8 @@
 import React, { useState } from "react";
 import { Navbar, Nav, Button, Offcanvas, Image } from "react-bootstrap";
-import { LinkContainer } from "react-router-bootstrap";
-import { FaCog, FaBell, FaBars, FaListAlt, FaHistory, FaSignOutAlt } from "react-icons/fa";
-import { AiOutlineClose, AiFillHome, AiFillMessage } from "react-icons/ai";
-
-import "./NavBar.css";
+import { FaCog, FaBell, FaBars, FaListAlt, FaSignOutAlt } from "react-icons/fa";
+import { AiOutlineClose, AiFillHome, AiOutlineUsergroupAdd, AiFillDatabase, AiOutlineShoppingCart } from "react-icons/ai";
+import Link from 'next/link';
 
 interface User {
   name: string;
@@ -20,7 +18,8 @@ const NavBar: React.FC = () => {
   const user: User = {
     name: "John Smith",
     email: "john.smith@test.com",
-    profilePicture: "https://www.shutterstock.com/image-vector/cute-stingray-fish-swimming-cartoon-600nw-2249999415.jpg",
+    profilePicture:
+      "https://www.shutterstock.com/image-vector/cute-stingray-fish-swimming-cartoon-600nw-2249999415.jpg",
   };
 
   return (
@@ -34,9 +33,9 @@ const NavBar: React.FC = () => {
           <FaBars size={24} />
         </Button>
 
-        <LinkContainer to="/">
-          <Navbar.Brand className="ms-3">idk what to name this</Navbar.Brand>
-        </LinkContainer>
+        <Link href="/" passHref>
+          <Navbar.Brand className="ms-3">Kendo Tourney</Navbar.Brand>
+        </Link>
 
         <Nav className="ms-auto me-4">
           <Nav.Link href="#notifications">
@@ -70,23 +69,34 @@ const NavBar: React.FC = () => {
 
         <hr className="m-0" />
 
-        <Offcanvas.Body className="sidebar d-flex flex-column" style={{ height: "100%" }}>
+        <Offcanvas.Body
+          className="sidebar d-flex flex-column"
+          style={{ height: "100%" }}
+        >
           <Nav className="flex-grow-1 flex-column">
             <Nav.Link href="/" className="sidebar-item">
               <AiFillHome size={20} className="sidebar-icon" />
               Home
             </Nav.Link>
+            <Nav.Link href="/members" className="sidebar-item">
+              <AiOutlineUsergroupAdd size={20} className="sidebar-icon" />
+              Members
+            </Nav.Link>
+            <Nav.Link href="/inventory" className="sidebar-item">
+              <AiFillDatabase size={20} className="sidebar-icon" />
+              Inventory
+            </Nav.Link>
             <Nav.Link href="/" className="sidebar-item">
-              <AiFillMessage size={20} className="sidebar-icon" />
-              Chat
+              <FaListAlt size={20} className="sidebar-icon" />
+              Tournaments
             </Nav.Link>
             <Nav.Link href="/" className="sidebar-item">
               <FaListAlt size={20} className="sidebar-icon" />
               Events
             </Nav.Link>
-            <Nav.Link href="/" className="sidebar-item">
-              <FaHistory size={20} className="sidebar-icon" />
-              Archived
+            <Nav.Link href="/orders" className="sidebar-item">
+              <AiOutlineShoppingCart size={20} className="sidebar-icon" />
+              Group Orders
             </Nav.Link>
             <Nav.Link href="/" className="sidebar-item">
               <FaCog size={20} className="sidebar-icon" />

@@ -2,7 +2,7 @@ import React, { useContext } from "react";
 import { Table, Button } from "react-bootstrap";
 import { EventContext } from "../context/EventContext";
 
-import CsvUploader from "../components/CsvUploader";
+import CsvUploader from "./CsvUploader";
 
 const ParticipantsPage: React.FC = () => {
   const context = useContext(EventContext);
