@@ -41,27 +41,23 @@ Please review the [Contributor's Guide](.github/CONTRIBUTING.md).
 <!-- LICENSE -->
 
 ## License
-This project is licensed under a custom non-commercial license. See [LICENSE](LICENSE) for details.
-
-### Key Points:
-- The code is open for review and educational purposes.
-- Commercial use or unauthorized deployment is strictly prohibited.
-- For inquiries about usage or contributions, please contact me (Bella Huang, Lead Developer & Project Manager).
+This project is licensed under licensed under AGPL-v3.0. See [LICENSE](LICENSE) for details.
 
 
 <!-- ROADMAP -->
 ## Roadmap
-
-- [ ] Feature 1
-- [ ] Feature 2
-- [ ] Feature 3
-    - [ ] Nested Feature
 
 
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
 * The template of this README.md file was taken from https://github.com/othneildrew/Best-README-Template/blob/main/BLANK_README.md
+
+This project includes code from the following open-source project:
+
+- **Project Name**: Bracket
+- **License**: GNU AGPLv3
+- **Source**: [https://github.com/evroon/bracket?tab=readme-ov-file](https://github.com/evroon/bracket?tab=readme-ov-file)
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
