@@ -1,20 +1,28 @@
 import React from "react";
 import { EventProvider } from "../context/EventContext";
 import NavBar from "../components/NavBar";
+import { MantineProvider } from "@mantine/core";
+import { appWithTranslation } from "next-i18next";
 
-import 'bootstrap/dist/css/bootstrap.min.css';
-import "../styles/globals.css";
+import "@mantine/core/styles.css";
+import "@mantine/dates/styles.css";
+import "@mantine/dropzone/styles.css";
+import "@mantine/notifications/styles.css";
+import "@mantine/spotlight/styles.css";
+
+import "bootstrap/dist/css/bootstrap.min.css";
+import "../styles/global.css";
 import "../styles/NavBar.css";
 
-function MyApp({ Component, pageProps }: { Component: React.FC; pageProps: any; }) {
-  return (
-    <React.StrictMode>
+const App = ({ Component, pageProps }: any) => (
+  <React.StrictMode>
+    <MantineProvider defaultColorScheme="auto">
       <EventProvider>
         <NavBar />
         <Component {...pageProps} />
       </EventProvider>
-    </React.StrictMode>
-  );
-}
+    </MantineProvider>
+  </React.StrictMode>
+);
 
-export default MyApp;
+export default appWithTranslation(App);

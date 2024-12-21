@@ -34,7 +34,7 @@ const NavBar: React.FC = () => {
         </Button>
 
         <Link href="/" passHref>
-          <Navbar.Brand className="ms-3">Kendo Tourney</Navbar.Brand>
+          <Navbar.Brand className="ms-3">Tourney</Navbar.Brand>
         </Link>
 
         <Nav className="ms-auto me-4">

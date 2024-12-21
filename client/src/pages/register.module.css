@@ -1,0 +1,25 @@
+/* @import '../styles/globals.css'; */
+
+.title {
+  font-size: 26;
+  font-weight: 900;
+  font-family: Greycliff CF, var(--mantine-font-family);
+}
+
+.controls {
+  @media (max-width: var(--mantine-breakpoint-xs)) {
+    flex-direction: column-reverse;
+  }
+}
+
+.control {
+  @media (max-width: var(--mantine-breakpoint-xs)) {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+.hcaptcha {
+  width: 100%;
+  height: 100%;
+}
