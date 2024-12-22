@@ -1,7 +1,7 @@
 **Checklist:**
 <!-- Please follow this checklist and put an x in each of the boxes, like this: [x] -->
 
-- [ ] I have read and followed the [Contributor's Guide](.github/CONTRIBUTING.md).
+- [ ] I have read and followed the [Contributor's Guide](./CONTRIBUTING.md).
 - [ ] My pull request targets the `main` branch of utkc-tournament-planner.
 - [ ] I have tested these changes locally on my machine.
 
