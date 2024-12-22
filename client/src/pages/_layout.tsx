@@ -41,14 +41,14 @@ function getMenuItemsForLink(
   pathName: string
 ) {
   const menuItems = link.links?.map((item) => (
-    <a key={item.label} className={classes.link} href={item.link}>
+    <Link key={item.label} href={item.link} passHref>
       <Center>
         <item.icon />
         <span style={{ marginLeft: "0.25rem", marginTop: "0.2rem" }}>
           {item.label}
         </span>
-      </Center>
-    </a>
+        </Center>
+    </Link>
   ));
   return (
     <Menu
@@ -58,12 +58,13 @@ function getMenuItemsForLink(
       withinPortal
     >
       <Menu.Target>
-        <Link
-          className={classes.link}
-          href={link.link || ""}
-          data-active={pathName === link.link || undefined}
-        >
-          <>{link.label}</>
+        <Link href={link.link || ""} passHref>
+          <span
+            className={classes.link}
+            data-active={pathName === link.link || undefined}
+          >
+            {link.label}
+          </span>
         </Link>
       </Menu.Target>
       {menuItems.length > 0 ? <Menu.Dropdown>{menuItems}</Menu.Dropdown> : null}

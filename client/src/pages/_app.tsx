@@ -1,20 +1,17 @@
-import React from "react";
 import { ColorSchemeScript, MantineProvider, createTheme } from '@mantine/core';
+import '@mantine/core/styles.css';
+import '@mantine/dates/styles.css';
+import '@mantine/dropzone/styles.css';
 import { Notifications } from '@mantine/notifications';
-import { BracketSpotlight } from '../components/modals/spotlight';
-// import { EventProvider } from "../context/EventContext";
-// import NavBar from "../components/NavBar";
-import { appWithTranslation } from "next-i18next";
+import '@mantine/notifications/styles.css';
+import '@mantine/spotlight/styles.css';
+import { appWithTranslation } from 'next-i18next';
 import Head from 'next/head';
 
-import "@mantine/core/styles.css";
-import "@mantine/dates/styles.css";
-import "@mantine/dropzone/styles.css";
-import "@mantine/notifications/styles.css";
-import "@mantine/spotlight/styles.css";
+import { BracketSpotlight } from '../components/modals/spotlight';
 
 // import "bootstrap/dist/css/bootstrap.min.css";
-import "../styles/global.css";
+// import "../styles/global.css";
 // import "../styles/NavBar.css";
 
 const theme = createTheme({
