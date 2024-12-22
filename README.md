@@ -19,7 +19,7 @@ thereby reducing human errors and bias, significantly improving the experience f
 
 Frontend
 
-* [![React][React.js]][React-url]
+* [![Next.js][Next.js]][Next-url]
 * [![Bootstrap][Bootstrap.com]][Bootstrap-url]
 * [![TailwindCSS][TailwindCSS.com]][TailwindCSS-url]
 * [![TypeScript][TypeScript.com]][TypeScript-url]
@@ -41,7 +41,7 @@ Please review the [Contributor's Guide](.github/CONTRIBUTING.md).
 <!-- LICENSE -->
 
 ## License
-This project is licensed under licensed under AGPL-v3.0. See [LICENSE](LICENSE) for details.
+This project is licensed under licensed under AGPL-v3.0. See [LICENSE](LICENSE) for details. Please note that any contributions also fall under this license.
 
 
 <!-- ROADMAP -->
@@ -52,6 +52,8 @@ This project is licensed under licensed under AGPL-v3.0. See [LICENSE](LICENSE) 
 ## Acknowledgments
 
 * The template of this README.md file was taken from https://github.com/othneildrew/Best-README-Template/blob/main/BLANK_README.md
+
+* The template of PULL_REQUEST_TEMPLATE.md was inspired by freeCodeCamp https://github.com/freeCodeCamp/freeCodeCamp/blob/main/.github/PULL_REQUEST_TEMPLATE.md 
 
 This project includes code from the following open-source project:
 
@@ -68,8 +70,8 @@ This project includes code from the following open-source project:
 [Lucidchart.com]: https://img.shields.io/badge/Lucidchart-FF9D00?style=for-the-badge&logo=lucidchart&logoColor=white
 [Lucidchart-url]: https://www.lucidchart.com/
 
-[React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
-[React-url]: https://reactjs.org/
+[Next.js]: https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white
+[Next-url]: https://nextjs.org/
 
 [TailwindCSS.com]: https://img.shields.io/badge/TailwindCSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white
 [TailwindCSS-url]: https://tailwindcss.com/
