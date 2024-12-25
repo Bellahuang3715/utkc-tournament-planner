@@ -7,12 +7,13 @@ import '@mantine/notifications/styles.css';
 import '@mantine/spotlight/styles.css';
 import { appWithTranslation } from 'next-i18next';
 import Head from 'next/head';
+import { useRouter } from "next/router";
 
+import { AuthProvider } from '../context/AuthContext';
 import { BracketSpotlight } from '../components/modals/spotlight';
+import PrivateRoute from "../components/protector/private_route";
 
 // import "bootstrap/dist/css/bootstrap.min.css";
-// import "../styles/global.css";
-// import "../styles/NavBar.css";
 
 const theme = createTheme({
   colors: {
@@ -31,25 +32,40 @@ const theme = createTheme({
   },
 });
 
-const App = ({ Component, pageProps }: any) => (
-  <>
-    <Head>
-      <title>Bracket</title>
-      <meta charSet="UTF-8" />
-      <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <link rel="shortcut icon" href="/favicon.svg" />
-      {/* <AnalyticsScript /> */}
+const App = ({ Component, pageProps }: any) => {
+  const router = useRouter();
 
-      <ColorSchemeScript defaultColorScheme="auto" />
-    </Head>
+  // Define routes that don't need authentication
+  const publicRoutes = ["/login", "/register"];
 
-    <MantineProvider defaultColorScheme="auto" theme={theme}>
-      <BracketSpotlight />
-      <Notifications />
-      <Component {...pageProps} />
-    </MantineProvider>
-  </>
-);
+  return (
+    <AuthProvider>
+      <Head>
+        <title>Bracket</title>
+        <meta charSet="UTF-8" />
+        <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="shortcut icon" href="/favicon.svg" />
+        {/* <AnalyticsScript /> */}
+
+        <ColorSchemeScript defaultColorScheme="auto" />
+      </Head>
+
+      <MantineProvider defaultColorScheme="auto" theme={theme}>
+        <BracketSpotlight />
+        <Notifications />
+        {/* <Component {...pageProps} /> */}
+        {/* Use the route guard only for routes that aren't public */}
+        {publicRoutes.includes(router.pathname) ? (
+          <Component {...pageProps} />
+        ) : (
+          <PrivateRoute>
+            <Component {...pageProps} />
+          </PrivateRoute>
+        )}
+      </MantineProvider>
+    </AuthProvider>
+  )
+};
 
 export default appWithTranslation(App);

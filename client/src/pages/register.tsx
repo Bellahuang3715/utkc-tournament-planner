@@ -17,11 +17,13 @@ import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { useRouter } from "next/router";
 import React, { useState } from "react";
 
+import { useAuth } from "../context/AuthContext";
 import { PasswordStrength } from "../components/utils/password";
 import { ClientOnly } from "../components/utils/react";
 import { HCaptchaInput } from "../components/utils/util";
 // import { registerUser } from "../services/user";
 import classes from './register.module.css';
+import { UserToRegisterInterface } from "../interfaces/user";
 
 export const getServerSideProps = async ({ locale = 'en' }: { locale: string }) => ({
   props: {
@@ -31,21 +33,23 @@ export const getServerSideProps = async ({ locale = 'en' }: { locale: string }) 
 
 export default function CreateAccount() {
   const router = useRouter();
+  const { registerUser } = useAuth();
   const { t } = useTranslation();
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
-  // async function registerAndRedirect(values: any) {
-  //   const response = await registerUser(values, captchaToken);
-
-  //   if (
-  //     response != null &&
-  //     response.data != null &&
-  //     response.data.data != null
-  //   ) {
-  //     localStorage.setItem("login", JSON.stringify(response.data.data));
-  //     await router.push("/");
-  //   }
-  // }
+  async function registerAndRedirect(values: UserToRegisterInterface) {
+    try {
+      // const response = await registerUser(values);
+      const response = await registerUser(values.email, values.password, values.name);
+      console.log("User registered:", response);
+      
+      localStorage.setItem("login", JSON.stringify(response));
+      await router.push("/");
+    }
+    catch (error: any) {
+      alert(error.message); // Display error message
+    }
+  }
 
   const form = useForm({
     initialValues: {
@@ -69,7 +73,7 @@ export default function CreateAccount() {
         {t("create_account_title")}
       </Title>
       <Paper withBorder shadow="md" p={30} radius="md" mt="xl">
-        <Alert
+        {/* <Alert
           icon={<IconAlertCircle size={16} />}
           mb={16}
           title={t("create_account_alert_title")}
@@ -77,11 +81,11 @@ export default function CreateAccount() {
           radius="md"
         >
           {t("create_account_alert_description")}
-        </Alert>
+        </Alert> */}
         <form
-          // onSubmit={form.onSubmit(async (values) => {
-          //   await registerAndRedirect(values);
-          // })}
+          onSubmit={form.onSubmit(async (values) => {
+            await registerAndRedirect(values);
+          })}
         >
           <TextInput
             label={t("email_input_label")}

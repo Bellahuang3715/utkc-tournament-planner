@@ -7,13 +7,12 @@ import { SWRResponse } from "swr";
 import TournamentsCardTable from "../components/card_tables/tournaments";
 import TournamentModal from "../components/modals/tournament_modal";
 import { capitalize } from "../components/utils/util";
-import { checkForAuthError, getTournaments } from "../services/adapter";
+import { getTournaments } from "../services/adapter";
 import Layout from "./_layout";
 import classes from "./index.module.css";
 
 export default function HomePage() {
   const swrTournamentsResponse = getTournaments();
-  checkForAuthError(swrTournamentsResponse);
   const { t } = useTranslation();
 
   // Mock Tournament Data

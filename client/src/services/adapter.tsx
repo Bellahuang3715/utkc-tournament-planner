@@ -7,7 +7,7 @@ import useSWR, { SWRResponse } from 'swr';
 import { Pagination } from '../components/utils/util';
 import { SchedulerSettings } from '../interfaces/match';
 import { RoundInterface } from '../interfaces/round';
-import { getLogin, performLogout, tokenPresent } from './local_storage';
+import { getLogin } from './local_storage';
 
 // TODO: This is a workaround for the fact that axios is not properly typed.
 const axios: typeof Axios = require('axios').default;
@@ -196,10 +196,6 @@ export function getCourtsLive(tournament_id: number): SWRResponse {
   });
 }
 
-export function getUser(): SWRResponse {
-  return useSWR('users/me', fetcher);
-}
-
 export function getUpcomingMatches(
   tournament_id: number,
   stage_item_id: number,
@@ -234,33 +230,4 @@ export async function uploadTeamLogo(tournament_id: number, team_id: number, fil
 
 export async function removeTeamLogo(tournament_id: number, team_id: number) {
   return createAxios().post(`tournaments/${tournament_id}/teams/${team_id}/logo`);
-}
-
-export function checkForAuthError(response: any) {
-  if (typeof window !== 'undefined' && !tokenPresent()) {
-    const router = useRouter();
-    router.push('/login');
-  }
-
-  // We send a simple GET `/clubs` request to test whether we really should log out. // Next
-  // sometimes uses out-of-date local storage, so we send an additional request with up-to-date
-  // local storage.
-  // If that gives a 401, we log out.
-  function responseHasAuthError(_response: any) {
-    return (
-      _response.error != null &&
-      _response.error.response != null &&
-      _response.error.response.status === 401
-    );
-  }
-  if (responseHasAuthError(response)) {
-    createAxios()
-      .get('users/me')
-      .then(() => {})
-      .catch((error: any) => {
-        if (error.toJSON().status === 401) {
-          performLogout();
-        }
-      });
-  }
 }
