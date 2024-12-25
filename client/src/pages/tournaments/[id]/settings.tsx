@@ -8,7 +8,6 @@ import {
   Grid,
   Image,
   NumberInput,
-  Select,
   Text,
   TextInput,
 } from "@mantine/core";
@@ -27,15 +26,12 @@ import NotFoundTitle from "../../404";
 import { DropzoneButton } from "../../../components/utils/file_upload";
 import { GenericSkeletonThreeRows } from "../../../components/utils/skeletons";
 import {
-  capitalize,
   getBaseURL,
   getTournamentIdFromRouter,
 } from "../../../components/utils/util";
-import { Club } from "../../../interfaces/club";
 import { Tournament } from "../../../interfaces/tournament";
 import {
   getBaseApiUrl,
-  getClubs,
   getTournamentById,
   handleRequestError,
   removeTournamentLogo,
@@ -45,6 +41,8 @@ import {
   updateTournament,
 } from "../../../services/tournament";
 import TournamentLayout from "../_tournament_layout";
+
+import { mockTournaments } from "../../../data/mock_tournaments";
 
 export function TournamentLogo({
   tournament,
@@ -63,20 +61,19 @@ export function TournamentLogo({
 function GeneralTournamentForm({
   tournament,
   swrTournamentResponse,
-  clubs,
 }: {
   tournament: Tournament;
   swrTournamentResponse: SWRResponse;
-  clubs: Club[];
 }) {
   const router = useRouter();
   const { t } = useTranslation();
+
+  tournament = mockTournaments[0];
 
   const form = useForm({
     initialValues: {
       start_time: new Date(tournament.start_time),
       name: tournament.name,
-      club_id: `${tournament.club_id}`,
       dashboard_public: tournament.dashboard_public,
       dashboard_endpoint: tournament.dashboard_endpoint,
       players_can_be_in_multiple_teams:
@@ -89,7 +86,6 @@ function GeneralTournamentForm({
     validate: {
       name: (value) =>
         value.length > 0 ? null : t("too_short_name_validation"),
-      club_id: (value) => (value != null ? null : t("club_choose_title")),
       start_time: (value) =>
         value != null ? null : t("start_time_choose_title"),
       duration_minutes: (value) =>
@@ -102,7 +98,6 @@ function GeneralTournamentForm({
   return (
     <form
       onSubmit={form.onSubmit(async (values) => {
-        assert(values.club_id != null);
 
         await updateTournament(
           tournament.id,
@@ -124,17 +119,6 @@ function GeneralTournamentForm({
         label={t("name_input_label")}
         placeholder={t("tournament_name_input_placeholder")}
         {...form.getInputProps("name")}
-      />
-
-      <Select
-        withAsterisk
-        data={clubs.map((p) => ({ value: `${p.id}`, label: p.name }))}
-        label={capitalize(t("clubs_title"))}
-        placeholder={t("club_select_placeholder")}
-        searchable
-        limit={20}
-        mt="lg"
-        {...form.getInputProps("club_id")}
       />
 
       <Fieldset legend={t("planning_of_matches_legend")} mt="lg" radius="md">
@@ -277,26 +261,22 @@ function GeneralTournamentForm({
 
 export default function SettingsPage() {
   const { tournamentData } = getTournamentIdFromRouter();
-  const swrClubsResponse: SWRResponse = getClubs();
   const swrTournamentResponse = getTournamentById(tournamentData.id);
   const tournamentDataFull =
     swrTournamentResponse.data != null ? swrTournamentResponse.data.data : null;
 
-  const clubs: Club[] =
-    swrClubsResponse.data != null ? swrClubsResponse.data.data : [];
-
   let content = <NotFoundTitle />;
 
-  if (swrTournamentResponse.isLoading || swrClubsResponse.isLoading) {
+  if (swrTournamentResponse.isLoading) {
     content = <GenericSkeletonThreeRows />;
   }
 
-  if (tournamentDataFull != null) {
+  // if (tournamentDataFull != null) {
+  if (true) {
     content = (
       <GeneralTournamentForm
         tournament={tournamentDataFull}
         swrTournamentResponse={swrTournamentResponse}
-        clubs={clubs}
       />
     );
   }
