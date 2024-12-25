@@ -1,0 +1,40 @@
+import { Player } from "../interfaces/player";
+
+export const mockPlayers: Player[] = [
+  {
+    id: 1,
+    name: "John Doe",
+    active: true,
+    created: "2024-01-01T12:00:00Z",
+    tournament_id: 1,
+    elo_score: 1500,
+    swiss_score: 3.5,
+    wins: 5,
+    draws: 2,
+    losses: 3,
+  },
+  {
+    id: 2,
+    name: "Jane Smith",
+    active: false,
+    created: "2024-02-01T12:00:00Z",
+    tournament_id: 1,
+    elo_score: 1400,
+    swiss_score: 4.0,
+    wins: 6,
+    draws: 1,
+    losses: 2,
+  },
+  {
+    id: 3,
+    name: "Mark Johnson",
+    active: true,
+    created: "2024-03-01T12:00:00Z",
+    tournament_id: 1,
+    elo_score: 1600,
+    swiss_score: 4.5,
+    wins: 7,
+    draws: 0,
+    losses: 1,
+  },
+];
