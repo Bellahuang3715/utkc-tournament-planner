@@ -14,7 +14,7 @@ from project.models.db.round import (
 )
 from project.models.db.user import UserPublic
 from project.models.db.util import RoundWithMatches
-from project.routes.auth import user_authenticated_for_tournament
+from project.routes.auth import firebase_user_authenticated
 from project.routes.models import SuccessResponse
 from project.routes.util import (
     round_dependency,
@@ -40,7 +40,7 @@ router = APIRouter()
 async def delete_round(
     tournament_id: TournamentId,
     round_id: RoundId,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
     round_with_matches: RoundWithMatches = Depends(round_with_matches_dependency),
 ) -> SuccessResponse:
     for match in round_with_matches.matches:
@@ -57,7 +57,7 @@ async def delete_round(
 async def create_round(
     tournament_id: TournamentId,
     round_body: RoundCreateBody,
-    user: UserPublic = Depends(user_authenticated_for_tournament),
+    user: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     await check_foreign_keys_belong_to_tournament(round_body, tournament_id)
 
@@ -96,7 +96,7 @@ async def update_round_by_id(
     tournament_id: TournamentId,
     round_id: RoundId,
     round_body: RoundUpdateBody,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
     __: Round = Depends(round_dependency),
 ) -> SuccessResponse:
     query = """

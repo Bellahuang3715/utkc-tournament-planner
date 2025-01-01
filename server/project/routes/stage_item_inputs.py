@@ -10,9 +10,7 @@ from project.models.db.stage_item_inputs import (
 )
 from project.models.db.user import UserPublic
 from project.models.db.util import StageItemWithRounds
-from project.routes.auth import (
-    user_authenticated_for_tournament,
-)
+from project.routes.auth import firebase_user_authenticated
 from project.routes.models import SuccessResponse
 from project.routes.util import stage_item_dependency
 from project.sql.stage_item_inputs import get_stage_item_input_by_id
@@ -70,7 +68,7 @@ async def update_stage_item_input(
     stage_item_id: StageItemId,
     stage_item_input_id: StageItemInputId,
     stage_item_body: StageItemInputUpdateBody,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
     __: StageItemWithRounds = Depends(stage_item_dependency),
 ) -> SuccessResponse:
     stage_item_input = await get_stage_item_input_by_id(tournament_id, stage_item_input_id)

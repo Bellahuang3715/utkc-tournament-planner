@@ -8,10 +8,7 @@ from project.logic.subscriptions import check_requirement
 from project.models.db.ranking import RankingBody, RankingCreateBody
 from project.models.db.stage_item import StageType
 from project.models.db.user import UserPublic
-from project.routes.auth import (
-    user_authenticated_for_tournament,
-    user_authenticated_or_public_dashboard,
-)
+from project.routes.auth import firebase_user_authenticated
 from project.routes.models import (
     RankingsResponse,
     SuccessResponse,
@@ -32,7 +29,7 @@ router = APIRouter()
 @router.get("/tournaments/{tournament_id}/rankings")
 async def get_rankings(
     tournament_id: TournamentId,
-    _: UserPublic = Depends(user_authenticated_or_public_dashboard),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> RankingsResponse:
     return RankingsResponse(data=await get_all_rankings_in_tournament(tournament_id))
 
@@ -42,7 +39,7 @@ async def update_ranking_by_id(
     tournament_id: TournamentId,
     ranking_id: RankingId,
     ranking_body: RankingBody,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     await sql_update_ranking(
         tournament_id=tournament_id,
@@ -63,7 +60,7 @@ async def update_ranking_by_id(
 async def delete_ranking(
     tournament_id: TournamentId,
     ranking_id: RankingId,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     await sql_delete_ranking(tournament_id, ranking_id)
     return SuccessResponse()
@@ -73,7 +70,7 @@ async def delete_ranking(
 async def create_ranking(
     ranking_body: RankingCreateBody,
     tournament_id: TournamentId,
-    user: UserPublic = Depends(user_authenticated_for_tournament),
+    user: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     existing_rankings = await get_all_rankings_in_tournament(tournament_id)
     check_requirement(existing_rankings, user, "max_rankings")

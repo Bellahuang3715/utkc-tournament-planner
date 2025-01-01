@@ -15,12 +15,7 @@ from project.models.db.tournament import (
     TournamentUpdateBody,
 )
 from project.models.db.user import UserPublic
-from project.routes.auth import (
-    user_authenticated,
-    user_authenticated_for_tournament,
-    user_authenticated_or_public_dashboard,
-    user_authenticated_or_public_dashboard_by_endpoint_name,
-)
+from project.routes.auth import firebase_user_authenticated
 from project.routes.models import SuccessResponse, TournamentResponse, TournamentsResponse
 from project.schema import tournaments
 from project.sql.rankings import (
@@ -57,7 +52,7 @@ unauthorized_exception = HTTPException(
 @router.get("/tournaments/{tournament_id}", response_model=TournamentResponse)
 async def get_tournament(
     tournament_id: TournamentId,
-    user: UserPublic | None = Depends(user_authenticated_or_public_dashboard),
+    user: UserPublic | None = Depends(firebase_user_authenticated),
 ) -> TournamentResponse:
     tournament = await sql_get_tournament(tournament_id)
     if user is None and not tournament.dashboard_public:
@@ -68,7 +63,7 @@ async def get_tournament(
 
 @router.get("/tournaments", response_model=TournamentsResponse)
 async def get_tournaments(
-    user: UserPublic | None = Depends(user_authenticated_or_public_dashboard_by_endpoint_name),
+    user: UserPublic | None = Depends(firebase_user_authenticated),
     endpoint_name: str | None = None,
 ) -> TournamentsResponse:
     match user, endpoint_name:
@@ -86,9 +81,8 @@ async def get_tournaments(
             return TournamentsResponse(data=[tournament])
 
         case _, _ if isinstance(user, UserPublic):
-            user_club_ids = await get_which_clubs_has_user_access_to(user.id)
             return TournamentsResponse(
-                data=await sql_get_tournaments(tuple(user_club_ids), endpoint_name)
+                data=await sql_get_tournaments(endpoint_name)
             )
 
     raise RuntimeError()
@@ -98,7 +92,7 @@ async def get_tournaments(
 async def update_tournament_by_id(
     tournament_id: TournamentId,
     tournament_body: TournamentUpdateBody,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     with check_unique_constraint_violation({UniqueIndex.ix_tournaments_dashboard_endpoint}):
         await sql_update_tournament(tournament_id, tournament_body)
@@ -109,7 +103,7 @@ async def update_tournament_by_id(
 
 @router.delete("/tournaments/{tournament_id}", response_model=SuccessResponse)
 async def delete_tournament(
-    tournament_id: TournamentId, _: UserPublic = Depends(user_authenticated_for_tournament)
+    tournament_id: TournamentId, _: UserPublic = Depends(firebase_user_authenticated)
 ) -> SuccessResponse:
     for ranking in await get_all_rankings_in_tournament(tournament_id):
         await sql_delete_ranking(tournament_id, ranking.id)
@@ -129,7 +123,7 @@ async def delete_tournament(
 
 @router.post("/tournaments", response_model=SuccessResponse)
 async def create_tournament(
-    tournament_to_insert: TournamentBody, user: UserPublic = Depends(user_authenticated)
+    tournament_to_insert: TournamentBody, user: UserPublic = Depends(firebase_user_authenticated)
 ) -> SuccessResponse:
     existing_tournaments = await sql_get_tournaments((tournament_to_insert.club_id,))
     check_requirement(existing_tournaments, user, "max_tournaments")
@@ -156,7 +150,7 @@ async def create_tournament(
 async def upload_logo(
     tournament_id: TournamentId,
     file: UploadFile | None = None,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> TournamentResponse:
     old_logo_path = await get_tournament_logo_path(tournament_id)
     filename: str | None = None

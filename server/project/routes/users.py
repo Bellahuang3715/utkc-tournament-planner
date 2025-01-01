@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
-from heliclockter import datetime_utc, timedelta
+from heliclockter import datetime_utc
 from starlette import status
 
 from project.config import config
@@ -15,13 +15,8 @@ from project.models.db.user import (
     UserToRegister,
     UserToUpdate,
 )
-from project.routes.auth import (
-    ACCESS_TOKEN_EXPIRE_MINUTES,
-    Token,
-    create_access_token,
-    user_authenticated,
-)
-from project.routes.models import SuccessResponse, TokenResponse, UserPublicResponse
+from project.routes.auth import firebase_user_authenticated
+from project.routes.models import SuccessResponse, UserPublicResponse
 from project.sql.users import (
     check_whether_email_is_in_use,
     create_user,
@@ -36,14 +31,9 @@ from project.utils.types import assert_some
 router = APIRouter()
 
 
-@router.get("/users/me", response_model=UserPublicResponse)
-async def get_user(user_public: UserPublic = Depends(user_authenticated)) -> UserPublicResponse:
-    return UserPublicResponse(data=user_public)
-
-
 @router.get("/users/{user_id}", response_model=UserPublicResponse)
 async def get_me(
-    user_id: UserId, user_public: UserPublic = Depends(user_authenticated)
+    user_id: UserId, user_public: UserPublic = Depends(firebase_user_authenticated)
 ) -> UserPublicResponse:
     if user_public.id != user_id:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Can't view details of this user")
@@ -55,7 +45,7 @@ async def get_me(
 async def update_user_details(
     user_id: UserId,
     user_to_update: UserToUpdate,
-    user_public: UserPublic = Depends(user_authenticated),
+    user_public: UserPublic = Depends(firebase_user_authenticated),
 ) -> UserPublicResponse:
     if user_public.id != user_id:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Can't change details of this user")
@@ -69,15 +59,15 @@ async def update_user_details(
 async def put_user_password(
     user_id: UserId,
     user_to_update: UserPasswordToUpdate,
-    user_public: UserPublic = Depends(user_authenticated),
+    user_public: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     assert user_public.id == user_id
     await update_user_password(user_public.id, hash_password(user_to_update.password))
     return SuccessResponse()
 
 
-@router.post("/users/register", response_model=TokenResponse)
-async def register_user(user_to_register: UserToRegister) -> TokenResponse:
+@router.post("/users/register", response_model=SuccessResponse)
+async def register_user(user_to_register: UserToRegister) -> SuccessResponse:
     if not config.allow_user_registration:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Account creation is unavailable for now")
 
@@ -95,17 +85,11 @@ async def register_user(user_to_register: UserToRegister) -> TokenResponse:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Email address already in use")
 
     user_created = await create_user(user)
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"user": user_created.email}, expires_delta=access_token_expires
-    )
-    return TokenResponse(
-        data=Token(access_token=access_token, token_type="bearer", user_id=user_created.id)
-    )
+    return SuccessResponse()
 
 
-@router.post("/users/register_demo", response_model=TokenResponse)
-async def register_demo_user(user_to_register: DemoUserToRegister) -> TokenResponse:
+@router.post("/users/register_demo", response_model=SuccessResponse)
+async def register_demo_user(user_to_register: DemoUserToRegister) -> SuccessResponse:
     if not config.allow_demo_user_registration:
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED, "Demo account creation is unavailable for now"
@@ -126,11 +110,5 @@ async def register_demo_user(user_to_register: DemoUserToRegister) -> TokenRespo
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Email address already in use")
 
     user_created = await create_user(user)
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"user": user_created.email}, expires_delta=access_token_expires
-    )
     await setup_demo_account(user_created.id)
-    return TokenResponse(
-        data=Token(access_token=access_token, token_type="bearer", user_id=user_created.id)
-    )
+    return SuccessResponse()
