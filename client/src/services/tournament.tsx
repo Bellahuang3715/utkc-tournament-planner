@@ -12,8 +12,9 @@ export async function createTournament(
   duration_minutes: number,
   margin_minutes: number
 ) {
-  return createAxios()
-    .post('tournaments', {
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.post('tournaments', {
       name,
       club_id,
       dashboard_public,
@@ -23,12 +24,16 @@ export async function createTournament(
       start_time,
       duration_minutes,
       margin_minutes,
-    })
-    .catch((response: any) => handleRequestError(response));
+    });
+  } catch (error: any) {
+    handleRequestError(error);
+    throw error;
+  }
 }
 
 export async function deleteTournament(tournament_id: number) {
-  return createAxios().delete(`tournaments/${tournament_id}`);
+  const axiosInstance = await createAxios();
+  return axiosInstance.delete(`tournaments/${tournament_id}`);
 }
 
 export async function updateTournament(
@@ -42,8 +47,9 @@ export async function updateTournament(
   duration_minutes: number,
   margin_minutes: number
 ) {
-  return createAxios()
-    .put(`tournaments/${tournament_id}`, {
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.put(`tournaments/${tournament_id}`, {
       name,
       dashboard_public,
       dashboard_endpoint,
@@ -52,8 +58,11 @@ export async function updateTournament(
       start_time,
       duration_minutes,
       margin_minutes,
-    })
-    .catch((response: any) => handleRequestError(response));
+    });
+  } catch (error: any) {
+    handleRequestError(error);
+    throw error;
+  }
 }
 
 export function getTournamentResponseByEndpointName() {

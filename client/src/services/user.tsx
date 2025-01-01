@@ -1,22 +1,45 @@
-import { UserBodyInterface } from '../interfaces/user';
+import { UserBodyInterface, UserToRegisterInterface } from '../interfaces/user';
 import { createAxios, handleRequestError } from './adapter';
 
 export async function updateUser(user_id: number, user: UserBodyInterface) {
-  return createAxios()
-    .put(`users/${user_id}`, user)
-    .catch((response: any) => handleRequestError(response));
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.put(`users/${user_id}`, user);
+  } catch (error: any) {
+    return handleRequestError(error);
+  }
 }
 
 export async function updatePassword(user_id: number, password: string) {
-  return createAxios()
-    .put(`users/${user_id}/password`, { password })
-    .catch((response: any) => handleRequestError(response));
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.put(`users/${user_id}/password`, { password });
+  } catch (error: any) {
+    return handleRequestError(error);
+  }
+}
+
+export async function registerUserDb(user: UserToRegisterInterface, captchaToken: string | null) {
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.post('users/register', {
+      email: user.email,
+      name: user.name,
+      password: user.password,
+      captcha_token: captchaToken,
+    })
+  } catch (error: any) {
+    return handleRequestError(error);
+  }
 }
 
 export async function registerDemoUser(captchaToken: string | null) {
-  return createAxios()
-    .post('users/register_demo', {
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.post('users/register_demo', {
       captcha_token: captchaToken,
-    })
-    .catch((response: any) => handleRequestError(response));
+    });
+  } catch (error: any) {
+    return handleRequestError(error);
+  }
 }
