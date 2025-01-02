@@ -20,15 +20,13 @@ thereby reducing human errors and bias, significantly improving the experience f
 Frontend
 
 * [![Next.js][Next.js]][Next-url]
-* [![Bootstrap][Bootstrap.com]][Bootstrap-url]
-* [![TailwindCSS][TailwindCSS.com]][TailwindCSS-url]
 * [![TypeScript][TypeScript.com]][TypeScript-url]
-* [![Redux][Redux.com]][Redux-url]
+* [![Mantine][Mantine]][Mantine-url]
 
 Backend
 
-* [![Express.js][Express.com]][Express-url]
-* [![Node.js][Node.com]][Node-url]
+* [![Python][Python]][Python-url]
+* [![FastAPI][FastAPI]][FastAPI-url]
 * [![PostgreSQL][PostgreSQL.com]][PostgreSQL-url]
 * [![Firebase][Firebase.com]][Firebase-url]
 
@@ -73,23 +71,17 @@ This project includes code from the following open-source project:
 [Next.js]: https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white
 [Next-url]: https://nextjs.org/
 
-[TailwindCSS.com]: https://img.shields.io/badge/TailwindCSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white
-[TailwindCSS-url]: https://tailwindcss.com/
-
-[Bootstrap.com]: https://img.shields.io/badge/Bootstrap-563D7C?style=for-the-badge&logo=bootstrap&logoColor=white
-[Bootstrap-url]: https://getbootstrap.com
-
 [TypeScript.com]: https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white
 [TypeScript-url]: https://www.typescriptlang.org/
 
-[Redux.com]: https://img.shields.io/badge/Redux-764ABC?style=for-the-badge&logo=redux&logoColor=white
-[Redux-url]: https://redux.js.org/
+[Mantine]: https://img.shields.io/badge/Mantine-339af0?style=for-the-badge&logo=mantine&logoColor=white
+[Mantine-url]: https://mantine.dev/
 
-[Express.com]: https://img.shields.io/badge/Express.js-404D59?style=for-the-badge&logo=express&logoColor=white
-[Express-url]: https://expressjs.com/
+[Python]: https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white
+[Python-url]: https://www.python.org/
 
-[Node.com]: https://img.shields.io/badge/Node.js-8CC84B?style=for-the-badge&logo=node.js&logoColor=white
-[Node-url]: https://nodejs.org/
+[FastAPI]: https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white
+[FastAPI-url]: https://fastapi.tiangolo.com/
 
 [PostgreSQL.com]: https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white
 [PostgreSQL-url]: https://www.postgresql.org/
