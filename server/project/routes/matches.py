@@ -26,7 +26,7 @@ from project.models.db.match import (
 )
 from project.models.db.stage_item import StageType
 from project.models.db.user import UserPublic
-from project.routes.auth import user_authenticated_for_tournament
+from project.routes.auth import firebase_user_authenticated
 from project.routes.models import SingleMatchResponse, SuccessResponse, UpcomingMatchesResponse
 from project.routes.util import match_dependency
 from project.sql.courts import get_all_courts_in_tournament
@@ -53,7 +53,7 @@ async def get_matches_to_schedule(
     iterations: int = 2_000,
     only_recommended: bool = False,
     limit: int = 50,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> UpcomingMatchesResponse:
     match_filter = MatchFilter(
         elo_diff_threshold=elo_diff_threshold,
@@ -75,7 +75,7 @@ async def get_matches_to_schedule(
 @router.delete("/tournaments/{tournament_id}/matches/{match_id}", response_model=SuccessResponse)
 async def delete_match(
     tournament_id: TournamentId,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
     match: Match = Depends(match_dependency),
 ) -> SuccessResponse:
     round_ = await get_round_by_id(tournament_id, match.round_id)
@@ -99,7 +99,7 @@ async def delete_match(
 async def create_match(
     tournament_id: TournamentId,
     match_body: MatchCreateBodyFrontend,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SingleMatchResponse:
     await check_foreign_keys_belong_to_tournament(match_body, tournament_id)
 
@@ -125,7 +125,7 @@ async def create_match(
 @router.post("/tournaments/{tournament_id}/schedule_matches", response_model=SuccessResponse)
 async def schedule_matches(
     tournament_id: TournamentId,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     stages = await get_full_tournament_details(tournament_id)
     await schedule_all_unscheduled_matches(tournament_id, stages)
@@ -139,7 +139,7 @@ async def reschedule_match(
     tournament_id: TournamentId,
     match_id: MatchId,
     body: MatchRescheduleBody,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     await check_foreign_keys_belong_to_tournament(body, tournament_id)
     await handle_match_reschedule(tournament_id, body, match_id)
@@ -152,7 +152,7 @@ async def update_match_by_id(
     tournament_id: TournamentId,
     match_id: MatchId,
     match_body: MatchBody,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
     match: Match = Depends(match_dependency),
 ) -> SuccessResponse:
     await check_foreign_keys_belong_to_tournament(match_body, tournament_id)

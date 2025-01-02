@@ -45,7 +45,7 @@ from project.utils.db import insert_generic
 from project.utils.dummy_records import DUMMY_CLUB, DUMMY_RANKING1, DUMMY_TOURNAMENT
 from project.utils.id_types import TeamId
 from project.utils.types import BaseModelT
-from tests.integration_tests.mocks import get_mock_token, get_mock_user
+from tests.integration_tests.mocks import get_mock_user
 from tests.integration_tests.models import AuthContext
 
 
@@ -169,32 +169,32 @@ async def inserted_user_x_club(user_x_club: UserXClubInsertable) -> AsyncIterato
         yield cast(UserXClub, row_inserted)
 
 
-@asynccontextmanager
-async def inserted_auth_context() -> AsyncIterator[AuthContext]:
-    mock_user = get_mock_user()
-    headers = {"Authorization": f"Bearer {get_mock_token(mock_user)}"}
-    async with (
-        inserted_user(mock_user) as user_inserted,
-        inserted_club(DUMMY_CLUB) as club_inserted,
-        inserted_tournament(
-            DUMMY_TOURNAMENT.model_copy(update={"club_id": club_inserted.id})
-        ) as tournament_inserted,
-        inserted_ranking(
-            DUMMY_RANKING1.model_copy(update={"tournament_id": tournament_inserted.id})
-        ) as ranking_inserted,
-        inserted_user_x_club(
-            UserXClubInsertable(
-                user_id=user_inserted.id,
-                club_id=club_inserted.id,
-                relation=UserXClubRelation.OWNER,
-            )
-        ) as user_x_club_inserted,
-    ):
-        yield AuthContext(
-            headers=headers,
-            user=user_inserted,
-            club=club_inserted,
-            tournament=tournament_inserted,
-            user_x_club=user_x_club_inserted,
-            ranking=ranking_inserted,
-        )
+# @asynccontextmanager
+# async def inserted_auth_context() -> AsyncIterator[AuthContext]:
+#     mock_user = get_mock_user()
+#     headers = {"Authorization": f"Bearer {get_mock_token(mock_user)}"}
+#     async with (
+#         inserted_user(mock_user) as user_inserted,
+#         inserted_club(DUMMY_CLUB) as club_inserted,
+#         inserted_tournament(
+#             DUMMY_TOURNAMENT.model_copy(update={"club_id": club_inserted.id})
+#         ) as tournament_inserted,
+#         inserted_ranking(
+#             DUMMY_RANKING1.model_copy(update={"tournament_id": tournament_inserted.id})
+#         ) as ranking_inserted,
+#         inserted_user_x_club(
+#             UserXClubInsertable(
+#                 user_id=user_inserted.id,
+#                 club_id=club_inserted.id,
+#                 relation=UserXClubRelation.OWNER,
+#             )
+#         ) as user_x_club_inserted,
+#     ):
+#         yield AuthContext(
+#             headers=headers,
+#             user=user_inserted,
+#             club=club_inserted,
+#             tournament=tournament_inserted,
+#             user_x_club=user_x_club_inserted,
+#             ranking=ranking_inserted,
+#         )

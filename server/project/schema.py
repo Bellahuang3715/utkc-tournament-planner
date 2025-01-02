@@ -173,6 +173,7 @@ users = Table(
         "account_type",
         Enum(
             "REGULAR",
+            "ADMIN",
             "DEMO",
             name="account_type",
         ),

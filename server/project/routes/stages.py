@@ -12,10 +12,7 @@ from project.logic.subscriptions import check_requirement
 from project.models.db.stage import Stage, StageActivateBody, StageUpdateBody
 from project.models.db.user import UserPublic
 from project.models.db.util import StageWithStageItems
-from project.routes.auth import (
-    user_authenticated_for_tournament,
-    user_authenticated_or_public_dashboard,
-)
+from project.routes.auth import firebase_user_authenticated
 from project.routes.models import (
     StageItemInputOptionsResponse,
     StageRankingResponse,
@@ -39,7 +36,7 @@ router = APIRouter()
 @router.get("/tournaments/{tournament_id}/stages", response_model=StagesWithStageItemsResponse)
 async def get_stages(
     tournament_id: TournamentId,
-    user: UserPublic = Depends(user_authenticated_or_public_dashboard),
+    user: UserPublic = Depends(firebase_user_authenticated),
     no_draft_rounds: bool = False,
 ) -> StagesWithStageItemsResponse:
     if no_draft_rounds is False and user is None:
@@ -56,7 +53,7 @@ async def get_stages(
 async def delete_stage(
     tournament_id: TournamentId,
     stage_id: StageId,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
     stage: StageWithStageItems = Depends(stage_dependency),
 ) -> SuccessResponse:
     if len(stage.stage_items) > 0:
@@ -79,7 +76,7 @@ async def delete_stage(
 @router.post("/tournaments/{tournament_id}/stages", response_model=SuccessResponse)
 async def create_stage(
     tournament_id: TournamentId,
-    user: UserPublic = Depends(user_authenticated_for_tournament),
+    user: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     existing_stages = await get_full_tournament_details(tournament_id)
     check_requirement(existing_stages, user, "max_stages")
@@ -93,7 +90,7 @@ async def update_stage(
     tournament_id: TournamentId,
     stage_id: StageId,
     stage_body: StageUpdateBody,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
     stage: Stage = Depends(stage_dependency),  # pylint: disable=redefined-builtin
 ) -> SuccessResponse:
     values = {"tournament_id": tournament_id, "stage_id": stage_id}
@@ -114,7 +111,7 @@ async def update_stage(
 async def activate_next_stage(
     tournament_id: TournamentId,
     stage_body: StageActivateBody,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     new_active_stage_id = await get_next_stage_in_tournament(tournament_id, stage_body.direction)
     if new_active_stage_id is None:
@@ -142,7 +139,7 @@ async def activate_next_stage(
 )
 async def get_available_inputs(
     tournament_id: TournamentId,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> StageItemInputOptionsResponse:
     stages = await get_full_tournament_details(tournament_id)
     teams = await get_teams_with_members(tournament_id)
@@ -152,7 +149,7 @@ async def get_available_inputs(
 @router.get("/tournaments/{tournament_id}/next_stage_rankings")
 async def get_next_stage_rankings(
     tournament_id: TournamentId,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> StageRankingResponse:
     """
     Get the rankings for the stage items in this stage.

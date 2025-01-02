@@ -17,10 +17,7 @@ from project.models.db.team import (
     TeamMultiBody,
 )
 from project.models.db.user import UserPublic
-from project.routes.auth import (
-    user_authenticated_for_tournament,
-    user_authenticated_or_public_dashboard,
-)
+from project.routes.auth import firebase_user_authenticated
 from project.routes.models import (
     PaginatedTeams,
     SingleTeamResponse,
@@ -72,7 +69,7 @@ async def update_team_members(
 async def get_teams(
     tournament_id: TournamentId,
     pagination: PaginationTeams = Depends(),
-    _: UserPublic = Depends(user_authenticated_or_public_dashboard),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> TeamsWithPlayersResponse:
     return TeamsWithPlayersResponse(
         data=PaginatedTeams(
@@ -86,7 +83,7 @@ async def get_teams(
 async def update_team_by_id(
     tournament_id: TournamentId,
     team_body: TeamBody,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
     team: Team = Depends(team_dependency),
 ) -> SingleTeamResponse:
     await check_foreign_keys_belong_to_tournament(team_body, tournament_id)
@@ -116,7 +113,7 @@ async def update_team_by_id(
 async def update_team_logo(
     tournament_id: TournamentId,
     file: UploadFile | None = None,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
     team: Team = Depends(team_dependency),
 ) -> SingleTeamResponse:
     old_logo_path = await get_team_logo_path(tournament_id, team.id)
@@ -152,7 +149,7 @@ async def update_team_logo(
 @router.delete("/tournaments/{tournament_id}/teams/{team_id}", response_model=SuccessResponse)
 async def delete_team(
     tournament_id: TournamentId,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
     team: FullTeamWithPlayers = Depends(team_with_players_dependency),
 ) -> SuccessResponse:
     with check_foreign_key_violation(
@@ -171,7 +168,7 @@ async def delete_team(
 async def create_team(
     team_to_insert: TeamBody,
     tournament_id: TournamentId,
-    user: UserPublic = Depends(user_authenticated_for_tournament),
+    user: UserPublic = Depends(firebase_user_authenticated),
 ) -> SingleTeamResponse:
     await check_foreign_keys_belong_to_tournament(team_to_insert, tournament_id)
 
@@ -197,7 +194,7 @@ async def create_team(
 async def create_multiple_teams(
     team_body: TeamMultiBody,
     tournament_id: TournamentId,
-    user: UserPublic = Depends(user_authenticated_for_tournament),
+    user: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     team_names = [team.strip() for team in team_body.names.split("\n") if len(team) > 0]
     existing_teams = await get_teams_with_members(tournament_id)
