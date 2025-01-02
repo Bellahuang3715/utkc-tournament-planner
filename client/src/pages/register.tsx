@@ -49,7 +49,7 @@ export default function CreateAccount() {
       await router.push("/");
     }
     catch (error: any) {
-      alert(error.message); // Display error message
+      alert(error.message);
     }
   }
 

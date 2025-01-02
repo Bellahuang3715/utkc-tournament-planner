@@ -20,7 +20,6 @@ thereby reducing human errors and bias, significantly improving the experience f
 Frontend
 
 * [![Next.js][Next.js]][Next-url]
-* [![Bootstrap][Bootstrap.com]][Bootstrap-url]
 * [![TailwindCSS][TailwindCSS.com]][TailwindCSS-url]
 * [![TypeScript][TypeScript.com]][TypeScript-url]
 * [![Redux][Redux.com]][Redux-url]

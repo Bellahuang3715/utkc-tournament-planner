@@ -10,9 +10,9 @@ import DeleteButton from '../buttons/delete';
 import PlayerList from '../info/player_list';
 import TeamUpdateModal from '../modals/team_update_modal';
 import { NoContent } from '../no_content/empty_table_info';
+import RequestErrorAlert from '../utils/error_alert';
 import { TableSkeletonSingleColumn } from '../utils/skeletons';
 import TableLayout, { TableState, ThNotSortable, ThSortable, sortTableEntries } from './table';
-import { mockTeams } from '../../data/mock_teams'; // Import mock data
 
 export default function TeamsTable({
   tournamentData,
@@ -28,14 +28,11 @@ export default function TeamsTable({
   teamCount: number;
 }) {
   const { t } = useTranslation();
-  // if (swrTeamsResponse.error) return <RequestErrorAlert error={swrTeamsResponse.error} />;
+  if (swrTeamsResponse.error) return <RequestErrorAlert error={swrTeamsResponse.error} />;
 
   if (swrTeamsResponse.isLoading) {
     return <TableSkeletonSingleColumn />;
   }
-
-  teams = mockTeams;
-  console.log(teams);
 
   const rows = teams
     .sort((p1: TeamInterface, p2: TeamInterface) => sortTableEntries(p1, p2, tableState))

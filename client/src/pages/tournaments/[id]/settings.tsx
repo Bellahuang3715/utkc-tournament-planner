@@ -42,7 +42,6 @@ import {
 } from "../../../services/tournament";
 import TournamentLayout from "../_tournament_layout";
 
-import { mockTournaments } from "../../../data/mock_tournaments";
 
 export function TournamentLogo({
   tournament,
@@ -67,8 +66,6 @@ function GeneralTournamentForm({
 }) {
   const router = useRouter();
   const { t } = useTranslation();
-
-  tournament = mockTournaments[0];
 
   const form = useForm({
     initialValues: {
@@ -271,8 +268,7 @@ export default function SettingsPage() {
     content = <GenericSkeletonThreeRows />;
   }
 
-  // if (tournamentDataFull != null) {
-  if (true) {
+  if (tournamentDataFull != null) {
     content = (
       <GeneralTournamentForm
         tournament={tournamentDataFull}

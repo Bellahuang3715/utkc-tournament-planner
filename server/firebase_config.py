@@ -1,8 +1,8 @@
-import firebase_admin
-from firebase_admin import credentials
 import os
 import base64
 import json
+import firebase_admin
+from firebase_admin import credentials
 from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=".env.local")
@@ -16,9 +16,5 @@ if not firebase_admin._apps:
     decoded_creds = json.loads(base64.b64decode(encoded_creds))
     cred = credentials.Certificate(decoded_creds)
     firebase_admin.initialize_app(cred)
-
-# if not firebase_admin._apps:
-#     cred = credentials.Certificate("./firebase-adminsdk.json")
-#     firebase_admin.initialize_app(cred)
 
 print("Firebase initialized.")
