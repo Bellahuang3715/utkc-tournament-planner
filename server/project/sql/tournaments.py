@@ -28,21 +28,18 @@ async def sql_get_tournament_by_endpoint_name(endpoint_name: str) -> Tournament 
 
 
 async def sql_get_tournaments(
-    club_ids: tuple[int, ...], endpoint_name: str | None = None
+    endpoint_name: str | None = None
 ) -> list[Tournament]:
     query = """
         SELECT *
         FROM tournaments
-        WHERE club_id = any(:club_ids)
         """
-
-    params: dict[str, Any] = {"club_ids": club_ids}
 
     if endpoint_name is not None:
         query += "AND dashboard_endpoint = :endpoint_name"
         params = {**params, "endpoint_name": endpoint_name}
 
-    result = await database.fetch_all(query=query, values=params)
+    result = await database.fetch_all(query=query)
     return [Tournament.model_validate(x) for x in result]
 
 

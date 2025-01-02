@@ -13,7 +13,6 @@ import { DateTime } from '../utils/datetime';
 import RequestErrorAlert from '../utils/error_alert';
 import { TableSkeletonSingleColumn } from '../utils/skeletons';
 import TableLayout, { TableState, ThNotSortable, ThSortable, sortTableEntries } from './table';
-import { mockPlayers } from '../../data/mock_players'; // Import mock data
 
 export function WinDistributionTitle() {
   const { t } = useTranslation();
@@ -47,13 +46,10 @@ export default function PlayersTable({
 }) {
   const { t } = useTranslation();
   
-  // const players: Player[] =
-  //   swrPlayersResponse.data != null ? swrPlayersResponse.data.data.players : [];
+  const players: Player[] =
+    swrPlayersResponse.data != null ? swrPlayersResponse.data.data.players : [];
 
-  const players: Player[] = mockPlayers;
-
-
-  // if (swrPlayersResponse.error) return <RequestErrorAlert error={swrPlayersResponse.error} />;
+  if (swrPlayersResponse.error) return <RequestErrorAlert error={swrPlayersResponse.error} />;
 
   if (swrPlayersResponse.isLoading) {
     return <TableSkeletonSingleColumn />;

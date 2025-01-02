@@ -29,9 +29,7 @@ from project.models.db.stage_item import (
 )
 from project.models.db.user import UserPublic
 from project.models.db.util import StageItemWithRounds
-from project.routes.auth import (
-    user_authenticated_for_tournament,
-)
+from project.routes.auth import firebase_user_authenticated
 from project.routes.models import SuccessResponse
 from project.routes.util import stage_item_dependency
 from project.sql.courts import get_all_courts_in_tournament
@@ -65,7 +63,7 @@ router = APIRouter()
 async def delete_stage_item(
     tournament_id: TournamentId,
     stage_item_id: StageItemId,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
     __: StageItemWithRounds = Depends(stage_item_dependency),
 ) -> SuccessResponse:
     with check_foreign_key_violation(
@@ -80,7 +78,7 @@ async def delete_stage_item(
 async def create_stage_item(
     tournament_id: TournamentId,
     stage_body: StageItemCreateBody,
-    user: UserPublic = Depends(user_authenticated_for_tournament),
+    user: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     await check_foreign_keys_belong_to_tournament(stage_body, tournament_id)
 
@@ -100,7 +98,7 @@ async def update_stage_item(
     tournament_id: TournamentId,
     stage_item_id: StageItemId,
     stage_item_body: StageItemUpdateBody,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
     stage_item: StageItemWithRounds = Depends(stage_item_dependency),
 ) -> SuccessResponse:
     if stage_item is None:
@@ -133,7 +131,7 @@ async def start_next_round(
     stage_item_id: StageItemId,
     active_next_body: StageItemActivateNextBody,
     stage_item: StageItemWithRounds = Depends(stage_item_dependency),
-    user: UserPublic = Depends(user_authenticated_for_tournament),
+    user: UserPublic = Depends(firebase_user_authenticated),
     elo_diff_threshold: int = 200,
     iterations: int = 2_000,
     only_recommended: bool = False,

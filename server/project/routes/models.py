@@ -16,7 +16,6 @@ from project.models.db.team import FullTeamWithPlayers, Team
 from project.models.db.tournament import Tournament
 from project.models.db.user import UserPublic
 from project.models.db.util import StageWithStageItems
-from project.routes.auth import Token
 from project.utils.id_types import StageId, StageItemId
 
 DataT = TypeVar("DataT")
@@ -85,10 +84,6 @@ class SingleTeamResponse(DataResponse[Team]):
 
 
 class UserPublicResponse(DataResponse[UserPublic]):
-    pass
-
-
-class TokenResponse(DataResponse[Token]):
     pass
 
 

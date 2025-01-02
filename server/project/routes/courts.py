@@ -6,10 +6,7 @@ from project.database import database
 from project.logic.subscriptions import check_requirement
 from project.models.db.court import Court, CourtBody, CourtToInsert
 from project.models.db.user import UserPublic
-from project.routes.auth import (
-    user_authenticated_for_tournament,
-    user_authenticated_or_public_dashboard,
-)
+from project.routes.auth import firebase_user_authenticated
 from project.routes.models import CourtsResponse, SingleCourtResponse, SuccessResponse
 from project.schema import courts
 from project.sql.courts import get_all_courts_in_tournament, sql_delete_court, update_court
@@ -24,7 +21,7 @@ router = APIRouter()
 @router.get("/tournaments/{tournament_id}/courts", response_model=CourtsResponse)
 async def get_courts(
     tournament_id: TournamentId,
-    _: UserPublic = Depends(user_authenticated_or_public_dashboard),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> CourtsResponse:
     return CourtsResponse(data=await get_all_courts_in_tournament(tournament_id))
 
@@ -34,7 +31,7 @@ async def update_court_by_id(
     tournament_id: TournamentId,
     court_id: CourtId,
     court_body: CourtBody,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SingleCourtResponse:
     await update_court(
         tournament_id=tournament_id,
@@ -58,7 +55,7 @@ async def update_court_by_id(
 async def delete_court(
     tournament_id: TournamentId,
     court_id: CourtId,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     stages = await get_full_tournament_details(tournament_id, no_draft_rounds=False)
     used_in_matches_count = 0
@@ -83,7 +80,7 @@ async def delete_court(
 async def create_court(
     court_body: CourtBody,
     tournament_id: TournamentId,
-    user: UserPublic = Depends(user_authenticated_for_tournament),
+    user: UserPublic = Depends(firebase_user_authenticated),
 ) -> SingleCourtResponse:
     existing_courts = await get_all_courts_in_tournament(tournament_id)
     check_requirement(existing_courts, user, "max_courts")

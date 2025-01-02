@@ -4,10 +4,10 @@ import { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
 import { useRouter } from 'next/router';
 import useSWR, { SWRResponse } from 'swr';
 
-import { Pagination } from '../components/utils/util';
+import { getBaseURL, Pagination } from '../components/utils/util';
 import { SchedulerSettings } from '../interfaces/match';
 import { RoundInterface } from '../interfaces/round';
-import { getLogin } from './local_storage';
+import { getAuth } from 'firebase/auth';
 
 // TODO: This is a workaround for the fact that axios is not properly typed.
 const axios: typeof Axios = require('axios').default;
@@ -58,14 +58,20 @@ export function getBaseApiUrl() {
 }
 
 export function createAxios() {
-  const user = getLogin();
-  const access_token = user != null ? user.access_token : '';
-  return axios.create({
-    baseURL: getBaseApiUrl(),
-    headers: {
-      Authorization: `bearer ${access_token}`,
-      Accept: 'application/json',
-    },
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error("User is not authenticated");
+  }
+
+  return user.getIdToken().then((access_token) => {
+    return axios.create({
+      baseURL: getBaseApiUrl(),
+      headers: {
+        Authorization: `Bearer ${access_token}`, // Use Firebase ID token
+        Accept: 'application/json',
+      },
+    });
   });
 }
 
@@ -74,7 +80,8 @@ export async function awaitRequestAndHandleError(
 ): Promise<AxiosError | AxiosResponse> {
   let response = null;
   try {
-    response = await requestFunction(createAxios());
+    const instance = await createAxios();
+    response = await requestFunction(instance);
   } catch (exc: any) {
     if (exc.name === 'AxiosError') {
       handleRequestError(exc);
@@ -92,15 +99,17 @@ function getTimeState() {
   return { time: new Date() };
 }
 
-const fetcher = (url: string) =>
-  createAxios()
-    .get(url)
-    .then((res: { data: any }) => res.data);
+const fetcher = async (url: string) => {
+  const axiosInstance = await createAxios();
+  return axiosInstance.get(url).then((res: { data: any }) => res.data);
+}
 
-const fetcherWithTimestamp = (url: string) =>
-  createAxios()
+const fetcherWithTimestamp = async (url: string) => {
+  const axiosInstance = await createAxios();
+  return axiosInstance
     .get(url)
     .then((res: { data: any }) => ({ ...res.data, ...getTimeState() }));
+};
 
 export function getClubs(): SWRResponse {
   return useSWR('clubs', fetcher);
@@ -214,20 +223,24 @@ export async function uploadTournamentLogo(tournament_id: number, file: any) {
   const bodyFormData = new FormData();
   bodyFormData.append('file', file, file.name);
 
-  return createAxios().post(`tournaments/${tournament_id}/logo`, bodyFormData);
+  const axiosInstance = await createAxios();
+  return axiosInstance.post(`tournaments/${tournament_id}/logo`, bodyFormData);
 }
 
 export async function removeTournamentLogo(tournament_id: number) {
-  return createAxios().post(`tournaments/${tournament_id}/logo`);
+  const axiosInstance = await createAxios();
+  return axiosInstance.post(`tournaments/${tournament_id}/logo`);
 }
 
 export async function uploadTeamLogo(tournament_id: number, team_id: number, file: any) {
   const bodyFormData = new FormData();
   bodyFormData.append('file', file, file.name);
 
-  return createAxios().post(`tournaments/${tournament_id}/teams/${team_id}/logo`, bodyFormData);
+  const axiosInstance = await createAxios();
+  return axiosInstance.post(`tournaments/${tournament_id}/teams/${team_id}/logo`, bodyFormData);
 }
 
 export async function removeTeamLogo(tournament_id: number, team_id: number) {
-  return createAxios().post(`tournaments/${tournament_id}/teams/${team_id}/logo`);
+  const axiosInstance = await createAxios();
+  return axiosInstance.post(`tournaments/${tournament_id}/teams/${team_id}/logo`);
 }

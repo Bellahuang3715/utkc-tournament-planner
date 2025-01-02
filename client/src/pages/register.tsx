@@ -21,7 +21,7 @@ import { useAuth } from "../context/AuthContext";
 import { PasswordStrength } from "../components/utils/password";
 import { ClientOnly } from "../components/utils/react";
 import { HCaptchaInput } from "../components/utils/util";
-// import { registerUser } from "../services/user";
+import { registerUserDb } from "../services/user";
 import classes from './register.module.css';
 import { UserToRegisterInterface } from "../interfaces/user";
 
@@ -39,15 +39,17 @@ export default function CreateAccount() {
 
   async function registerAndRedirect(values: UserToRegisterInterface) {
     try {
-      // const response = await registerUser(values);
-      const response = await registerUser(values.email, values.password, values.name);
-      console.log("User registered:", response);
-      
-      localStorage.setItem("login", JSON.stringify(response));
+      // Register user in Firebase
+      const firebaseUser = await registerUser(values.email, values.password, values.name);
+      console.log("User registered:", firebaseUser);
+
+      // Send user data to backend for database insertion
+      const response = await registerUserDb(values, captchaToken);
+      console.log("User registered in database:", response);
       await router.push("/");
     }
     catch (error: any) {
-      alert(error.message); // Display error message
+      alert(error.message);
     }
   }
 

@@ -4,7 +4,7 @@ from project.database import database
 from project.logic.subscriptions import check_requirement
 from project.models.db.player import Player, PlayerBody, PlayerMultiBody
 from project.models.db.user import UserPublic
-from project.routes.auth import user_authenticated_for_tournament
+from project.routes.auth import firebase_user_authenticated
 from project.routes.models import (
     PaginatedPlayers,
     PlayersResponse,
@@ -31,7 +31,7 @@ async def get_players(
     tournament_id: TournamentId,
     not_in_team: bool = False,
     pagination: PaginationPlayers = Depends(),
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> PlayersResponse:
     return PlayersResponse(
         data=PaginatedPlayers(
@@ -48,7 +48,7 @@ async def update_player_by_id(
     tournament_id: TournamentId,
     player_id: PlayerId,
     player_body: PlayerBody,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SinglePlayerResponse:
     await database.execute(
         query=players.update().where(
@@ -73,7 +73,7 @@ async def update_player_by_id(
 async def delete_player(
     tournament_id: TournamentId,
     player_id: PlayerId,
-    _: UserPublic = Depends(user_authenticated_for_tournament),
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     await sql_delete_player(tournament_id, player_id)
     return SuccessResponse()
@@ -83,7 +83,7 @@ async def delete_player(
 async def create_single_player(
     player_body: PlayerBody,
     tournament_id: TournamentId,
-    user: UserPublic = Depends(user_authenticated_for_tournament),
+    user: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     existing_players = await get_all_players_in_tournament(tournament_id)
     check_requirement(existing_players, user, "max_players")
@@ -95,7 +95,7 @@ async def create_single_player(
 async def create_multiple_players(
     player_body: PlayerMultiBody,
     tournament_id: TournamentId,
-    user: UserPublic = Depends(user_authenticated_for_tournament),
+    user: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     player_names = [player.strip() for player in player_body.names.split("\n") if len(player) > 0]
     existing_players = await get_all_players_in_tournament(tournament_id)
