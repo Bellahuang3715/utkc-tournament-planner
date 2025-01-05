@@ -4,11 +4,11 @@ import { createAxios, getTournamentByEndpointName, handleRequestError } from './
 export async function createTournament(
   club_id: number,
   name: string,
-  dashboard_public: boolean,
-  dashboard_endpoint: string,
-  players_can_be_in_multiple_teams: boolean,
-  auto_assign_courts: boolean,
+  location: string,
+  description: string,
   start_time: string,
+  end_time: string,
+  auto_assign_courts: boolean,
   duration_minutes: number,
   margin_minutes: number
 ) {
@@ -17,11 +17,11 @@ export async function createTournament(
     return await axiosInstance.post('tournaments', {
       name,
       club_id,
-      dashboard_public,
-      dashboard_endpoint,
-      players_can_be_in_multiple_teams,
-      auto_assign_courts,
+      location,
+      description,
       start_time,
+      end_time,
+      auto_assign_courts,
       duration_minutes,
       margin_minutes,
     });
