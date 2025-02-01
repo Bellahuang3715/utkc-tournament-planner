@@ -89,19 +89,3 @@ async def create_single_player(
     check_requirement(existing_players, user, "max_players")
     await insert_player(player_body, tournament_id)
     return SuccessResponse()
-
-
-@router.post("/tournaments/{tournament_id}/players_multi", response_model=SuccessResponse)
-async def create_multiple_players(
-    player_body: PlayerMultiBody,
-    tournament_id: TournamentId,
-    user: UserPublic = Depends(firebase_user_authenticated),
-) -> SuccessResponse:
-    player_names = [player.strip() for player in player_body.names.split("\n") if len(player) > 0]
-    existing_players = await get_all_players_in_tournament(tournament_id)
-    check_requirement(existing_players, user, "max_players", additions=len(player_names))
-
-    for player_name in player_names:
-        await insert_player(PlayerBody(name=player_name, active=player_body.active), tournament_id)
-
-    return SuccessResponse()

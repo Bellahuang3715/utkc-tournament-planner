@@ -1,21 +1,21 @@
 import { createAxios, handleRequestError } from './adapter';
 
 export async function createPlayer(tournament_id: number, name: string, active: boolean) {
-  return createAxios()
-    .post(`tournaments/${tournament_id}/players`, { name, active })
-    .catch((response: any) => handleRequestError(response));
-}
-
-export async function createMultiplePlayers(tournament_id: number, names: string, active: boolean) {
-  return createAxios()
-    .post(`tournaments/${tournament_id}/players_multi`, { names, active })
-    .catch((response: any) => handleRequestError(response));
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.post(`tournaments/${tournament_id}/players`, { name, active });
+  } catch (error: any) {
+    handleRequestError(error);
+  }
 }
 
 export async function deletePlayer(tournament_id: number, player_id: number) {
-  return createAxios()
-    .delete(`tournaments/${tournament_id}/players/${player_id}`)
-    .catch((response: any) => handleRequestError(response));
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.delete(`tournaments/${tournament_id}/players/${player_id}`);
+  } catch (error: any) {
+    handleRequestError(error);
+  }
 }
 
 export async function updatePlayer(
@@ -25,11 +25,14 @@ export async function updatePlayer(
   active: boolean,
   team_id: string | null
 ) {
-  return createAxios()
-    .put(`tournaments/${tournament_id}/players/${player_id}`, {
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.put(`tournaments/${tournament_id}/players/${player_id}`, {
       name,
       active,
       team_id,
-    })
-    .catch((response: any) => handleRequestError(response));
+    });
+  } catch (error: any) {
+    handleRequestError(error);
+  }
 }

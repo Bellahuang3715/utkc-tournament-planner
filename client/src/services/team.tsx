@@ -6,23 +6,34 @@ export async function createTeam(
   active: boolean,
   player_ids: string[]
 ) {
-  return createAxios().post(`tournaments/${tournament_id}/teams`, {
-    name,
-    active,
-    player_ids,
-  });
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.post(`tournaments/${tournament_id}/teams`, {
+      name,
+      active,
+      player_ids,
+    });
+  } catch (error: any) {
+    return handleRequestError(error);
+  }
 }
 
 export async function createTeams(tournament_id: number, names: string, active: boolean) {
-  return createAxios()
-    .post(`tournaments/${tournament_id}/teams_multi`, { names, active })
-    .catch((response: any) => handleRequestError(response));
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.post(`tournaments/${tournament_id}/teams_multi`, { names, active });
+  } catch (error: any) {
+    return handleRequestError(error);
+  }
 }
 
 export async function deleteTeam(tournament_id: number, team_id: number) {
-  await createAxios()
-    .delete(`tournaments/${tournament_id}/teams/${team_id}`)
-    .catch((response: any) => handleRequestError(response));
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.delete(`tournaments/${tournament_id}/teams/${team_id}`);
+  } catch (error: any) {
+    handleRequestError(error);
+  }
 }
 
 export async function updateTeam(
