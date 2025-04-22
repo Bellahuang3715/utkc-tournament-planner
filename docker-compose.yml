@@ -1,0 +1,58 @@
+networks:
+  bracket_lan:
+    driver: bridge
+
+volumes:
+  bracket_pg_data:
+
+services:
+  bracket-backend:
+    container_name: bracket-backend
+    depends_on:
+      - postgres
+    environment:
+      ENVIRONMENT: DEVELOPMENT
+      CORS_ORIGINS: http://localhost:3000
+      PG_DSN: postgresql://bracket_dev:bracket_dev@postgres:5432/bracket_dev
+    # image: ghcr.io/evroon/bracket-backend
+    build:
+      context: ./server  # Use local source instead of prebuilt image
+      dockerfile: Dockerfile
+    networks:
+      - bracket_lan
+    ports:
+      - 8400:8400
+    restart: unless-stopped
+    volumes:
+      - ./server:/app  # Mount the entire backend directory
+      - /app/node_modules  # Prevent overwriting node_modules
+    command: ["yarn", "dev"]  # Use 'dev' for hot-reloading
+
+  bracket-frontend:
+    container_name: bracket-frontend
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8400
+      NEXT_PUBLIC_HCAPTCHA_SITE_KEY: b29c81e4-ab9c-423e-8ca2-01c882e60c9c
+    # image: ghcr.io/evroon/bracket-frontend
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+    volumes:
+      - ./client:/app  # Mount the entire frontend directory
+      - /app/node_modules  # Prevent overwriting node_modules
+    command: ["yarn", "dev", "-p", "3000", "-H", "0.0.0.0"]  # Start in development mode
+
+  postgres:
+    environment:
+      POSTGRES_DB: bracket_dev
+      POSTGRES_PASSWORD: bracket_dev
+      POSTGRES_USER: bracket_dev
+    image: postgres
+    networks:
+      - bracket_lan
+    restart: always
+    volumes:
+      - bracket_pg_data:/var/lib/postgresql/data
