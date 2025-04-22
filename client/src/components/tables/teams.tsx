@@ -7,9 +7,9 @@ import { TeamInterface } from '../../interfaces/team';
 import { TournamentMinimal } from '../../interfaces/tournament';
 import { deleteTeam } from '../../services/team';
 import DeleteButton from '../buttons/delete';
-import PlayerList from '../info/player_list';
 import TeamUpdateModal from '../modals/team_update_modal';
 import { NoContent } from '../no_content/empty_table_info';
+import { DateTime } from '../utils/datetime';
 import RequestErrorAlert from '../utils/error_alert';
 import { TableSkeletonSingleColumn } from '../utils/skeletons';
 import TableLayout, { TableState, ThNotSortable, ThSortable, sortTableEntries } from './table';
@@ -46,8 +46,9 @@ export default function TeamsTable({
           )}
         </Table.Td>
         <Table.Td>{team.name}</Table.Td>
+        <Table.Td>{team.dojo || '-'}</Table.Td>
         <Table.Td>
-          <PlayerList team={team} />
+          <DateTime datetime={team.created} />
         </Table.Td>
         <Table.Td>
           <TeamUpdateModal

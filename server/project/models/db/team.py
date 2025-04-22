@@ -64,7 +64,6 @@ class FullTeamWithPlayers(TeamWithPlayers, Team):
 class TeamBody(BaseModelORM):
     name: Annotated[str, StringConstraints(min_length=1, max_length=30)]
     active: bool
-    player_ids: set[PlayerId]
 
 
 class TeamMultiBody(BaseModelORM):

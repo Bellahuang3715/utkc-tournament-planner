@@ -100,7 +100,7 @@ export default function PlayersTable({
               {t('status')}
             </ThSortable>
             <ThSortable state={tableState} field="name">
-              {t('title')}
+              {t('player_name')}
             </ThSortable>
             <ThSortable state={tableState} field="created">
               {t('created')}

@@ -1,6 +1,9 @@
 export interface Player {
   id: number;
   name: string;
+  rank: string;
+  division: string;
+  lunch: string;
   active: boolean;
   created: string;
   tournament_id: number;

@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import Optional
 
 from heliclockter import datetime_utc
 from pydantic import Field
@@ -8,8 +9,12 @@ from project.utils.id_types import PlayerId, TournamentId
 
 
 class PlayerInsertable(BaseModelORM):
-    active: bool
     name: str
+    rank: str
+    division: str
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    lunch: str
     created: datetime_utc
     tournament_id: TournamentId
     elo_score: Decimal = Decimal("0.0")
@@ -17,6 +22,9 @@ class PlayerInsertable(BaseModelORM):
     wins: int = 0
     draws: int = 0
     losses: int = 0
+    active: bool
+    paid: bool
+    bogu: Optional[bool] = None
 
 
 class Player(PlayerInsertable):

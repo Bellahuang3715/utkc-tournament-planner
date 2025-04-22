@@ -34,7 +34,6 @@ export default function TeamUpdateModal({
     initialValues: {
       name: team.name,
       active: team.active,
-      player_ids: team.players.map((player) => `${player.id}`),
     },
 
     validate: {
@@ -57,7 +56,6 @@ export default function TeamUpdateModal({
               team.id,
               values.name,
               values.active,
-              values.player_ids
             );
             if (requestSucceeded(result)) {
               await swrTeamsResponse.mutate();

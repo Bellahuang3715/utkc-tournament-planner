@@ -174,57 +174,89 @@ DUMMY_TEAM4 = TeamInsertable(
 
 
 DUMMY_PLAYER1 = PlayerInsertable(
-    name="Player 01",
+    name="John Doe",
+    rank="1D",
+    division="A",
+    lunch="Regular",
     active=True,
+    paid=True,
     created=DUMMY_MOCK_TIME,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
 )
 
 DUMMY_PLAYER2 = PlayerInsertable(
-    name="Player 02",
+    name="Thomas Kim",
+    rank="1D",
+    division="A",
+    lunch="Regular",
     active=True,
+    paid=True,
     created=DUMMY_MOCK_TIME,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
 )
 
 DUMMY_PLAYER3 = PlayerInsertable(
-    name="Player 03",
+    name="Wryan Jeong",
+    rank="4D",
+    division="C",
+    lunch="Regular",
     active=True,
+    paid=True,
     created=DUMMY_MOCK_TIME,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
 )
 
 DUMMY_PLAYER4 = PlayerInsertable(
-    name="Player 04",
+    name="Taeyoon You",
+    rank="3D",
+    division="B",
+    lunch="Regular",
     active=True,
+    paid=True,
     created=DUMMY_MOCK_TIME,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
 )
 
 DUMMY_PLAYER5 = PlayerInsertable(
-    name="Player 05",
+    name="Jin Kim",
+    rank="Kyu",
+    division="A",
+    lunch="Vegan",
     active=True,
+    paid=True,
     created=DUMMY_MOCK_TIME,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
 )
 
 DUMMY_PLAYER6 = PlayerInsertable(
-    name="Player 06",
+    name="Kisoo Choe",
+    rank="2D",
+    division="B",
+    lunch="Regular",
     active=True,
+    paid=True,
     created=DUMMY_MOCK_TIME,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
 )
 
 DUMMY_PLAYER7 = PlayerInsertable(
-    name="Player 07",
+    name="Sang Hoon Lee",
+    rank="6D",
+    division="C",
+    lunch="Regular",
     active=True,
+    paid=True,
     created=DUMMY_MOCK_TIME,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
 )
 
 DUMMY_PLAYER8 = PlayerInsertable(
-    name="Player 08",
+    name="Alex Jeong",
+    rank="Kyu",
+    division="A",
+    lunch="Regular",
     active=True,
+    paid=True,
     created=DUMMY_MOCK_TIME,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
 )

@@ -94,7 +94,6 @@ async def update_team_by_id(
         ),
         values=team_body.model_dump(exclude={"player_ids"}),
     )
-    await update_team_members(team.id, tournament_id, team_body.player_ids)
 
     return SingleTeamResponse(
         data=assert_some(
@@ -183,7 +182,6 @@ async def create_team(
             tournament_id=tournament_id,
         ).model_dump(),
     )
-    await update_team_members(last_record_id, tournament_id, team_to_insert.player_ids)
 
     team_result = await get_team_by_id(last_record_id, tournament_id)
     assert team_result is not None

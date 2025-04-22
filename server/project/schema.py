@@ -151,6 +151,10 @@ players = Table(
     metadata,
     Column("id", BigInteger, primary_key=True, index=True),
     Column("name", String, nullable=False, index=True),
+    Column("rank", String, nullable=False, index=True),
+    Column("division", String, nullable=True, index=True),
+    Column("age", Integer, nullable=True, index=True),
+    Column("lunch", String, nullable=True, index=True),
     Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
     Column("tournament_id", BigInteger, ForeignKey("tournaments.id"), index=True, nullable=False),
     Column("elo_score", Float, nullable=False),
@@ -159,6 +163,8 @@ players = Table(
     Column("draws", Integer, nullable=False),
     Column("losses", Integer, nullable=False),
     Column("active", Boolean, nullable=False, index=True, server_default="t"),
+    Column("paid", Boolean, nullable=False, index=True, server_default="t"),
+    Column("bogu", Boolean, nullable=True, index=True, server_default="t"),
 )
 
 users = Table(
