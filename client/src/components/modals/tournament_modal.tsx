@@ -5,12 +5,15 @@ import {
   Image,
   Modal,
   NumberInput,
+  Select,
   TextInput,
+  Textarea,
+  Autocomplete
 } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { GoPlus } from 'react-icons/go';
-import { IconCalendar, IconCalendarTime } from "@tabler/icons-react";
+import { IconCalendar } from "@tabler/icons-react";
 import assert from "assert";
 import { useTranslation } from "next-i18next";
 import React, { useState } from "react";
@@ -39,6 +42,7 @@ export function TournamentLogo({
 function GeneralTournamentForm({
   setOpened,
   swrTournamentsResponse,
+  clubs
 }: {
   setOpened: any;
   swrTournamentsResponse: SWRResponse;
@@ -48,11 +52,11 @@ function GeneralTournamentForm({
   const form = useForm({
     initialValues: {
       start_time: new Date(),
+      end_time: new Date(),
       name: "",
+      location: "",
+      description: "",
       club_id: null,
-      dashboard_public: true,
-      dashboard_endpoint: "",
-      players_can_be_in_multiple_teams: false,
       auto_assign_courts: true,
       duration_minutes: 10,
       margin_minutes: 5,
@@ -62,8 +66,11 @@ function GeneralTournamentForm({
       name: (value) =>
         value.length > 0 ? null : t("too_short_name_validation"),
       club_id: (value) => (value != null ? null : t("club_choose_title")),
+      location: (value) => (value != null ? null : t("location_choose_title")),
       start_time: (value) =>
         value != null ? null : t("start_time_choose_title"),
+      end_time: (value) =>
+        value != null ? null : t("end_time_choose_title"),
       duration_minutes: (value) =>
         value != null && value > 0 ? null : t("duration_minutes_choose_title"),
       margin_minutes: (value) =>
@@ -78,11 +85,11 @@ function GeneralTournamentForm({
         await createTournament(
           parseInt(values.club_id, 10),
           values.name,
-          values.dashboard_public,
-          values.dashboard_endpoint,
-          values.players_can_be_in_multiple_teams,
-          values.auto_assign_courts,
+          values.location,
+          values.description,
           values.start_time.toISOString(),
+          values.end_time.toISOString(),
+          values.auto_assign_courts,
           values.duration_minutes,
           values.margin_minutes
         );
@@ -97,31 +104,50 @@ function GeneralTournamentForm({
         {...form.getInputProps("name")}
       />
 
-      <TextInput
-        label={t("dashboard_link_label")}
-        placeholder={t("dashboard_link_placeholder")}
-        mt="lg"
-        {...form.getInputProps("dashboard_endpoint")}
+      <Select
+        withAsterisk
+        data={clubs.map((p) => ({ value: `${p.id}`, label: p.name }))}
+        label={t('club_select_label')}
+        placeholder={t('club_select_placeholder')}
+        searchable
+        limit={20}
+        style={{ marginTop: 10 }}
+        {...form.getInputProps('club_id')}
       />
+
+      <TextInput
+        withAsterisk
+        label={t("location_input_label")}
+        placeholder={t("location_input_placeholder")}
+        mt="lg"
+        {...form.getInputProps("location")}
+      />
+
+      <Textarea
+        label={t("description_input_label")}
+        placeholder={t("description_input_placeholder")}
+        mt="lg"
+        {...form.getInputProps("description")}
+      />
+
       <Grid mt="1rem">
-        <Grid.Col span={{ sm: 9 }}>
+        <Grid.Col span={{ sm: 6 }}>
           <DateTimePicker
+            withAsterisk
+            label={t("start_time")}
             leftSection={<IconCalendar size="1.1rem" stroke={1.5} />}
             mx="auto"
             {...form.getInputProps("start_time")}
           />
         </Grid.Col>
-        <Grid.Col span={{ sm: 3 }}>
-          <Button
-            fullWidth
-            color="indigo"
-            leftSection={<IconCalendarTime size="1.1rem" stroke={1.5} />}
-            onClick={() => {
-              form.setFieldValue("start_time", new Date());
-            }}
-          >
-            {t("now_button")}
-          </Button>
+        <Grid.Col span={{ sm: 6 }}>
+          <DateTimePicker
+            withAsterisk
+            label={t("end_time")}
+            leftSection={<IconCalendar size="1.1rem" stroke={1.5} />}
+            mx="auto"
+            {...form.getInputProps("end_time")}
+          />
         </Grid.Col>
       </Grid>
 
@@ -149,20 +175,22 @@ function GeneralTournamentForm({
       />
       <Checkbox
         mt="md"
-        label={t("miscellaneous_label")}
-        {...form.getInputProps("players_can_be_in_multiple_teams", {
-          type: "checkbox",
-        })}
-      />
-      <Checkbox
-        mt="md"
         label={t("auto_assign_courts_label")}
         {...form.getInputProps("auto_assign_courts", { type: "checkbox" })}
       />
 
-      <Button fullWidth mt={8} color="green" type="submit">
-        {t("save_button")}
-      </Button>
+      <Grid mt={8}>
+        <Grid.Col span={6}>
+          <Button fullWidth color="green" type="submit">
+            {t("save_button")}
+          </Button>
+        </Grid.Col>
+        <Grid.Col span={6}>
+          <Button fullWidth color="red" onClick={() => setOpened(false)}>
+            {t("cancel_button")}
+          </Button>
+        </Grid.Col>
+      </Grid>
     </form>
   );
 }
