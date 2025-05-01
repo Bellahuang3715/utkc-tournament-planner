@@ -3,20 +3,20 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import React, { useState } from 'react';
 
-import TeamCreateModal from '../../../components/modals/team_create_modal';
-import { getTableState, tableStateToPagination } from '../../../components/tables/table';
-import TeamsTable from '../../../components/tables/teams';
+import TeamCreateModal from '../../../../components/modals/team_create_modal';
+import { getTableState, tableStateToPagination } from '../../../../components/tables/table';
+import TeamsTable from '../../../../components/tables/teams';
 import {
   capitalize,
   getTournamentIdFromRouter,
   responseIsValid,
-} from '../../../components/utils/util';
-import { StageItemWithRounds } from '../../../interfaces/stage_item';
-import { StageItemInput } from '../../../interfaces/stage_item_input';
-import { TeamInterface } from '../../../interfaces/team';
-import { getStages, getTeamsPaginated } from '../../../services/adapter';
-import { getStageItemList, getStageItemTeamIdsLookup } from '../../../services/lookups';
-import TournamentLayout from '../_tournament_layout';
+} from '../../../../components/utils/util';
+import { StageItemWithRounds } from '../../../../interfaces/stage_item';
+import { StageItemInput } from '../../../../interfaces/stage_item_input';
+import { TeamInterface } from '../../../../interfaces/team';
+import { getStages, getTeamsPaginated } from '../../../../services/adapter';
+import { getStageItemList, getStageItemTeamIdsLookup } from '../../../../services/lookups';
+import TournamentLayout from '../../_tournament_layout';
 
 function StageItemSelect({
   groupStageItems,
@@ -71,7 +71,7 @@ export default function Teams() {
     <TournamentLayout tournament_id={tournamentData.id}>
       <Grid justify="space-between" mb="1rem">
         <Grid.Col span="auto">
-          <Title>{capitalize(t('teams_title'))}</Title>
+          {/* <Title>{capitalize(t('teams_title'))}</Title> */}
         </Grid.Col>
         <Grid.Col span="content">
           <Grid align="flex-end">

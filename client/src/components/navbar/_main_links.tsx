@@ -115,37 +115,28 @@ export function TournamentLinks({ tournament_id }: any) {
 
   const data = [
     {
-      icon: IconUser,
-      label: capitalize(t('players_title')),
-      link: `${tm_prefix}/players`,
-    },
-    {
       icon: IconUsers,
-      label: capitalize(t('teams_title')),
-      link: `${tm_prefix}/teams`,
+      label: capitalize(t('participants_title')),
+      link: `${tm_prefix}/participants`,
     },
     {
       icon: IconCalendar,
-      label: "Schedule",
-      // label: capitalize(t('planning_title')),
+      label: capitalize(t('schedule_title')),
       link: `${tm_prefix}/schedule`,
     },
     {
       icon: IconBrackets,
-      label: "Brackets",
-      // label: capitalize(t('results_title')),
-      link: `${tm_prefix}/results`,
+      label: capitalize(t('brackets_title')),
+      link: `${tm_prefix}/brackets`,
     },
     {
       icon: IconScoreboard,
-      label: "Scores",
-      // label: capitalize(t('rankings_title')),
-      link: `${tm_prefix}/rankings`,
+      label: capitalize(t('scores_title')),
+      link: `${tm_prefix}/scores`,
     },
     {
       icon: IconTrophy,
-      label: "Results",
-      // label: capitalize(t('stage_title')),
+      label: capitalize(t('results_title')),
       link: `${tm_prefix}/stages`,
     },
     {
