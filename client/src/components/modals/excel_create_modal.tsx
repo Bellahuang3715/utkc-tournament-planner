@@ -8,6 +8,7 @@ import {
   Text,
   ActionIcon,
   Box,
+  NumberInput,
   useMantineTheme,
 } from "@mantine/core";
 import { IconX, IconUpload } from "@tabler/icons-react";
@@ -24,6 +25,7 @@ export interface ClubUpload {
   file: File;
   clubName: string;
   clubAbbr: string;
+  numberOfTeams: number;
 }
 
 interface ClubImportModalProps {
@@ -39,19 +41,31 @@ export default function ClubImportModal({ opened, onClose, onImportAll }: ClubIm
   const [clubName, setClubName] = useState("");
   const [clubAbbr, setClubAbbr] = useState("");
   const [clubFile, setClubFile] = useState<File | null>(null);
+  const [numberOfTeams, setNumberOfTeams] = useState<number | undefined>(undefined);
   const [uploads, setUploads] = useState<ClubUpload[]>([]);
 
-  const canAdd = !!clubFile && clubName.trim() !== "" && clubAbbr.trim() !== "";
+  const canAdd =
+    !!clubFile &&
+    clubName.trim() !== "" &&
+    clubAbbr.trim() !== "" &&
+    typeof numberOfTeams === "number" &&
+    numberOfTeams > 0;
 
   const handleAdd = () => {
     if (!canAdd) return;
     setUploads((u) => [
       ...u,
-      { file: clubFile!, clubName: clubName.trim(), clubAbbr: clubAbbr.trim() },
+      {
+        file: clubFile!,
+        clubName: clubName.trim(),
+        clubAbbr: clubAbbr.trim(),
+        numberOfTeams: numberOfTeams!,
+      },
     ]);
     setClubFile(null);
     setClubName("");
     setClubAbbr("");
+    setNumberOfTeams(undefined);
   };
 
   return (
@@ -87,7 +101,16 @@ export default function ClubImportModal({ opened, onClose, onImportAll }: ClubIm
         required
         mb="sm"
       />
-
+      <NumberInput
+        label={t("number_of_teams", "Number of Teams")}
+        min={0}
+        required
+        value={numberOfTeams}
+        onChange={(val) => {
+          if (typeof val === "number") setNumberOfTeams(val);
+        }}
+        mb="sm"
+      />
       <Button disabled={!canAdd} onClick={handleAdd} mb="md">
         {t("add_club", "Add to List")}
       </Button>
