@@ -17,7 +17,10 @@ import { useTranslation } from "next-i18next";
 import { TournamentLinks } from "../../components/navbar/_main_links";
 import { responseIsValid } from "../../components/utils/util";
 import { getTournamentById } from "../../services/adapter";
-import ExcelCreateModal, { FieldDefinition } from "../../components/modals/excel_create_modal";
+
+import TemplateConfigModal, { TemplateConfig } from "../../components/modals/template_config_modal";
+import ClubImportModal, { ClubUpload }     from "../../components/modals/excel_create_modal";
+
 import Layout from "../_layout";
 
 export default function TournamentLayout({
@@ -40,20 +43,25 @@ export default function TournamentLayout({
   ) : null;
 
   // state for modal & uploading
-  const [uploading, setUploading] = useState(false);
   const [isTemplateModalOpen, setTemplateModalOpen] = useState(false);
-  const [isImportModalOpen, setImportModalOpen] = useState(false);
+  const [isClubImportOpen,    setClubImportOpen]    = useState(false);
+  const [templateConfig,      setTemplateConfig]    = useState<TemplateConfig | null>(null);
 
-  // handler once the user has imported and configured their sheet
-  const handleImport = async (payload: {
-    file: File;
-    clubName: string;
-    clubAbbr: string;
-    selectedSheet: string;
-    fields: FieldDefinition[];
-  }) => {
-    // TODO: call your import API with payload, then revalidate SWR
-    setImportModalOpen(false);
+  // 1) Save template‐schema, then jump to club‐upload phase
+  const handleTemplateSave = (config: TemplateConfig) => {
+    setTemplateConfig(config);
+    setTemplateModalOpen(false);
+    setClubImportOpen(true);
+  };
+
+  // 2) Import all club sheets using saved templateConfig
+  const handleImportAll = async (uploads: ClubUpload[]) => {
+    if (!templateConfig) return;
+    // TODO: loop through uploads and your API call, e.g.:
+    // for (const { file, clubName, clubAbbr } of uploads) {
+    //   await importClubSheet(tournament_id, templateConfig, { file, clubName, clubAbbr });
+    // }
+    setClubImportOpen(false);
   };
 
   return (
@@ -76,18 +84,35 @@ export default function TournamentLayout({
               <Button
                 leftSection={<IconUpload size={16} />}
                 variant="outline"
-                onClick={() => setImportModalOpen(true)}
+                onClick={() => {
+                  // If we have no template yet, start with configuring it:
+                  if (!templateConfig) {
+                    setTemplateModalOpen(true);
+                  } else {
+                    // otherwise jump into club‐sheet uploads
+                    setClubImportOpen(true);
+                  }
+                }}
               >
-                {t('import_sheet', 'Import Filled Sheet')}
+                {templateConfig
+                  ? t('import_sheet', 'Import Filled Sheet')
+                  : t('configure_template', 'Configure Template')}
               </Button>
             </Flex>
           </Flex>
 
-          {/* Excel template configuration modal */}
-          <ExcelCreateModal
-            opened={isImportModalOpen}
-            onClose={() => setImportModalOpen(false)}
-            onImport={handleImport}
+          {/* 1) Define your template once */}
+          <TemplateConfigModal
+            opened={isTemplateModalOpen}
+            onClose={() => setTemplateModalOpen(false)}
+            onSave={handleTemplateSave}
+          />
+
+          {/* 2) Then batch‐upload club sheets */}
+          <ClubImportModal
+            opened={isClubImportOpen}
+            onClose={() => setClubImportOpen(false)}
+            onImportAll={handleImportAll}
           />
 
           {/* 3. Tabs—with pills, bigger font, colored underline */}
