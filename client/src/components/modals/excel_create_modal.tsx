@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import {
   Modal,
   Button,
+  FileButton,
   Checkbox,
   Stepper,
   Select,
@@ -19,463 +20,265 @@ import {
   IconPlus,
   IconX,
   IconDownload,
+  IconUpload
 } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next";
-
 import ExcelJS from 'exceljs';
-import { saveAs } from 'file-saver';
-
 
 export type FieldType = "text" | "number" | "dropdown";
 export type FieldGroup = "Required" | "Common" | "Others" | "Custom";
 
-export interface FieldDefinition {
+export type FieldDefinition = {
   key: string;
   label: string;
   include: boolean;
-  type: FieldType;
   options: string[];
-  group: FieldGroup;
-}
+};
 
-interface ExcelCreateModalProps {
+interface ExcelImportModalProps {
   opened: boolean;
   onClose: () => void;
-  onSave: (
-    fieldsBySheet: Record<string, FieldDefinition[]>,
-    orderBySheet: Record<string, string[]>
-  ) => void;
+  onImport: (payload: {
+    file: File;
+    clubName: string;
+    clubAbbr: string;
+    selectedSheet: string;
+    fields: FieldDefinition[];
+  }) => void;
 }
+
+const sheetOptions = ["Participants", "Judges"];
 
 const defaultFieldOptions: Record<string, string[]> = {
   rank: ["1D", "2D", "3D", "5D", "6D"],
 };
 
-const defaultFieldsBySheet: Record<string, FieldDefinition[]> = {
-  Participants: [
-    { key: 'name', label: 'Name', include: true,  type: 'text',     options: [], group: 'Required' },
-    { key: 'rank', label: 'Rank', include: true,  type: 'dropdown', options: ['1D','2D','3D','5D','6D'], group: 'Required' },
-    // modify this to pull divisions options from DB
-    // or indicate no divisions have been defined yet
-    { key: 'division', label: 'Division', include: true,  type: 'dropdown', options: ['A','B','C','D','E'], group: 'Common' },
-    { key: 'lunch', label: 'Lunch', include: true,  type: 'dropdown', options: ['Regular','Vegetarian'], group: 'Common' },
-    { key: 'cost', label: 'Cost', include: true,  type: 'dropdown', options: [], group: 'Common' },
-    { key: 'age', label: 'Age', include: true,  type: 'number', options: [], group: 'Others' },
-    { key: 'gender', label: 'Gender', include: true,  type: 'dropdown', options: ['Male', 'Female'], group: 'Others' },
-    { key: 'bogu', label: 'Bogu', include: true,  type: 'dropdown', options: ['Bogu', 'Non-Bogu'], group: 'Others' },
-    { key: 'paid', label: 'Paid', include: true,  type: 'dropdown', options: ['Yes', 'No'], group: 'Others' },
-    { key: 'after-party', label: 'After Party', include: true,  type: 'dropdown', options: ['Yes', 'No'], group: 'Others' },
-    { key: 'status', label: 'Status', include: true,  type: 'dropdown', options: ['Active', 'Inactive'], group: 'Others' },
-    { key: 'notes', label: 'Notes', include: true,  type: 'text', options: [], group: 'Others' },
-  ],
-  Judges: [
-    { key: 'name', label: 'Name', include: true, type: 'text', options: [], group: 'Required' },
-    { key: 'rank',   label: 'Rank',   include: true, type: 'dropdown', options: ['1D','2D','3D','5D','6D'],   group: 'Required' },
-    { key: 'email',   label: 'Email',   include: true, type: 'text', options: [],   group: 'Others' },
-  ],
-};
+// const defaultFieldsBySheet: Record<string, FieldDefinition[]> = {
+//   Participants: [
+//     { key: 'name', label: 'Name', include: true,  type: 'text',     options: [], group: 'Required' },
+//     { key: 'rank', label: 'Rank', include: true,  type: 'dropdown', options: ['1D','2D','3D','5D','6D'], group: 'Required' },
+//     // modify this to pull divisions options from DB
+//     // or indicate no divisions have been defined yet
+//     { key: 'division', label: 'Division', include: true,  type: 'dropdown', options: ['A','B','C','D','E'], group: 'Common' },
+//     { key: 'lunch', label: 'Lunch', include: true,  type: 'dropdown', options: ['Regular','Vegetarian'], group: 'Common' },
+//     { key: 'cost', label: 'Cost', include: true,  type: 'dropdown', options: [], group: 'Common' },
+//     { key: 'age', label: 'Age', include: true,  type: 'number', options: [], group: 'Others' },
+//     { key: 'gender', label: 'Gender', include: true,  type: 'dropdown', options: ['Male', 'Female'], group: 'Others' },
+//     { key: 'bogu', label: 'Bogu', include: true,  type: 'dropdown', options: ['Bogu', 'Non-Bogu'], group: 'Others' },
+//     { key: 'paid', label: 'Paid', include: true,  type: 'dropdown', options: ['Yes', 'No'], group: 'Others' },
+//     { key: 'after-party', label: 'After Party', include: true,  type: 'dropdown', options: ['Yes', 'No'], group: 'Others' },
+//     { key: 'status', label: 'Status', include: true,  type: 'dropdown', options: ['Active', 'Inactive'], group: 'Others' },
+//     { key: 'notes', label: 'Notes', include: true,  type: 'text', options: [], group: 'Others' },
+//   ],
+//   Judges: [
+//     { key: 'name', label: 'Name', include: true, type: 'text', options: [], group: 'Required' },
+//     { key: 'rank',   label: 'Rank',   include: true, type: 'dropdown', options: ['1D','2D','3D','5D','6D'],   group: 'Required' },
+//     { key: 'email',   label: 'Email',   include: true, type: 'text', options: [],   group: 'Others' },
+//   ],
+// };
 
-export default function ExcelCreateModal({
-  opened,
-  onClose,
-  onSave,
-}: ExcelCreateModalProps) {
+export default function ExcelImportModal({ opened, onClose, onImport }: ExcelImportModalProps) {
   const theme = useMantineTheme();
   const { t } = useTranslation();
 
-  // all available sheet names in desired fixed order
-  const sheetOptions = Object.keys(defaultFieldsBySheet);
-
-  // wizard state
   const [activeStep, setActiveStep] = useState(0);
-  const [excelTitle, setExcelTitle] = useState("");
-  const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
 
-  const toggleSheet = (sheet: string) =>
-    setSelectedSheets((prev) =>
-      prev.includes(sheet)
-        ? prev.filter((s) => s !== sheet)
-        : [...prev, sheet]
-    );
+  // --- General ---
+  const [file, setFile] = useState<File | null>(null);
+  const [clubName, setClubName] = useState("");
+  const [clubAbbr, setClubAbbr] = useState("");
 
-  // per-sheet fields & order state
-  const [fieldsBySheet, setFieldsBySheet] = useState<Record<string, FieldDefinition[]>>({});
-  const [orderBySheet, setOrderBySheet] = useState<Record<string, string[]>>({});
+  // --- Sheet selection ---
+  const [sheetNames, setSheetNames] = useState<string[]>([]);
+  const [selectedSheet, setSelectedSheet] = useState("");
 
-  // whenever selectedSheets changes, seed or remove its defaults
+  // --- Field config for the selected sheet ---
+  const [fields, setFields] = useState<FieldDefinition[]>([]);
+  const [newOptionText, setNewOptionText] = useState<Record<string, string>>({});
+
+  // parse workbook on file or sheet change
   useEffect(() => {
-    const newFields = { ...fieldsBySheet };
-    const newOrder = { ...orderBySheet };
+    if (!file) return;
+    (async () => {
+      const buffer = await file.arrayBuffer();
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(buffer);
+      const names = wb.worksheets.map((ws) => ws.name);
+      setSheetNames(names);
+      // select first by default if only one
+      if (names.length === 1) setSelectedSheet(names[0]);
+      // parse headers for selected sheet
+      const parse = (name: string) => {
+        const ws = wb.getWorksheet(name);
+        if (!ws) return [];
+        const raw = ws.getRow(1).values ?? [];
+        const vals = Array.isArray(raw) ? raw.slice(1) : [];
+        const headers = (vals as any[]).filter((v) => v != null).map((v) => String(v));
+        return headers.map((label) => ({
+          key: label.toLowerCase().replace(/\s+/g, "_"),
+          label,
+          include: true,
+          options: [],
+        }));
+      };
+      setFields(parse(selectedSheet || names[0]));
+    })();
+  }, [file, selectedSheet]);
 
-    selectedSheets.forEach((sheet) => {
-      if (!newFields[sheet]) {
-        const defs = defaultFieldsBySheet[sheet] || [];
-        newFields[sheet] = defs.map((f) => ({ ...f }));
-        newOrder[sheet] = defs.filter((f) => f.include).map((f) => f.key);
-      }
-    });
-
-    // remove any sheets that were unchecked
-    Object.keys(newFields).forEach((sheet) => {
-      if (!selectedSheets.includes(sheet)) {
-        delete newFields[sheet];
-        delete newOrder[sheet];
-      }
-    });
-
-    setFieldsBySheet(newFields);
-    setOrderBySheet(newOrder);
-  }, [selectedSheets]);
-
-  // ensure Participants always first, then Judges
-  const orderedSheets = sheetOptions.filter((s) => selectedSheets.includes(s));
-
-  // field-group rendering order
-  const groupOrder: FieldGroup[] = ["Required", "Common", "Custom", "Others"];
-
-  // new-field / new-option inputs
-  const [newOptionText, setNewOptionText] = useState<Record<string, Record<string, string>>>({});
-  const [newFieldLabel, setNewFieldLabel] = useState("");
-  const [newFieldType, setNewFieldType] = useState<FieldType>("text");
-
-  // handlers
-  const toggleInclude = (sheet: string, key: string) => {
-    setFieldsBySheet((all) => ({
-      ...all,
-      [sheet]: all[sheet].map((f) =>
-        f.key === key ? { ...f, include: !f.include } : f
-      ),
-    }));
-    setOrderBySheet((ord) => ({
-      ...ord,
-      [sheet]: ord[sheet].includes(key)
-        ? ord[sheet].filter((k) => k !== key)
-        : [...ord[sheet], key],
-    }));
-  };
-
-  const updateType = (sheet: string, key: string, type: FieldType) => {
-    setFieldsBySheet((all) => ({
-      ...all,
-      [sheet]: all[sheet].map((f) =>
-        f.key === key
-          ? { ...f, type, options: type === "dropdown" ? defaultFieldOptions[key] ?? [] : [] }
-          : f
-      ),
-    }));
-  };
-
-  const addOption = (sheet: string, key: string, option: string) => {
-    if (!option) return;
-    setFieldsBySheet((all) => ({
-      ...all,
-      [sheet]: all[sheet].map((f) =>
-        f.key === key ? { ...f, options: [...f.options, option] } : f
-      ),
-    }));
-    setNewOptionText((prev) => ({
-      ...prev,
-      [sheet]: { ...(prev[sheet] || {}), [key]: "" },
-    }));
-  };
-
-  const removeOption = (sheet: string, key: string, idx: number) => {
-    setFieldsBySheet((all) => ({
-      ...all,
-      [sheet]: all[sheet].map((f) =>
-        f.key === key
-          ? { ...f, options: f.options.filter((_, i) => i !== idx) }
-          : f
-      ),
-    }));
-  };
-
-  const handleAddField = (sheet: string) => {
-    const label = newFieldLabel.trim();
-    const key = label.toLowerCase().replace(/\s+/g, "_");
-    if (!label || fieldsBySheet[sheet].some((f) => f.key === key)) return;
-
-    const newField: FieldDefinition = {
-      key,
-      label,
-      include: true,
-      type: newFieldType,
-      options: newFieldType === "dropdown" ? [] : [],
-      group: "Custom",
-    };
-
-    setFieldsBySheet((all) => ({
-      ...all,
-      [sheet]: [...all[sheet], newField],
-    }));
-    setOrderBySheet((ord) => ({
-      ...ord,
-      [sheet]: [...ord[sheet], key],
-    }));
-    setNewFieldLabel("");
-  };
-
-// helper to convert 1‑based index to Excel column letter
-function toColName(i: number): string {
-  let s = "";
-  while (i > 0) {
-    const m = (i - 1) % 26;
-    s = String.fromCharCode(65 + m) + s;
-    i = Math.floor((i - 1) / 26);
-  }
-  return s;
-}
-
-const generateWorkbook = async () => {
-  const wb = new ExcelJS.Workbook();
-  wb.creator  = "Tournament App";
-  wb.created  = new Date();
-
-  // 1) hidden lists sheet
-  const lists = wb.addWorksheet("_lists");
-  lists.state = "veryHidden";
-  let listCol = 1;
-
-  // 2) for each sheet…
-  for (const sheetName of orderedSheets) {
-    const ws = wb.addWorksheet(sheetName);
-    const keys = orderBySheet[sheetName] || [];
-
-    // set headers
-    ws.columns = keys.map((key) => {
-      const fd = fieldsBySheet[sheetName]!.find((f) => f.key === key)!;
-      return { header: fd.label, key: fd.key, width: 20 };
-    });
-
-    // build our hidden lists + named ranges
-    for (const key of keys) {
-      const fd = fieldsBySheet[sheetName]!.find((f) => f.key === key)!;
-      if (fd.type === "dropdown" && fd.options.length) {
-        const colLetter = toColName(listCol);
-        // write each option down rows 1…N
-        fd.options.forEach((opt, i) => {
-          lists.getCell(i + 1, listCol).value = opt;
-        });
-        // name it e.g. Participants_rank_list
-        const name = `${sheetName}_${key}_list`;
-        const rangeRef = `'_lists'!$${colLetter}$1:$${colLetter}$${fd.options.length}`;
-        wb.definedNames.add(name, rangeRef);
-        listCol++;
-      }
+  const canNext = () => {
+    if (activeStep === 0) {
+      return !!file && clubName.trim() !== "" && clubAbbr.trim() !== "" && selectedSheet !== "";
     }
+    return true;
+  };
 
-    // add your empty table if you still want one
-    ws.addTable({
-      name: `${sheetName}Table`,
-      ref: "A1",
-      headerRow: true,
-      totalsRow: false,
-      columns: ws.columns.map((c) => ({ name: c.header as string })),
-      rows: [],
-    });
+  const toggleInclude = (key: string) =>
+    setFields((f) => f.map((x) => (x.key === key ? { ...x, include: !x.include } : x)));
+  const addOption = (key: string, opt: string) => {
+    if (!opt) return;
+    setFields((f) => f.map((x) => (x.key === key ? { ...x, options: [...x.options, opt] } : x)));
+    setNewOptionText((p) => ({ ...p, [key]: "" }));
+  };
+  const removeOption = (key: string, idx: number) =>
+    setFields((f) => f.map((x) => (x.key === key ? { ...x, options: x.options.filter((_, i) => i !== idx) } : x)));
 
-    // 3) now apply validations
-    keys.forEach((key, idx) => {
-      const fd = fieldsBySheet[sheetName]!.find((f) => f.key === key)!;
-      if (fd.type === "dropdown" && fd.options.length) {
-        const letter = toColName(idx + 1);
-        // @ts-ignore – this exists at runtime
-        ws.dataValidations.add(
-          `${letter}2:${letter}1000`,
-          {
-            type: "list",
-            allowBlank: true,
-            showErrorMessage: true,
-            // inline the comma‑list here
-            formulae: [`"${fd.options.join(",")}"`],
-          }
-        );
-      }
-    });
-  }
-
-  // 4) download
-  const buf = await wb.xlsx.writeBuffer();
-  saveAs(new Blob([buf]), `${excelTitle || "template"}.xlsx`);
-};
-
+  const handleNext = () => {
+    const last = 2; // steps: 0=General,1=Configure,2=Review
+    if (activeStep < last) {
+      setActiveStep((s) => s + 1);
+    } else if (file) {
+      onImport({ file, clubName: clubName.trim(), clubAbbr: clubAbbr.trim(), selectedSheet, fields });
+      onClose();
+    }
+  };
 
   return (
     <Modal
       opened={opened}
       onClose={onClose}
-      title={t("configure_fields", "Configure Export Fields")}
       size="lg"
+      title={t("import_sheet", "Import Filled Sheet")}
     >
-      <Text size="sm" color="dimmed" mb="md">
-        {t(
-          "configure_fields_note",
-          "Select the column headers that will be used in the generated Excel sheet."
-        )}
-      </Text>
-
       <Stepper active={activeStep} onStepClick={setActiveStep} size="sm">
-        {/* step 1: general info */}
-        <Stepper.Step label="General">
-          <TextInput
-            label={t("excel_title", "Excel Title")}
-            placeholder={t("excel_title_placeholder", "Enter sheet title")}
-            value={excelTitle}
-            onChange={(e) => setExcelTitle(e.currentTarget.value)}
-            mb="md"
+        {/* General step */}
+        <Stepper.Step label={t("general", "General")}>
+          {file ? (
+            <Group align="center" gap="sm" mb="md">
+              <IconUpload size={20} />
+              <Text>{file.name}</Text>
+              <ActionIcon onClick={() => setFile(null)}>
+                <IconX size={16} />
+              </ActionIcon>
+            </Group>
+          ) : (
+            <FileButton onChange={setFile} accept=".xlsx">
+              {(props) => <Button {...props}>{t("upload_file", "Upload .xlsx File")}</Button>}
+            </FileButton>
+          )}
+
+          <Select
+            label={t("participants_sheet", "Participants Sheet")}
+            placeholder={t("select_sheet_placeholder", "Select sheet...")}
+            data={sheetNames.map((n) => ({ value: n, label: n }))}
+            required
+            value={selectedSheet}
+            onChange={(v) => v && setSelectedSheet(v)}
+            mt="md"
+            disabled={!file}
           />
-          <Text fw={500} mb="xs">
-            {t("sheets_selection")}
-          </Text>
-          {sheetOptions.map((s) => (
-            <Checkbox
-              key={s}
-              label={s}
-              checked={selectedSheets.includes(s)}
-              onChange={() => toggleSheet(s)}
-              mb="xs"
-            />
-          ))}
+
+          <TextInput
+            label={t("club_name", "Club Name")}
+            required
+            value={clubName}
+            onChange={(e) => setClubName(e.currentTarget.value)}
+            mt="md"
+          />
+          <TextInput
+            label={t("club_abbr", "Club Abbreviation")}
+            required
+            value={clubAbbr}
+            onChange={(e) => setClubAbbr(e.currentTarget.value)}
+            mt="md"
+          />
         </Stepper.Step>
 
-        {/* one step per selected sheet */}
-        {selectedSheets.map((sheet) => (
-          <Stepper.Step key={sheet} label={sheet}>
-            {/* Add Custom Field */}
-            <Paper withBorder p="md" mb="md">
-              <Text fw={500} mb="sm">
-                {t("add_new_field", "Add New Field")}
-              </Text>
-              <Flex gap="sm" align="flex-end">
-                <TextInput
-                  placeholder={t("label", "Label")}
-                  value={newFieldLabel}
-                  onChange={(e) => setNewFieldLabel(e.currentTarget.value)}
-                  style={{ flex: 2 }}
+        {/* 2: Configure fields */}
+        <Stepper.Step label={t("configure_fields", "Configure Fields")}>
+          {fields.map((field) => (
+            <Box key={field.key} mb="md">
+              <Flex justify="space-between" align="center">
+                <Checkbox
+                  label={field.label}
+                  checked={field.include}
+                  onChange={() => toggleInclude(field.key)}
                 />
-                <Select
-                  placeholder={t("type", "Type")}
-                  data={[
-                    { value: "text", label: "Text" },
-                    { value: "number", label: "Number" },
-                    { value: "dropdown", label: "Dropdown" },
-                  ]}
-                  value={newFieldType}
-                  onChange={(v) => v && setNewFieldType(v as FieldType)}
-                  style={{ flex: 1 }}
-                />
-                <Button onClick={() => handleAddField(sheet)} leftSection={<IconPlus size={14} />}>
-                  {t("add_field", "Add Field")}
-                </Button>
               </Flex>
-            </Paper>
-
-            {/* Render Groups */}
-            {groupOrder.map((grp) => {
-              // guard against undefined
-              const groupFields = (fieldsBySheet[sheet] ?? []).filter((f) => f.group === grp);
-              if (groupFields.length === 0) return null;
-              return (
-                <Paper key={grp} withBorder p="md" mb="md">
-                  <Text fw={600} mb="sm">{grp}</Text>
-                  {groupFields.map((field) => (
-                    <Box key={field.key} mb="md">
-                      <Flex align="center" justify="space-between">
-                        <Group align="center" gap="md">
-                          <Checkbox
-                            checked={field.include}
-                            disabled={field.group === "Required"}
-                            onChange={() => toggleInclude(sheet, field.key)}
-                            label={field.label}
-                          />
-                          <Select
-                            value={field.type}
-                            onChange={(v) => v && updateType(sheet, field.key, v as FieldType)}
-                            data={[
-                              { value: "text", label: "Text" },
-                              { value: "number", label: "Number" },
-                              { value: "dropdown", label: "Dropdown" },
-                            ]}
-                          />
-                        </Group>
-                      </Flex>
-
-                      {field.include && field.type === "dropdown" && (
-                        <Box ml="xl" mt="sm">
-                          <Text size="sm" mb="xs">Options:</Text>
-                          <Group gap="xs" mb="xs">
-                            {field.options.map((opt, idx) => (
-                              <Group
-                                key={idx}
-                                align="center"
-                                style={{
-                                  backgroundColor: "#f1f3f5",
-                                  padding: "4px 8px",
-                                  borderRadius: 4,
-                                }}
-                              >
-                                <Text size="xs" mr={2}>{opt}</Text>
-                                <ActionIcon size="xs" onClick={() => removeOption(sheet, field.key, idx)}>
-                                  <IconX size={14} />
-                                </ActionIcon>
-                              </Group>
-                            ))}
-                          </Group>
-                          <Group align="flex-end" gap="xs">
-                            <TextInput
-                              placeholder={t("add_option", "Add option")}
-                              value={newOptionText[sheet]?.[field.key] || ""}
-                              onChange={(e) =>
-                                setNewOptionText((prev) => ({
-                                  ...prev,
-                                  [sheet]: {
-                                    ...(prev[sheet] || {}),
-                                    [field.key]: e.currentTarget.value,
-                                  },
-                                }))
-                              }
-                              style={{ flex: 1 }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  addOption(sheet, field.key, newOptionText[sheet]?.[field.key] || "");
-                                }
-                              }}
-                            />
-                            <Button
-                              size="xs"
-                              onClick={() =>
-                                addOption(sheet, field.key, newOptionText[sheet]?.[field.key] || "")
-                              }
-                            >
-                              <IconPlus size={14} />
-                            </Button>
-                          </Group>
-                        </Box>
-                      )}
-                    </Box>
-                  ))}
+              {field.include && (
+                <Paper withBorder p="sm" mt="xs">
+                  <Text size="sm" mb="xs">
+                    {t("filter_options", "Filter Options (if any)")}
+                  </Text>
+                  <Group gap="xs" mb="xs">
+                    {field.options.map((opt, i) => (
+                      <Group key={i} align="center">
+                        <Text size="xs">{opt}</Text>
+                        <ActionIcon size="xs" onClick={() => removeOption(field.key, i)}>
+                          <IconX size={12} />
+                        </ActionIcon>
+                      </Group>
+                    ))}
+                  </Group>
+                  <Flex>
+                    <TextInput
+                      placeholder={t("add_option", "Add option")}
+                      value={newOptionText[field.key] || ""}
+                      onChange={(e) =>
+                        setNewOptionText((p) => ({ ...p, [field.key]: e.currentTarget.value }))
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addOption(field.key, newOptionText[field.key] || "");
+                        }
+                      }}
+                      style={{ flex: 1 }}
+                    />
+                    <Button
+                      size="xs"
+                      ml="xs"
+                      onClick={() => addOption(field.key, newOptionText[field.key] || "")}
+                    >
+                      <IconPlus size={12} />
+                    </Button>
+                  </Flex>
                 </Paper>
-              );
-            })}
-          </Stepper.Step>
-        ))}
-
-        {/* final preview step */}
-        <Stepper.Step label="Preview">
-          <Text fw={500} mb="sm">{t("preview", "Preview")}</Text>
-          {orderedSheets.map((sheet) => (
-            <Box key={sheet} mb="md">
-              <Text fw={600}>{sheet}</Text>
-              <Text size="sm" color="dimmed">
-                {t("fields", "Fields")}: {(orderBySheet[sheet] ?? []).join(", ")}
-              </Text>
+              )}
             </Box>
           ))}
         </Stepper.Step>
+
+        {/* 3: Review */}
+        <Stepper.Step label={t("review", "Review")}>
+          <Text fw={500} mb="sm">
+            {t("review_import", "Review")}
+          </Text>
+          <Text>
+            {t("file")}: {file?.name}
+          </Text>
+          <Text>
+            {t("club")}: {clubName} ({clubAbbr})
+          </Text>
+          <Text>
+            {t("sheet")}: {selectedSheet}
+          </Text>
+          <Text>
+            {t("fields_to_import", "Fields")}:{" "}
+            {fields.filter((f) => f.include).map((f) => f.label).join(", ")}
+          </Text>
+        </Stepper.Step>
       </Stepper>
 
-      {/* wizard nav */}
       <Group justify="space-between" mt="md">
         <Button
           variant="default"
@@ -484,37 +287,10 @@ const generateWorkbook = async () => {
         >
           {t("previous", "Previous")}
         </Button>
-        <Button
-          onClick={async () => {
-            const lastStep = orderedSheets.length + 1;
-            if (activeStep < lastStep) {
-              setActiveStep((s) => s + 1);
-            } else {
-              await generateWorkbook();
-              onClose();
-              // onSave(fieldsBySheet, orderBySheet);
-            }
-          }}
-        >
-          {activeStep === orderedSheets.length + 1
-            ? t("export_template", "Export Template")
-            : t("next", "Next")}
+        <Button disabled={!canNext()} onClick={handleNext}>
+          {activeStep === 2 ? t("import", "Import") : t("next", "Next")}
         </Button>
       </Group>
-      
-
-      {/* <Group justify="flex-end" mt="md" gap="md">
-        <Button variant="default" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button
-          leftSection={<IconDownload size={16} />}
-          variant="outline"
-          onClick={() => onSave(fields, selectedOrder)}
-        >
-          {t("export_template", "Export Template")}
-        </Button>
-      </Group> */}
     </Modal>
   );
 }

@@ -20,24 +20,6 @@ import { getTournamentById } from "../../services/adapter";
 import ExcelCreateModal, { FieldDefinition } from "../../components/modals/excel_create_modal";
 import Layout from "../_layout";
 
-// default headers you want available for editing
-const defaultFields: FieldDefinition[] = [
-  { key: 'name', label: 'Name', include: true,  type: 'text',     options: [], group: 'Required' },
-  { key: 'rank', label: 'Rank', include: true,  type: 'dropdown', options: ['1D','2D','3D','5D','6D'], group: 'Required' },
-  // modify this to pull divisions options from DB
-  // or indicate no divisions have been defined yet
-  { key: 'division', label: 'Division', include: true,  type: 'dropdown', options: ['A','B','C','D','E'], group: 'Common' },
-  { key: 'lunch', label: 'Lunch', include: true,  type: 'dropdown', options: ['Regular','Vegetarian'], group: 'Common' },
-  { key: 'cost', label: 'Cost', include: true,  type: 'dropdown', options: [], group: 'Common' },
-  { key: 'age', label: 'Age', include: true,  type: 'number', options: [], group: 'Others' },
-  { key: 'gender', label: 'Gender', include: true,  type: 'dropdown', options: ['Male', 'Female'], group: 'Others' },
-  { key: 'bogu', label: 'Bogu', include: true,  type: 'dropdown', options: ['Bogu', 'Non-Bogu'], group: 'Others' },
-  { key: 'paid', label: 'Paid', include: true,  type: 'dropdown', options: ['Yes', 'No'], group: 'Others' },
-  { key: 'after-party', label: 'After Party', include: true,  type: 'dropdown', options: ['Yes', 'No'], group: 'Others' },
-  { key: 'status', label: 'Status', include: true,  type: 'dropdown', options: ['Active', 'Inactive'], group: 'Others' },
-  { key: 'notes', label: 'Notes', include: true,  type: 'text', options: [], group: 'Others' },
-];
-
 export default function TournamentLayout({
   children,
   tournament_id,
@@ -60,24 +42,18 @@ export default function TournamentLayout({
   // state for modal & uploading
   const [uploading, setUploading] = useState(false);
   const [isTemplateModalOpen, setTemplateModalOpen] = useState(false);
+  const [isImportModalOpen, setImportModalOpen] = useState(false);
 
-  // handler for finished file selection
-  const handleUpload = async (file: File | null) => {
-    if (!file) return;
-    setUploading(true);
-    try {
-      // TODO: call your upload API, then revalidate SWR for players/teams/judges
-      // await uploadExcel(file, tournament_id);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // handler when template modal saves fields
-  const handleTemplateSave = async (fields: FieldDefinition[]) => {
-    // TODO: call your API to generate the Excel with `fields` and trigger download
-    // await generateTemplateExcel(tournament_id, fields);
-    setTemplateModalOpen(false);
+  // handler once the user has imported and configured their sheet
+  const handleImport = async (payload: {
+    file: File;
+    clubName: string;
+    clubAbbr: string;
+    selectedSheet: string;
+    fields: FieldDefinition[];
+  }) => {
+    // TODO: call your import API with payload, then revalidate SWR
+    setImportModalOpen(false);
   };
 
   return (
@@ -98,29 +74,20 @@ export default function TournamentLayout({
           <Flex justify="space-between" mb="md" align="center">
             <Flex gap="sm">
               <Button
-                leftSection={<IconPlus size={16} />}
+                leftSection={<IconUpload size={16} />}
                 variant="outline"
-                onClick={() => setTemplateModalOpen(true)}
+                onClick={() => setImportModalOpen(true)}
               >
-                {t('export_template', 'Create Excel Template')}
+                {t('import_sheet', 'Import Filled Sheet')}
               </Button>
-
-              <FileButton onChange={handleUpload} accept=".xlsx">
-                {(fileProps) => (
-                  <Button {...fileProps} leftSection={<IconUpload size={16} />} variant="outline" loading={uploading}>
-                    {t('import_sheet', 'Import Filled Sheet')}
-                  </Button>
-                )}
-              </FileButton>
             </Flex>
           </Flex>
 
           {/* Excel template configuration modal */}
           <ExcelCreateModal
-            opened={isTemplateModalOpen}
-            onClose={() => setTemplateModalOpen(false)}
-            initialFields={defaultFields}
-            onSave={handleTemplateSave}
+            opened={isImportModalOpen}
+            onClose={() => setImportModalOpen(false)}
+            onImport={handleImport}
           />
 
           {/* 3. Tabs—with pills, bigger font, colored underline */}
