@@ -1,4 +1,5 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Table, UniqueConstraint, func
+from sqlalchemy import Column, ForeignKey, Integer, String, Table, UniqueConstraint, func, Index
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import declarative_base  # type: ignore[attr-defined]
 from sqlalchemy.sql.sqltypes import BigInteger, Boolean, DateTime, Enum, Float, Text
 
@@ -11,6 +12,9 @@ clubs = Table(
     metadata,
     Column("id", BigInteger, primary_key=True, index=True, autoincrement=True),
     Column("name", String, nullable=False, index=True),
+    Column("abbreviation", String, nullable=False, index=True),
+    Column("tournament_id", BigInteger, ForeignKey("tournaments.id"), index=True, nullable=False),
+    Column("team_count", Integer, nullable=False, server_default="0"),
     Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
 )
 
@@ -19,9 +23,9 @@ tournaments = Table(
     metadata,
     Column("id", BigInteger, primary_key=True, index=True),
     Column("name", String, nullable=False, index=True),
+    Column("organizer", String, nullable=False, index=True),
     Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
     Column("start_time", DateTimeTZ, nullable=False),
-    Column("club_id", BigInteger, ForeignKey("clubs.id"), index=True, nullable=False),
     Column("dashboard_public", Boolean, nullable=False),
     Column("logo_path", String, nullable=True),
     Column("dashboard_endpoint", String, nullable=True, index=True, unique=True),
@@ -150,21 +154,17 @@ players = Table(
     "players",
     metadata,
     Column("id", BigInteger, primary_key=True, index=True),
-    Column("name", String, nullable=False, index=True),
-    Column("rank", String, nullable=False, index=True),
-    Column("division", String, nullable=True, index=True),
-    Column("age", Integer, nullable=True, index=True),
-    Column("lunch", String, nullable=True, index=True),
-    Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
+    # Column("active", Boolean, nullable=False, index=True, server_default="t"),
     Column("tournament_id", BigInteger, ForeignKey("tournaments.id"), index=True, nullable=False),
+    Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
     Column("elo_score", Float, nullable=False),
     Column("swiss_score", Float, nullable=False),
     Column("wins", Integer, nullable=False),
     Column("draws", Integer, nullable=False),
     Column("losses", Integer, nullable=False),
-    Column("active", Boolean, nullable=False, index=True, server_default="t"),
-    Column("paid", Boolean, nullable=False, index=True, server_default="t"),
-    Column("bogu", Boolean, nullable=True, index=True, server_default="t"),
+    Column("data", JSONB, nullable=False),
+    # optional: GIN index for fast JSON queries
+    Index("ix_players_data_gin", "data", postgresql_using="gin"),
 )
 
 users = Table(

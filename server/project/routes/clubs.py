@@ -18,12 +18,10 @@ async def get_clubs(user: UserPublic = Depends(firebase_user_authenticated)) -> 
 
 
 @router.post("/clubs", response_model=ClubResponse)
-async def create_new_club(
-    club: ClubCreateBody, user: UserPublic = Depends(firebase_user_authenticated)
-) -> ClubResponse:
-    existing_clubs = await get_clubs_for_user_id(user.id)
-    check_requirement(existing_clubs, user, "max_clubs")
-    return ClubResponse(data=await create_club(club, user.id))
+async def create_new_club(club: ClubCreateBody) -> ClubResponse:
+    # existing_clubs = await get_clubs_for_user_id(user.id)
+    # check_requirement(existing_clubs, user, "max_clubs")
+    return ClubResponse(data=await create_club(club))
 
 
 @router.delete("/clubs/{club_id}", response_model=SuccessResponse)

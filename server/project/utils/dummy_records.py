@@ -35,14 +35,9 @@ DUMMY_MOCK_TIME = datetime_utc(2022, 1, 11, 4, 32, 11, tzinfo=ZoneInfo("UTC"))
 # We don't know any db IDs here, so we use a placeholder for foreign keys.
 DB_PLACEHOLDER_ID = -42
 
-DUMMY_CLUB = ClubInsertable(
-    name="Some Cool Club",
-    created=DUMMY_MOCK_TIME,
-)
-
 DUMMY_TOURNAMENT = TournamentInsertable(
-    club_id=ClubId(DB_PLACEHOLDER_ID),
     name="Some Cool Tournament",
+    organizer="UofT",
     created=DUMMY_MOCK_TIME,
     start_time=DUMMY_MOCK_TIME,
     dashboard_public=True,
@@ -52,6 +47,13 @@ DUMMY_TOURNAMENT = TournamentInsertable(
     auto_assign_courts=True,
     duration_minutes=10,
     margin_minutes=5,
+)
+
+DUMMY_CLUB = ClubInsertable(
+    name="Some Cool Club",
+    abbreviation="SC",
+    tournament_id=TournamentId(DB_PLACEHOLDER_ID),
+    created=DUMMY_MOCK_TIME,
 )
 
 DUMMY_STAGE1 = StageInsertable(
@@ -174,91 +176,115 @@ DUMMY_TEAM4 = TeamInsertable(
 
 
 DUMMY_PLAYER1 = PlayerInsertable(
-    name="John Doe",
-    rank="1D",
-    division="A",
-    lunch="Regular",
     active=True,
-    paid=True,
-    created=DUMMY_MOCK_TIME,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
+    created=DUMMY_MOCK_TIME,
+    data={
+       "name":     "John Doe",
+       "rank":     "1D",
+       "division": "A",
+       "lunch":    "Regular",
+       "active":   True,
+       "paid":     True,
+    },
 )
 
 DUMMY_PLAYER2 = PlayerInsertable(
-    name="Thomas Kim",
-    rank="1D",
-    division="A",
-    lunch="Regular",
     active=True,
-    paid=True,
-    created=DUMMY_MOCK_TIME,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
+    created=DUMMY_MOCK_TIME,
+    data={
+       "name":     "Thomas Kim",
+       "rank":     "1D",
+       "division": "A",
+       "lunch":    "Regular",
+       "active":   True,
+       "paid":     True,
+    },
 )
 
 DUMMY_PLAYER3 = PlayerInsertable(
-    name="Wryan Jeong",
-    rank="4D",
-    division="C",
-    lunch="Regular",
     active=True,
-    paid=True,
-    created=DUMMY_MOCK_TIME,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
+    created=DUMMY_MOCK_TIME,
+    data={
+       "name":     "Wryan Jeong",
+       "rank":     "4D",
+       "division": "C",
+       "lunch":    "Regular",
+       "active":   True,
+       "paid":     True,
+    },
 )
 
 DUMMY_PLAYER4 = PlayerInsertable(
-    name="Taeyoon You",
-    rank="3D",
-    division="B",
-    lunch="Regular",
     active=True,
-    paid=True,
-    created=DUMMY_MOCK_TIME,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
+    created=DUMMY_MOCK_TIME,
+    data={
+       "name":     "Taeyoon You",
+       "rank":     "3D",
+       "division": "B",
+       "lunch":    "Regular",
+       "active":   True,
+       "paid":     True,
+    },
 )
 
 DUMMY_PLAYER5 = PlayerInsertable(
-    name="Jin Kim",
-    rank="Kyu",
-    division="A",
-    lunch="Vegan",
     active=True,
-    paid=True,
-    created=DUMMY_MOCK_TIME,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
+    created=DUMMY_MOCK_TIME,
+    data={
+       "name":     "Jin Kim",
+       "rank":     "Kyu",
+       "division": "A",
+       "lunch":    "Vegan",
+       "active":   True,
+       "paid":     True,
+    },
 )
 
 DUMMY_PLAYER6 = PlayerInsertable(
-    name="Kisoo Choe",
-    rank="2D",
-    division="B",
-    lunch="Regular",
     active=True,
-    paid=True,
-    created=DUMMY_MOCK_TIME,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
+    created=DUMMY_MOCK_TIME,
+    data={
+       "name":     "Kisoo Choe",
+       "rank":     "2D",
+       "division": "B",
+       "lunch":    "Regular",
+       "active":   True,
+       "paid":     True,
+    },
 )
 
 DUMMY_PLAYER7 = PlayerInsertable(
-    name="Sang Hoon Lee",
-    rank="6D",
-    division="C",
-    lunch="Regular",
     active=True,
-    paid=True,
-    created=DUMMY_MOCK_TIME,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
+    created=DUMMY_MOCK_TIME,
+    data={
+       "name":     "Sang Hoon Lee",
+       "rank":     "6D",
+       "division": "C",
+       "lunch":    "Regular",
+       "active":   True,
+       "paid":     True,
+    },
 )
 
 DUMMY_PLAYER8 = PlayerInsertable(
-    name="Alex Jeong",
-    rank="Kyu",
-    division="A",
-    lunch="Regular",
     active=True,
-    paid=True,
-    created=DUMMY_MOCK_TIME,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
+    created=DUMMY_MOCK_TIME,
+    data={
+       "name":     "Alex Jeong",
+       "rank":     "Kyu",
+       "division": "A",
+       "lunch":    "Regular",
+       "active":   True,
+       "paid":     True,
+    },
 )
 
 DUMMY_PLAYER_X_TEAM = PlayerXTeamInsertable(

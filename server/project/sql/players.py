@@ -26,7 +26,22 @@ async def get_all_players_in_tournament(
     sort_by = pagination.sort_by if pagination is not None else "name"
     sort_direction = pagination.sort_direction if pagination is not None else ""
     query = f"""
-        SELECT *
+        SELECT
+          id,
+          active,
+          tournament_id,
+          created,
+          elo_score,
+          swiss_score,
+          wins,
+          draws,
+          losses,
+          data ->> 'name'     AS name,
+          data ->> 'rank'     AS rank,
+          data ->> 'division' AS division,
+          data ->> 'lunch'    AS lunch,
+          (data ->> 'active')::boolean AS data_active,
+          (data ->> 'paid')   ::boolean AS paid
         FROM players
         WHERE players.tournament_id = :tournament_id
         {not_in_team_filter}

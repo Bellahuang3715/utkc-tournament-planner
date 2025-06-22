@@ -78,7 +78,7 @@ async def sql_create_tournament(tournament: TournamentBody) -> TournamentId:
         INSERT INTO tournaments (
             name,
             start_time,
-            club_id,
+            organizer,
             dashboard_public,
             dashboard_endpoint,
             logo_path,
@@ -90,7 +90,7 @@ async def sql_create_tournament(tournament: TournamentBody) -> TournamentId:
         VALUES (
             :name,
             :start_time,
-            :club_id,
+            :organizer,
             :dashboard_public,
             :dashboard_endpoint,
             :logo_path,
