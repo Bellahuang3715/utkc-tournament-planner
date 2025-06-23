@@ -9,7 +9,6 @@ from project.utils.id_types import PlayerId, TournamentId
 
 
 class PlayerInsertable(BaseModelORM):
-    active: bool
     tournament_id: TournamentId
     created: datetime_utc
     elo_score: Decimal = Decimal("0.0")
@@ -29,12 +28,10 @@ class Player(PlayerInsertable):
 
 class PlayerBody(BaseModelORM):
     data: Dict[str, Any]
-    active: bool
 
 
 class PlayerMultiBody(BaseModelORM):
     names: str = Field(..., min_length=1)
-    active: bool
 
 
 class PlayerToInsert(PlayerBody):

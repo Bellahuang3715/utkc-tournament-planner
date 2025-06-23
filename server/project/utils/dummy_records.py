@@ -176,7 +176,6 @@ DUMMY_TEAM4 = TeamInsertable(
 
 
 DUMMY_PLAYER1 = PlayerInsertable(
-    active=True,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     created=DUMMY_MOCK_TIME,
     data={
@@ -190,7 +189,6 @@ DUMMY_PLAYER1 = PlayerInsertable(
 )
 
 DUMMY_PLAYER2 = PlayerInsertable(
-    active=True,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     created=DUMMY_MOCK_TIME,
     data={
@@ -204,7 +202,6 @@ DUMMY_PLAYER2 = PlayerInsertable(
 )
 
 DUMMY_PLAYER3 = PlayerInsertable(
-    active=True,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     created=DUMMY_MOCK_TIME,
     data={
@@ -218,7 +215,6 @@ DUMMY_PLAYER3 = PlayerInsertable(
 )
 
 DUMMY_PLAYER4 = PlayerInsertable(
-    active=True,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     created=DUMMY_MOCK_TIME,
     data={
@@ -232,7 +228,6 @@ DUMMY_PLAYER4 = PlayerInsertable(
 )
 
 DUMMY_PLAYER5 = PlayerInsertable(
-    active=True,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     created=DUMMY_MOCK_TIME,
     data={
@@ -246,7 +241,6 @@ DUMMY_PLAYER5 = PlayerInsertable(
 )
 
 DUMMY_PLAYER6 = PlayerInsertable(
-    active=True,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     created=DUMMY_MOCK_TIME,
     data={
@@ -260,7 +254,6 @@ DUMMY_PLAYER6 = PlayerInsertable(
 )
 
 DUMMY_PLAYER7 = PlayerInsertable(
-    active=True,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     created=DUMMY_MOCK_TIME,
     data={
@@ -274,7 +267,6 @@ DUMMY_PLAYER7 = PlayerInsertable(
 )
 
 DUMMY_PLAYER8 = PlayerInsertable(
-    active=True,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     created=DUMMY_MOCK_TIME,
     data={

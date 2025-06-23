@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal
 from typing import cast
 
@@ -28,7 +29,6 @@ async def get_all_players_in_tournament(
     query = f"""
         SELECT
           id,
-          active,
           tournament_id,
           created,
           elo_score,
@@ -36,11 +36,12 @@ async def get_all_players_in_tournament(
           wins,
           draws,
           losses,
+          data,
           data ->> 'name'     AS name,
           data ->> 'rank'     AS rank,
           data ->> 'division' AS division,
           data ->> 'lunch'    AS lunch,
-          (data ->> 'active')::boolean AS data_active,
+          (data ->> 'active')::boolean AS active,
           (data ->> 'paid')   ::boolean AS paid
         FROM players
         WHERE players.tournament_id = :tournament_id
@@ -61,7 +62,10 @@ async def get_all_players_in_tournament(
         ),
     )
 
-    return [Player.model_validate(x) for x in result]
+    return [
+        Player.model_validate({ **dict(row), "data": json.loads(row["data"]) })
+        for row in result
+    ]
 
 
 async def get_player_by_id(player_id: PlayerId, tournament_id: TournamentId) -> Player | None:
