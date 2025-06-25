@@ -20,6 +20,7 @@ from project.routes import (
     internals,
     matches,
     players,
+    players_fields,
     rankings,
     rounds,
     stage_item_inputs,
@@ -66,6 +67,7 @@ routers = {
     "Internals": internals.router,
     "Matches": matches.router,
     "Players": players.router,
+    "Players Fields": players_fields.router,
     "Rankings": rankings.router,
     "Rounds": rounds.router,
     "Stage Items": stage_items.router,
@@ -118,9 +120,13 @@ app = FastAPI(
     },
 )
 
+print("CORS ORIGINS:", config.cors_origins)
+print("CORS ORIGIN REGEX:", config.cors_origin_regex)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=config.cors_origins,
+    # allow_origins=config.cors_origins,
+    allow_origins=["*"],        # for dev only
     allow_origin_regex=config.cors_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],

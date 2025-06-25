@@ -154,7 +154,6 @@ players = Table(
     "players",
     metadata,
     Column("id", BigInteger, primary_key=True, index=True),
-    # Column("active", Boolean, nullable=False, index=True, server_default="t"),
     Column("tournament_id", BigInteger, ForeignKey("tournaments.id"), index=True, nullable=False),
     Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
     Column("elo_score", Float, nullable=False),
@@ -165,6 +164,26 @@ players = Table(
     Column("data", JSONB, nullable=False),
     # optional: GIN index for fast JSON queries
     Index("ix_players_data_gin", "data", postgresql_using="gin"),
+)
+
+players_field = Table(
+    "players_field",
+    metadata,
+    Column("id", BigInteger, primary_key=True, index=True),
+    Column("tournament_id", BigInteger, ForeignKey("tournaments.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column("key", String, nullable=False),
+    Column("label", String, nullable=False),
+    Column("include", Boolean, nullable=False, server_default="t"), # checkbox state to include in table
+    Column("type", 
+           Enum(
+               "TEXT",
+               "BOOLEAN",
+               "NUMBER",
+               "DROPDOWN",
+               name="player_field_type"), 
+           nullable=False),
+    Column("position", Integer, nullable=False),    # to preserve column order
+    Column("options", JSONB, nullable=True),    # only used for dropdowns
 )
 
 users = Table(

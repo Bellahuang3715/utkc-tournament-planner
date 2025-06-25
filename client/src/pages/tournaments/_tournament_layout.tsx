@@ -103,6 +103,7 @@ export default function TournamentLayout({
 
           {/* 1) Define your template once */}
           <TemplateConfigModal
+            tournament_id={tournament_id}
             opened={isTemplateModalOpen}
             onClose={() => setTemplateModalOpen(false)}
             onSave={handleTemplateSave}

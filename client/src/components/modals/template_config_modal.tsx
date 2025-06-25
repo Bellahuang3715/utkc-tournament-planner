@@ -18,31 +18,31 @@ import {
 } from "@mantine/core";
 import { IconX, IconUpload, IconPlus } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  type DropResult,
+} from "react-beautiful-dnd";
+import { PlayerFieldTypes, FieldInsertable } from "../../interfaces/player_fields";
+import { updatePlayerFields } from "../../services/player_fields";
+
 import ExcelJS from "exceljs";
-
-export type FieldType = "text" | "number" | "dropdown";
-
-export type FieldDefinition = {
-  key: string;
-  label: string;
-  include: boolean;
-  type: FieldType;
-  options: string[];
-};
 
 export interface TemplateConfig {
   sheetName: string;
   headerRow: number;
-  fields: FieldDefinition[];
+  fields: FieldInsertable[];
 }
 
 interface TemplateConfigModalProps {
+  tournament_id: number;
   opened: boolean;
   onClose: () => void;
   onSave: (config: TemplateConfig) => void;
 }
 
-export default function TemplateConfigModal({ opened, onClose, onSave }: TemplateConfigModalProps) {
+export default function TemplateConfigModal({ tournament_id, opened, onClose, onSave }: TemplateConfigModalProps) {
   const theme = useMantineTheme();
   const { t } = useTranslation();
 
@@ -51,7 +51,7 @@ export default function TemplateConfigModal({ opened, onClose, onSave }: Templat
   const [sheetNames, setSheetNames] = useState<string[]>([]);
   const [selectedSheet, setSelectedSheet] = useState<string>("");
   const [headerRow, setHeaderRow] = useState<number>(1);
-  const [fields, setFields] = useState<FieldDefinition[]>([]);
+  const [fields, setFields] = useState<FieldInsertable[]>([]);
   const [newOptionText, setNewOptionText] = useState<Record<string, string>>({});
 
   // whenever `file` changes, read all tabs
@@ -95,20 +95,20 @@ export default function TemplateConfigModal({ opened, onClose, onSave }: Templat
   
       // Read the raw header row array (indices = actual column numbers)
       const rawHeader = ws.getRow(headerRow).values as any[];
-      const parsedFields: FieldDefinition[] = [];
+      const parsedFields: FieldInsertable[] = [];
   
       for (let colIndex = 1; colIndex < rawHeader.length; colIndex++) {
         const rawVal = rawHeader[colIndex];
         if (rawVal == null) continue;            // skip empty columns
         const label = String(rawVal);
-        let type: FieldType = "text";
+        let type: PlayerFieldTypes = "TEXT";
         let options: string[] = [];
   
         // peek two rows down for a dropdown validation
         const dvCell = ws.getCell(headerRow + 2, colIndex);
         const dv = dvCell.dataValidation;
         if (dv?.type === "list" && Array.isArray(dv.formulae) && dv.formulae.length) {
-          type = "dropdown";
+          type = "DROPDOWN";
           const formula = dv.formulae[0];
   
           // inline list: "A,B,C"
@@ -140,6 +140,7 @@ export default function TemplateConfigModal({ opened, onClose, onSave }: Templat
           include: true,
           type,
           options,
+          position: colIndex - 1, // 0-based index
         });
       }
   
@@ -149,11 +150,11 @@ export default function TemplateConfigModal({ opened, onClose, onSave }: Templat
 
   const toggleInclude = (key: string) =>
     setFields((f) => f.map((x) => (x.key === key ? { ...x, include: !x.include } : x)));
-  const updateType = (key: string, type: FieldType) =>
+  const updateType = (key: string, type: PlayerFieldTypes) =>
     setFields((f) =>
       f.map((x) =>
         x.key === key
-          ? { ...x, type, options: type === "dropdown" ? x.options : [] }
+          ? { ...x, type, options: type === "DROPDOWN" ? x.options : [] }
           : x
       )
     );
@@ -194,6 +195,22 @@ export default function TemplateConfigModal({ opened, onClose, onSave }: Templat
     }
   };
 
+  async function handleSave() {
+    console.log("Saving fields:", fields);
+    await updatePlayerFields(tournament_id, fields);
+    onSave({ sheetName: selectedSheet, headerRow, fields });
+    onClose();
+  }
+  
+  function onDragEnd(result: DropResult) {
+    const { source, destination } = result;
+    if (!destination) return;
+    const next = Array.from(fields);
+    const [moved] = next.splice(source.index, 1);
+    next.splice(destination.index, 0, moved);
+    setFields(next);
+  }
+  
   return (
     <Modal
       opened={opened}
@@ -276,12 +293,12 @@ export default function TemplateConfigModal({ opened, onClose, onSave }: Templat
                     { value: "dropdown", label: t("type_dropdown", "Dropdown") },
                   ]}
                   value={field.type}
-                  onChange={(v) => v && updateType(field.key, v as FieldType)}
+                  onChange={(v) => v && updateType(field.key, v as PlayerFieldTypes)}
                   disabled={!field.include}
                   style={{ width: 120 }}
                 />
               </Flex>
-              {field.include && field.type === "dropdown" && (
+              {field.include && field.type === "DROPDOWN" && (
                 <Paper withBorder p="sm" mt="xs">
                   <Text size="sm" mb="xs">{t("filter_options", "Filter Options")}</Text>
                   <Group gap="xs" mb="xs">
@@ -329,10 +346,64 @@ export default function TemplateConfigModal({ opened, onClose, onSave }: Templat
         </Stepper.Step>
 
         <Stepper.Step label={t("review", "Review")}>
-          {/* instruction */}
           <Text size="sm" color={theme.colors.blue[7]} mb="lg">
           {t("review_instr", "Confirm your fields and options; these cannot be changed later.")}
           </Text>
+{/* 
+          <DragDropContext onDragEnd={onDragEnd}>
+            <Droppable droppableId="fields">
+              {(droppable) => (
+                <div
+                  ref={droppable.innerRef}
+                  {...droppable.droppableProps}
+                  style={{ maxHeight: 400, overflowY: "auto" }}
+                >
+                  {fields.filter((f) => f.include).map((field, idx) => (
+                    <Draggable key={field.key} draggableId={field.key} index={idx}>
+                      {(draggable) => (
+                        <Paper
+                          withBorder
+                          p="sm"
+                          mb="xs"
+                          ref={draggable.innerRef}
+                          {...draggable.draggableProps}
+                          {...draggable.dragHandleProps}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            ...draggable.draggableProps.style,
+                          }}
+                        >
+                          <Text mr="md" fw={700}>
+                            {idx + 1}.
+                          </Text>
+
+                          <Box style={{ flex: 1 }}>
+                            <Text fw={600}>{field.label}</Text>
+                            {field.type === "dropdown" && field.options.length > 0 ? (
+                              <Text size="sm" color="dimmed">
+                                {t("options", "Options")}: {field.options.join(", ")}
+                              </Text>
+                            ) : (
+                              <Text size="sm" color="dimmed">
+                                {t("type", "Type")}:{" "}
+                                {t(`type_${field.type}`, field.type.charAt(0).toUpperCase() + field.type.slice(1))}
+                              </Text>
+                            )}
+                          </Box>
+                        </Paper>
+                      )}
+                    </Draggable>
+                  ))}
+                  {droppable.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext> */}
+
+
+
           {/* final review - fields only */}
           <Text fw={500} mb="sm">
             {t("review_warning", "Please double-check these fields and options — they cannot be changed later and will be used to parse all club sheets.")}
@@ -341,7 +412,7 @@ export default function TemplateConfigModal({ opened, onClose, onSave }: Templat
             {fields.filter((f) => f.include).map((field) => (
               <Box key={field.key} mb="md">
                 <Text fw={600}>{field.label}</Text>
-                {field.type === "dropdown" && field.options.length > 0 ? (
+                {field.type === "DROPDOWN" && field.options.length > 0 ? (
                   <Text size="sm" color="dimmed">
                     {t("options", "Options")}:{" "}{field.options.join(", ")}
                   </Text>
@@ -364,7 +435,7 @@ export default function TemplateConfigModal({ opened, onClose, onSave }: Templat
         >
           {t("previous", "Previous")}
         </Button>
-        <Button disabled={!canNext()} onClick={handleNext}>
+        <Button disabled={!canNext()} onClick={activeStep < 2 ? handleNext : handleSave}>
           {activeStep === 2 ? t("save", "Save") : t("next", "Next")}
         </Button>
       </Group>
