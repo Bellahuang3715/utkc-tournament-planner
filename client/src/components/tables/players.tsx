@@ -47,7 +47,12 @@ export default function PlayersTable({
   const { t } = useTranslation();
   
   const players: Player[] =
-    swrPlayersResponse.data != null ? swrPlayersResponse.data.data.players : [];
+  swrPlayersResponse.data != null ? swrPlayersResponse.data.data.players : [];
+
+  const jsonKeys = React.useMemo(() => {
+    if (players.length === 0) return [];
+    return Object.keys(players[0].data);
+  }, [players]);
 
   if (swrPlayersResponse.error) return <RequestErrorAlert error={swrPlayersResponse.error} />;
 
@@ -55,23 +60,20 @@ export default function PlayersTable({
     return <TableSkeletonSingleColumn />;
   }
 
+  function renderJsonCell(value: any) {
+    if (value === null || value === undefined) return "—";
+    return String(value);
+  }
+
   const rows = players
     .sort((p1: Player, p2: Player) => sortTableEntries(p1, p2, tableState))
     .map((player) => (
       <Table.Tr key={player.id}>
-        <Table.Td>
-          {player.active ? (
-            <Badge color="green">Active</Badge>
-          ) : (
-            <Badge color="red">Inactive</Badge>
-          )}
-        </Table.Td>
-        <Table.Td>
-          <Text>{player.name}</Text>
-        </Table.Td>
-        <Table.Td>
-          <DateTime datetime={player.created} />
-        </Table.Td>
+        {jsonKeys.map((k) => (
+          <Table.Td key={k}>
+            {renderJsonCell(player.data[k])}
+          </Table.Td>
+        ))}
         <Table.Td>
           <PlayerUpdateModal
             swrPlayersResponse={swrPlayersResponse}
@@ -96,15 +98,15 @@ export default function PlayersTable({
       <TableLayout miw={900}>
         <Table.Thead>
           <Table.Tr>
-            <ThSortable state={tableState} field="active">
-              {t('status')}
-            </ThSortable>
-            <ThSortable state={tableState} field="name">
-              {t('player_name')}
-            </ThSortable>
-            <ThSortable state={tableState} field="created">
-              {t('created')}
-            </ThSortable>
+            {jsonKeys.map((k) => (
+              <ThSortable
+                key={k}
+                state={tableState}
+                field={k}           // must match your API's sort_by
+              >
+                {t(k)}               {/* or provide a human label */}
+              </ThSortable>
+            ))}
             <ThNotSortable>{null}</ThNotSortable>
           </Table.Tr>
         </Table.Thead>

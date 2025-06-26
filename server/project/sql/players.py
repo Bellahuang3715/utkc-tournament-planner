@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal
 from typing import cast
 
@@ -26,7 +27,22 @@ async def get_all_players_in_tournament(
     sort_by = pagination.sort_by if pagination is not None else "name"
     sort_direction = pagination.sort_direction if pagination is not None else ""
     query = f"""
-        SELECT *
+        SELECT
+          id,
+          tournament_id,
+          created,
+          elo_score,
+          swiss_score,
+          wins,
+          draws,
+          losses,
+          data,
+          data ->> 'name'     AS name,
+          data ->> 'rank'     AS rank,
+          data ->> 'division' AS division,
+          data ->> 'lunch'    AS lunch,
+          (data ->> 'active')::boolean AS active,
+          (data ->> 'paid')   ::boolean AS paid
         FROM players
         WHERE players.tournament_id = :tournament_id
         {not_in_team_filter}
@@ -46,7 +62,10 @@ async def get_all_players_in_tournament(
         ),
     )
 
-    return [Player.model_validate(x) for x in result]
+    return [
+        Player.model_validate({ **dict(row), "data": json.loads(row["data"]) })
+        for row in result
+    ]
 
 
 async def get_player_by_id(player_id: PlayerId, tournament_id: TournamentId) -> Player | None:

@@ -7,10 +7,8 @@ from heliclockter import datetime_utc
 from pydantic import BaseModel
 
 from project.models.db.account import UserAccountType
-from project.models.db.club import ClubCreateBody
 from project.models.db.ranking import RankingCreateBody
 from project.models.db.tournament import TournamentBody
-from project.sql.clubs import create_club
 from project.sql.rankings import sql_create_ranking
 from project.sql.tournaments import sql_create_tournament
 from project.utils.id_types import UserId
@@ -74,12 +72,9 @@ def check_requirement(array: list[Any], user: UserBase, attribute: str, addition
 
 
 async def setup_demo_account(user_id: UserId) -> None:
-    club = ClubCreateBody(name="Demo Club")
-    club_inserted = await create_club(club, user_id)
-
     tournament = TournamentBody(
         name="Demo Tournament",
-        club_id=club_inserted.id,
+        organizer="UofT",
         start_time=datetime_utc.future(hours=1),
         dashboard_public=False,
         players_can_be_in_multiple_teams=False,

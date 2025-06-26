@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends
 
-from project.logic.subscriptions import check_requirement
 from project.models.db.club import ClubCreateBody, ClubUpdateBody
 from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated
@@ -18,11 +17,7 @@ async def get_clubs(user: UserPublic = Depends(firebase_user_authenticated)) -> 
 
 
 @router.post("/clubs", response_model=ClubResponse)
-async def create_new_club(
-    club: ClubCreateBody, user: UserPublic = Depends(firebase_user_authenticated)
-) -> ClubResponse:
-    existing_clubs = await get_clubs_for_user_id(user.id)
-    check_requirement(existing_clubs, user, "max_clubs")
+async def create_new_club(club: ClubCreateBody, user: UserPublic = Depends(firebase_user_authenticated)) -> ClubResponse:
     return ClubResponse(data=await create_club(club, user.id))
 
 

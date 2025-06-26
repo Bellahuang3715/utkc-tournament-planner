@@ -82,7 +82,15 @@ export default function ClubImportModal({ opened, onClose, onImportAll }: ClubIm
           </>
         ) : (
           <FileButton onChange={setClubFile} accept=".xlsx">
-            {(props) => <Button {...props}>{t("upload_club_file", "Upload Club Sheet")}</Button>}
+            {(props) => (
+              <Button
+                {...props}
+                variant="outline"
+                leftSection={<IconUpload size={16} />}
+              >
+                {t("upload_club_file", "Upload Club Sheet")}
+              </Button>
+            )}
           </FileButton>
         )}
       </Group>

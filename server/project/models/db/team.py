@@ -19,12 +19,9 @@ class TeamInsertable(BaseModelORM):
     name: str
     tournament_id: TournamentId
     active: bool
-    elo_score: Decimal = START_ELO
-    swiss_score: Decimal = Decimal("0.0")
     wins: int = 0
     draws: int = 0
     losses: int = 0
-    logo_path: str | None = None
 
 
 class Team(TeamInsertable):
@@ -34,13 +31,10 @@ class Team(TeamInsertable):
 class TeamWithPlayers(BaseModel):
     id: TeamId
     players: list[Player]
-    elo_score: Decimal = START_ELO
-    swiss_score: Decimal = Decimal("0.0")
     wins: int = 0
     draws: int = 0
     losses: int = 0
     name: str
-    logo_path: str | None = None
 
     @property
     def player_ids(self) -> list[PlayerId]:

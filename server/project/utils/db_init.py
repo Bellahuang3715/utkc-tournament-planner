@@ -1,4 +1,5 @@
 import random
+import json
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from heliclockter import datetime_utc
@@ -29,7 +30,6 @@ from project.models.db.stage_item_inputs import (
 from project.models.db.team import TeamInsertable
 from project.models.db.tournament import TournamentInsertable
 from project.models.db.user import UserInsertable
-from project.models.db.user_x_club import UserXClubInsertable, UserXClubRelation
 from project.schema import (
     clubs,
     courts,
@@ -44,7 +44,6 @@ from project.schema import (
     teams,
     tournaments,
     users,
-    users_x_clubs,
 )
 from project.sql.matches import sql_update_match
 from project.sql.stage_items import get_stage_item, sql_create_stage_item_with_inputs
@@ -151,7 +150,6 @@ async def sql_create_dev_db() -> UserId:
         ClubInsertable: clubs,
         StageInsertable: stages,
         TeamInsertable: teams,
-        UserXClubInsertable: users_x_clubs,
         PlayerXTeamInsertable: players_x_teams,
         PlayerInsertable: players,
         RoundInsertable: rounds,
@@ -174,22 +172,9 @@ async def sql_create_dev_db() -> UserId:
         return id_type(record_id)
 
     user_id_1 = await insert_dummy(DUMMY_USER, UserId)
-    club_id_1 = await insert_dummy(DUMMY_CLUB, ClubId)
+    tournament_id_1 = await insert_dummy(DUMMY_TOURNAMENT, TournamentId)
+    club_id_1 = await insert_dummy(DUMMY_CLUB, ClubId, {"creator_id": user_id_1})
 
-    await insert_dummy(
-        UserXClubInsertable(user_id=user_id_1, club_id=club_id_1, relation=UserXClubRelation.OWNER),
-        int,
-    )
-
-    if real_user_id is not None:
-        await insert_dummy(
-            UserXClubInsertable(
-                user_id=real_user_id, club_id=club_id_1, relation=UserXClubRelation.OWNER
-            ),
-            int,
-        )
-
-    tournament_id_1 = await insert_dummy(DUMMY_TOURNAMENT, TournamentId, {"club_id": club_id_1})
     stage_id_1 = await insert_dummy(DUMMY_STAGE1, StageId, {"tournament_id": tournament_id_1})
     stage_id_2 = await insert_dummy(DUMMY_STAGE2, StageId, {"tournament_id": tournament_id_1})
 
@@ -212,39 +197,23 @@ async def sql_create_dev_db() -> UserId:
         DUMMY_TEAM4, TeamId, {"name": "Team 8", "tournament_id": tournament_id_1}
     )
 
-    player_id_1 = await insert_dummy(DUMMY_PLAYER1, PlayerId, {"tournament_id": tournament_id_1})
-    player_id_2 = await insert_dummy(DUMMY_PLAYER2, PlayerId, {"tournament_id": tournament_id_1})
-    player_id_3 = await insert_dummy(DUMMY_PLAYER3, PlayerId, {"tournament_id": tournament_id_1})
-    player_id_4 = await insert_dummy(DUMMY_PLAYER4, PlayerId, {"tournament_id": tournament_id_1})
-    player_id_5 = await insert_dummy(DUMMY_PLAYER5, PlayerId, {"tournament_id": tournament_id_1})
-    player_id_6 = await insert_dummy(DUMMY_PLAYER6, PlayerId, {"tournament_id": tournament_id_1})
-    player_id_7 = await insert_dummy(DUMMY_PLAYER7, PlayerId, {"tournament_id": tournament_id_1})
-    player_id_8 = await insert_dummy(DUMMY_PLAYER8, PlayerId, {"tournament_id": tournament_id_1})
+    player_id_1 = await insert_dummy(DUMMY_PLAYER1, PlayerId, {"tournament_id": tournament_id_1, "data": DUMMY_PLAYER1.data})
+    player_id_2 = await insert_dummy(DUMMY_PLAYER2, PlayerId, {"tournament_id": tournament_id_1, "data": DUMMY_PLAYER2.data})
+    player_id_3 = await insert_dummy(DUMMY_PLAYER3, PlayerId, {"tournament_id": tournament_id_1, "data": DUMMY_PLAYER3.data})
+    player_id_4 = await insert_dummy(DUMMY_PLAYER4, PlayerId, {"tournament_id": tournament_id_1, "data": DUMMY_PLAYER4.data})
+    player_id_5 = await insert_dummy(DUMMY_PLAYER5, PlayerId, {"tournament_id": tournament_id_1, "data": DUMMY_PLAYER5.data})
+    player_id_6 = await insert_dummy(DUMMY_PLAYER6, PlayerId, {"tournament_id": tournament_id_1, "data": DUMMY_PLAYER6.data})
+    player_id_7 = await insert_dummy(DUMMY_PLAYER7, PlayerId, {"tournament_id": tournament_id_1, "data": DUMMY_PLAYER7.data})
+    player_id_8 = await insert_dummy(DUMMY_PLAYER8, PlayerId, {"tournament_id": tournament_id_1, "data": DUMMY_PLAYER8.data})
 
-    player_id_9 = await insert_dummy(
-        DUMMY_PLAYER8, PlayerId, {"name": "Player 09", "tournament_id": tournament_id_1}
-    )
-    player_id_10 = await insert_dummy(
-        DUMMY_PLAYER8, PlayerId, {"name": "Player 10", "tournament_id": tournament_id_1}
-    )
-    player_id_11 = await insert_dummy(
-        DUMMY_PLAYER8, PlayerId, {"name": "Player 11", "tournament_id": tournament_id_1}
-    )
-    player_id_12 = await insert_dummy(
-        DUMMY_PLAYER8, PlayerId, {"name": "Player 12", "tournament_id": tournament_id_1}
-    )
-    player_id_13 = await insert_dummy(
-        DUMMY_PLAYER8, PlayerId, {"name": "Player 13", "tournament_id": tournament_id_1}
-    )
-    player_id_14 = await insert_dummy(
-        DUMMY_PLAYER8, PlayerId, {"name": "Player 14", "tournament_id": tournament_id_1}
-    )
-    player_id_15 = await insert_dummy(
-        DUMMY_PLAYER8, PlayerId, {"name": "Player 15", "tournament_id": tournament_id_1}
-    )
-    player_id_16 = await insert_dummy(
-        DUMMY_PLAYER8, PlayerId, {"name": "Player 16", "tournament_id": tournament_id_1}
-    )
+    player_id_9 = await insert_dummy(DUMMY_PLAYER8, PlayerId, {"tournament_id": tournament_id_1, "data": DUMMY_PLAYER8.data})
+    player_id_10 = await insert_dummy(DUMMY_PLAYER8, PlayerId, {"tournament_id": tournament_id_1, "data": DUMMY_PLAYER8.data})
+    player_id_11 = await insert_dummy(DUMMY_PLAYER8, PlayerId, {"tournament_id": tournament_id_1, "data": DUMMY_PLAYER8.data})
+    player_id_12 = await insert_dummy(DUMMY_PLAYER8, PlayerId, {"tournament_id": tournament_id_1, "data": DUMMY_PLAYER8.data})
+    player_id_13 = await insert_dummy(DUMMY_PLAYER8, PlayerId, {"tournament_id": tournament_id_1, "data": DUMMY_PLAYER8.data})
+    player_id_14 = await insert_dummy(DUMMY_PLAYER8, PlayerId, {"tournament_id": tournament_id_1, "data": DUMMY_PLAYER8.data})
+    player_id_15 = await insert_dummy(DUMMY_PLAYER8, PlayerId, {"tournament_id": tournament_id_1, "data": DUMMY_PLAYER8.data})
+    player_id_16 = await insert_dummy(DUMMY_PLAYER8, PlayerId, {"tournament_id": tournament_id_1, "data": DUMMY_PLAYER8.data})
 
     await insert_dummy(
         DUMMY_PLAYER_X_TEAM, PlayerXTeamId, {"player_id": player_id_1, "team_id": team_id_1}
