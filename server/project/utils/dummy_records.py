@@ -17,6 +17,7 @@ from project.models.db.team import TeamInsertable
 from project.models.db.tournament import TournamentInsertable
 from project.models.db.user import UserInsertable
 from project.utils.id_types import (
+    UserId,
     ClubId,
     CourtId,
     PlayerId,
@@ -52,8 +53,11 @@ DUMMY_TOURNAMENT = TournamentInsertable(
 DUMMY_CLUB = ClubInsertable(
     name="Some Cool Club",
     abbreviation="SC",
-    tournament_id=TournamentId(DB_PLACEHOLDER_ID),
+    representative="John Doe",
+    contact_email="john@gmail.com",
     created=DUMMY_MOCK_TIME,
+    updated=DUMMY_MOCK_TIME,
+    creator_id=UserId(DB_PLACEHOLDER_ID)
 )
 
 DUMMY_STAGE1 = StageInsertable(

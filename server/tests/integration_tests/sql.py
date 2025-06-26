@@ -23,7 +23,6 @@ from project.models.db.stage_item_inputs import (
 from project.models.db.team import Team, TeamInsertable
 from project.models.db.tournament import Tournament, TournamentInsertable
 from project.models.db.user import UserInDB, UserInsertable
-from project.models.db.user_x_club import UserXClub, UserXClubInsertable, UserXClubRelation
 from project.schema import (
     clubs,
     courts,
@@ -38,7 +37,6 @@ from project.schema import (
     teams,
     tournaments,
     users,
-    users_x_clubs,
 )
 from project.sql.teams import get_teams_by_id
 from project.utils.db import insert_generic
@@ -161,12 +159,6 @@ async def inserted_round(round_: RoundInsertable) -> AsyncIterator[Round]:
 async def inserted_match(match: MatchInsertable) -> AsyncIterator[Match]:
     async with inserted_generic(match, matches, Match) as row_inserted:
         yield cast(Match, row_inserted)
-
-
-@asynccontextmanager
-async def inserted_user_x_club(user_x_club: UserXClubInsertable) -> AsyncIterator[UserXClub]:
-    async with inserted_generic(user_x_club, users_x_clubs, UserXClub) as row_inserted:
-        yield cast(UserXClub, row_inserted)
 
 
 # @asynccontextmanager

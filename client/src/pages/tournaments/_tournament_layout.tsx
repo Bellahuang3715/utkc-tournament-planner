@@ -11,7 +11,7 @@ import {
   Tabs,
   useMantineTheme,
 } from '@mantine/core';
-import { IconUpload, IconPlus, IconUser, IconUsers, IconGavel } from '@tabler/icons-react';
+import { IconUpload, IconPlus, IconUser, IconUsers } from '@tabler/icons-react';
 import { useTranslation } from "next-i18next";
 
 import { TournamentLinks } from "../../components/navbar/_main_links";
@@ -74,29 +74,30 @@ export default function TournamentLayout({
           <Text color="dimmed" size="sm" mb="md">
             {t(
               'participants_description',
-              'Generate or import your Players, Teams, and Judges data here.'
+              'Generate or import your players data here.'
             )}
           </Text>
 
           {/* 2. Action buttons */}
           <Flex justify="space-between" mb="md" align="center">
             <Flex gap="sm">
+              {/* Always show “Configure Template” */}
               <Button
                 leftSection={<IconUpload size={16} />}
                 variant="outline"
-                onClick={() => {
-                  // If we have no template yet, start with configuring it:
-                  if (!templateConfig) {
-                    setTemplateModalOpen(true);
-                  } else {
-                    // otherwise jump into club‐sheet uploads
-                    setClubImportOpen(true);
-                  }
-                }}
+                onClick={() => setTemplateModalOpen(true)}
               >
-                {templateConfig
-                  ? t('import_sheet', 'Import Filled Sheet')
-                  : t('configure_template', 'Configure Template')}
+                {t("configure_template", "Configure Template")}
+              </Button>
+
+              {/* Always show “Import Sheet”, but disable until we have a template */}
+              <Button
+                leftSection={<IconUpload size={16} />}
+                variant="outline"
+                onClick={() => setClubImportOpen(true)}
+                // disabled={!templateConfig}
+              >
+                {t("import_sheet", "Import Filled Sheet")}
               </Button>
             </Flex>
           </Flex>
@@ -146,9 +147,6 @@ export default function TournamentLayout({
               </Tabs.Tab>
               <Tabs.Tab value={`${base}/participants/teams`} leftSection={<IconUsers size={16} stroke={1.5} />}>
                 {t('teams_title')}
-              </Tabs.Tab>
-              <Tabs.Tab value={`${base}/participants/judges`} leftSection={<IconGavel size={16} stroke={1.5} />}>
-                {t('judges_title')}
               </Tabs.Tab>
             </Tabs.List>
           </Tabs>

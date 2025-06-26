@@ -13,9 +13,11 @@ clubs = Table(
     Column("id", BigInteger, primary_key=True, index=True, autoincrement=True),
     Column("name", String, nullable=False, index=True),
     Column("abbreviation", String, nullable=False, index=True),
-    Column("tournament_id", BigInteger, ForeignKey("tournaments.id"), index=True, nullable=False),
-    Column("team_count", Integer, nullable=False, server_default="0"),
+    Column("representative", String, nullable=True, index=True),
+    Column("contact_email", String, nullable=True, index=True),
     Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
+    Column("updated", DateTimeTZ, nullable=False, server_default=func.now()),
+    Column("creator_id", BigInteger, ForeignKey("users.id"), index=True, nullable=False),
 )
 
 tournaments = Table(
@@ -142,12 +144,9 @@ teams = Table(
     Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
     Column("tournament_id", BigInteger, ForeignKey("tournaments.id"), index=True, nullable=False),
     Column("active", Boolean, nullable=False, index=True, server_default="t"),
-    Column("elo_score", Float, nullable=False, server_default="0"),
-    Column("swiss_score", Float, nullable=False, server_default="0"),
     Column("wins", Integer, nullable=False, server_default="0"),
     Column("draws", Integer, nullable=False, server_default="0"),
     Column("losses", Integer, nullable=False, server_default="0"),
-    Column("logo_path", String, nullable=True),
 )
 
 players = Table(
@@ -203,24 +202,6 @@ users = Table(
             name="account_type",
         ),
         nullable=False,
-    ),
-)
-
-users_x_clubs = Table(
-    "users_x_clubs",
-    metadata,
-    Column("id", BigInteger, primary_key=True, index=True),
-    Column("club_id", BigInteger, ForeignKey("clubs.id", ondelete="CASCADE"), nullable=False),
-    Column("user_id", BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
-    Column(
-        "relation",
-        Enum(
-            "OWNER",
-            "COLLABORATOR",
-            name="user_x_club_relation",
-        ),
-        nullable=False,
-        default="OWNER",
     ),
 )
 

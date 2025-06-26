@@ -30,7 +30,6 @@ from project.models.db.stage_item_inputs import (
 from project.models.db.team import TeamInsertable
 from project.models.db.tournament import TournamentInsertable
 from project.models.db.user import UserInsertable
-from project.models.db.user_x_club import UserXClubInsertable, UserXClubRelation
 from project.schema import (
     clubs,
     courts,
@@ -45,7 +44,6 @@ from project.schema import (
     teams,
     tournaments,
     users,
-    users_x_clubs,
 )
 from project.sql.matches import sql_update_match
 from project.sql.stage_items import get_stage_item, sql_create_stage_item_with_inputs
@@ -152,7 +150,6 @@ async def sql_create_dev_db() -> UserId:
         ClubInsertable: clubs,
         StageInsertable: stages,
         TeamInsertable: teams,
-        UserXClubInsertable: users_x_clubs,
         PlayerXTeamInsertable: players_x_teams,
         PlayerInsertable: players,
         RoundInsertable: rounds,
@@ -176,20 +173,7 @@ async def sql_create_dev_db() -> UserId:
 
     user_id_1 = await insert_dummy(DUMMY_USER, UserId)
     tournament_id_1 = await insert_dummy(DUMMY_TOURNAMENT, TournamentId)
-    club_id_1 = await insert_dummy(DUMMY_CLUB, ClubId, {"tournament_id": tournament_id_1})
-
-    await insert_dummy(
-        UserXClubInsertable(user_id=user_id_1, club_id=club_id_1, relation=UserXClubRelation.OWNER),
-        int,
-    )
-
-    if real_user_id is not None:
-        await insert_dummy(
-            UserXClubInsertable(
-                user_id=real_user_id, club_id=club_id_1, relation=UserXClubRelation.OWNER
-            ),
-            int,
-        )
+    club_id_1 = await insert_dummy(DUMMY_CLUB, ClubId, {"creator_id": user_id_1})
 
     stage_id_1 = await insert_dummy(DUMMY_STAGE1, StageId, {"tournament_id": tournament_id_1})
     stage_id_2 = await insert_dummy(DUMMY_STAGE2, StageId, {"tournament_id": tournament_id_1})
