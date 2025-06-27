@@ -38,15 +38,21 @@ async def create_club(club: ClubCreateBody, creator_id: UserId) -> Club:
     return club_created
 
 
-# NOTE: This function needs to be updated
 async def sql_update_club(club_id: ClubId, club: ClubUpdateBody) -> Club | None:
     query = """
         UPDATE clubs
-        SET name = :name, abbreviation = :abbreviation
+        SET name = :name, abbreviation = :abbreviation, representative = :representative, contact_email = :contact_email, updated = NOW()
         WHERE id = :club_id
         RETURNING *
         """
-    result = await database.fetch_one(query=query, values={"name": club.name, "club_id": club_id})
+    values = {
+        "club_id": club_id,
+        "name": club.name,
+        "abbreviation": club.abbreviation,
+        "representative": club.representative,
+        "contact_email": club.contact_email,
+    }
+    result = await database.fetch_one(query=query, values=values)
     return Club.model_validate(result) if result is not None else None
 
 
@@ -61,9 +67,11 @@ async def sql_delete_club(club_id: ClubId) -> None:
 async def get_clubs_for_user_id(user_id: UserId) -> list[Club]:
     query = """
         SELECT clubs.* FROM clubs
-        WHERE clubs.creator_id = :creator_id
         """
-    results = await database.fetch_all(query=query, values={"creator_id": user_id})
+        #         SELECT clubs.* FROM clubs
+        # WHERE clubs.creator_id = :creator_id
+    # results = await database.fetch_all(query=query, values={"creator_id": user_id})
+    results = await database.fetch_all(query=query)
     return [Club.model_validate(dict(result._mapping)) for result in results]
 
 

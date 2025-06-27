@@ -244,3 +244,33 @@ export async function removeTeamLogo(tournament_id: number, team_id: number) {
   const axiosInstance = await createAxios();
   return axiosInstance.post(`tournaments/${tournament_id}/teams/${team_id}/logo`);
 }
+
+export function checkForAuthError(response: any) {
+  // if (typeof window !== 'undefined' && !tokenPresent()) {
+  //   const router = useRouter();
+  //   router.push('/login');
+  // }
+
+  // // We send a simple GET `/clubs` request to test whether we really should log out. // Next
+  // // sometimes uses out-of-date local storage, so we send an additional request with up-to-date
+  // // local storage.
+  // // If that gives a 401, we log out.
+  // function responseHasAuthError(_response: any) {
+  //   return (
+  //     _response.error != null &&
+  //     _response.error.response != null &&
+  //     _response.error.response.status === 401
+  //   );
+  // }
+  // if (responseHasAuthError(response)) {
+  //   createAxios()
+  //     .get('users/me')
+  //     .then(() => {})
+  //     .catch((error: any) => {
+  //       if (error.toJSON().status === 401) {
+  //         performLogout();
+  //       }
+  //     });
+  // }
+}
+

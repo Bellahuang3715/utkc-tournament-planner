@@ -29,4 +29,5 @@ class ClubCreateBody(BaseModelORM):
 class ClubUpdateBody(BaseModelORM):
     name: str
     abbreviation: str
-    updated: datetime_utc
+    representative: Optional[str] = None
+    contact_email: Optional[str] = None
