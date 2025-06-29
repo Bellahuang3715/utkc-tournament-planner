@@ -1,58 +1,52 @@
-import { Badge, Center, Pagination, Table, Text } from '@mantine/core';
+import { Badge, Center, Pagination, Table, Text, TextInput,
+  NumberInput,
+  MultiSelect,
+  Checkbox, } from '@mantine/core';
 import { useTranslation } from 'next-i18next';
 import React from 'react';
 import { SWRResponse } from 'swr';
 
 import { Player } from '../../interfaces/player';
+import { FieldInsertable } from '../../interfaces/player_fields';
 import { TournamentMinimal } from '../../interfaces/tournament';
 import { deletePlayer } from '../../services/player';
 import DeleteButton from '../buttons/delete';
 import PlayerUpdateModal from '../modals/player_update_modal';
 import { NoContent } from '../no_content/empty_table_info';
-import { DateTime } from '../utils/datetime';
 import RequestErrorAlert from '../utils/error_alert';
 import { TableSkeletonSingleColumn } from '../utils/skeletons';
 import TableLayout, { TableState, ThNotSortable, ThSortable, sortTableEntries } from './table';
-
-export function WinDistributionTitle() {
-  const { t } = useTranslation();
-  return (
-    <>
-      <Text span color="teal" inherit>
-        {t('win_distribution_text_win')}
-      </Text>{' '}
-      /{' '}
-      <Text span color="orange" inherit>
-        {t('win_distribution_text_draws')}
-      </Text>{' '}
-      /{' '}
-      <Text span color="red" inherit>
-        {t('win_distribution_text_losses')}
-      </Text>
-    </>
-  );
-}
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  ColumnDef,
+  FilterFn,
+} from '@tanstack/react-table';
 
 export default function PlayersTable({
   swrPlayersResponse,
+  swrPlayerFieldsResponse,
   tournamentData,
   tableState,
   playerCount,
 }: {
   swrPlayersResponse: SWRResponse;
+  swrPlayerFieldsResponse: SWRResponse;
   tournamentData: TournamentMinimal;
   tableState: TableState;
   playerCount: number;
 }) {
   const { t } = useTranslation();
-  
+
   const players: Player[] =
   swrPlayersResponse.data != null ? swrPlayersResponse.data.data.players : [];
+  console.log("players", players);
 
-  const jsonKeys = React.useMemo(() => {
-    if (players.length === 0) return [];
-    return Object.keys(players[0].data);
-  }, [players]);
+  const playerFields: FieldInsertable[] =
+    swrPlayerFieldsResponse.data?.fields ?? [];
+  console.log("playerFields", playerFields);
 
   if (swrPlayersResponse.error) return <RequestErrorAlert error={swrPlayersResponse.error} />;
 
@@ -60,8 +54,10 @@ export default function PlayersTable({
     return <TableSkeletonSingleColumn />;
   }
 
-  function renderJsonCell(value: any) {
-    if (value === null || value === undefined) return "—";
+  const columns =  playerFields.filter((f) => f.include).sort((a, b) => a.position - b.position)
+
+  function renderCell(value: any) {
+    if (value === null || value === undefined) return '—';
     return String(value);
   }
 
@@ -69,9 +65,9 @@ export default function PlayersTable({
     .sort((p1: Player, p2: Player) => sortTableEntries(p1, p2, tableState))
     .map((player) => (
       <Table.Tr key={player.id}>
-        {jsonKeys.map((k) => (
-          <Table.Td key={k}>
-            {renderJsonCell(player.data[k])}
+        {columns.map((col) => (
+          <Table.Td key={col.key}>
+            {renderCell(player.data[col.key])}
           </Table.Td>
         ))}
         <Table.Td>
@@ -98,13 +94,13 @@ export default function PlayersTable({
       <TableLayout miw={900}>
         <Table.Thead>
           <Table.Tr>
-            {jsonKeys.map((k) => (
+            {columns.map((col) => (
               <ThSortable
-                key={k}
+                key={col.key}
                 state={tableState}
-                field={k}           // must match your API's sort_by
+                field={col.key}
               >
-                {t(k)}               {/* or provide a human label */}
+                {col.label}
               </ThSortable>
             ))}
             <ThNotSortable>{null}</ThNotSortable>

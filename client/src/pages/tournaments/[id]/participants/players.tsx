@@ -7,7 +7,7 @@ import PlayerCreateModal from '../../../../components/modals/player_create_modal
 import PlayersTable from '../../../../components/tables/players';
 import { getTableState, tableStateToPagination } from '../../../../components/tables/table';
 import { capitalize, getTournamentIdFromRouter } from '../../../../components/utils/util';
-import { getPlayersPaginated } from '../../../../services/adapter';
+import { getPlayersPaginated, getPlayerFields } from '../../../../services/adapter';
 import TournamentLayout from '../../_tournament_layout';
 
 export default function Players() {
@@ -17,6 +17,7 @@ export default function Players() {
     tournamentData.id,
     tableStateToPagination(tableState)
   );
+  const swrPlayerFieldsResponse = getPlayerFields(tournamentData.id);
   const playerCount = swrPlayersResponse.data != null ? swrPlayersResponse.data.data.count : 1;
   const { t } = useTranslation();
   return (
@@ -35,6 +36,7 @@ export default function Players() {
       <PlayersTable
         playerCount={playerCount}
         swrPlayersResponse={swrPlayersResponse}
+        swrPlayerFieldsResponse={swrPlayerFieldsResponse}
         tournamentData={tournamentData}
         tableState={tableState}
       />

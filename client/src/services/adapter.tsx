@@ -127,6 +127,11 @@ export function getTournaments(): SWRResponse {
   return useSWR('tournaments', fetcher);
 }
 
+export function getPlayerFields(tournament_id: number): SWRResponse {
+  const key = `tournaments/${tournament_id}/player_fields`;
+  return useSWR(key, fetcher);
+}
+
 export function getPlayers(tournament_id: number, not_in_team: boolean = false): SWRResponse {
   return useSWR(
     `tournaments/${tournament_id}/players?not_in_team=${not_in_team}&limit=100`,

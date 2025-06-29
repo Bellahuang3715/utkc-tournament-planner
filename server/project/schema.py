@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Table, UniqueConstraint, func, Index
+from sqlalchemy import Column, ForeignKey, Integer, String, Table, UniqueConstraint, func, Index, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import declarative_base  # type: ignore[attr-defined]
 from sqlalchemy.sql.sqltypes import BigInteger, Boolean, DateTime, Enum, Float, Text
@@ -182,7 +182,7 @@ players_field = Table(
                name="player_field_type"), 
            nullable=False),
     Column("position", Integer, nullable=False),    # to preserve column order
-    Column("options", JSONB, nullable=True),    # only used for dropdowns
+    Column("options", JSONB, nullable=False, server_default=text("'[]'::jsonb")),    # only used for dropdowns
 )
 
 users = Table(
