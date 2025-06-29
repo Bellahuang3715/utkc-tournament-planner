@@ -1,9 +1,10 @@
 import { createAxios, handleRequestError } from './adapter';
+import { PlayerBody } from '../interfaces/player';
 
-export async function createPlayer(tournament_id: number, name: string, active: boolean) {
+export async function createPlayer(tournament_id: number, data: PlayerBody) {
   try {
     const axiosInstance = await createAxios();
-    return await axiosInstance.post(`tournaments/${tournament_id}/players`, { name, active });
+    return await axiosInstance.post(`tournaments/${tournament_id}/players`, { data });
   } catch (error: any) {
     handleRequestError(error);
   }
@@ -21,16 +22,12 @@ export async function deletePlayer(tournament_id: number, player_id: number) {
 export async function updatePlayer(
   tournament_id: number,
   player_id: number,
-  name: string,
-  active: boolean,
-  team_id: string | null
+  data: PlayerBody,
 ) {
   try {
     const axiosInstance = await createAxios();
     return await axiosInstance.put(`tournaments/${tournament_id}/players/${player_id}`, {
-      name,
-      active,
-      team_id,
+      data,
     });
   } catch (error: any) {
     handleRequestError(error);

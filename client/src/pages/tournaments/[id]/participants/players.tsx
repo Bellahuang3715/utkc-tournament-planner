@@ -1,4 +1,4 @@
-import { Grid, Title } from '@mantine/core';
+import { Grid } from '@mantine/core';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import React from 'react';
@@ -18,14 +18,10 @@ export default function Players() {
     tableStateToPagination(tableState)
   );
   const swrPlayerFieldsResponse = getPlayerFields(tournamentData.id);
-  const playerCount = swrPlayersResponse.data != null ? swrPlayersResponse.data.data.count : 1;
   const { t } = useTranslation();
   return (
     <TournamentLayout tournament_id={tournamentData.id}>
       <Grid justify="space-between">
-        <Grid.Col span="auto">
-          {/* <Title>{capitalize(t('players_title'))}</Title> */}
-        </Grid.Col>
         <Grid.Col span="content">
           <PlayerCreateModal
             swrPlayersResponse={swrPlayersResponse}
@@ -34,11 +30,9 @@ export default function Players() {
         </Grid.Col>
       </Grid>
       <PlayersTable
-        playerCount={playerCount}
         swrPlayersResponse={swrPlayersResponse}
         swrPlayerFieldsResponse={swrPlayerFieldsResponse}
         tournamentData={tournamentData}
-        tableState={tableState}
       />
     </TournamentLayout>
   );

@@ -9,3 +9,7 @@ export interface Player {
   losses: number;
   data: Record<string, any>;
 }
+
+export interface PlayerBody {
+  data: Record<string, any>;
+}

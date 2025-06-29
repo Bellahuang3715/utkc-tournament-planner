@@ -1,13 +1,11 @@
 import { Button, Checkbox, Modal, Tabs, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { IconUserPlus } from '@tabler/icons-react';
 import { IconUser, IconUsers } from '@tabler/icons-react';
 import { useTranslation } from 'next-i18next';
 import { useState } from 'react';
 import { SWRResponse } from 'swr';
 
 import { createPlayer } from '../../services/player';
-import SaveButton from '../buttons/save';
 
 function SinglePlayerTab({
   tournament_id,
@@ -92,12 +90,6 @@ export default function PlayerCreateModal({
           </Tabs.Panel>
         </Tabs>
       </Modal>
-
-      <SaveButton
-        onClick={() => setOpened(true)}
-        leftSection={<IconUserPlus size={24} />}
-        title={t('add_player_button')}
-      />
     </>
   );
 }
