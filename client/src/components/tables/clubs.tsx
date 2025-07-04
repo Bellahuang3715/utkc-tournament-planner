@@ -1,22 +1,24 @@
-import React, { useState } from "react";
-import { Table, Center, Text, Modal, Group, Button } from "@mantine/core";
+import React, { useState, useMemo } from "react";
 import { useTranslation } from "next-i18next";
 import { SWRResponse } from "swr";
+import {
+  MaterialReactTable,
+  MaterialReactTableProps,
+  type MRT_ColumnDef,
+  type MRT_Row,
+} from 'material-react-table';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { Box, IconButton, Tooltip } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 import { Club } from "../../interfaces/club";
 import { deleteClub } from "../../services/club";
-import DeleteButton from "../buttons/delete";
 import ClubModal from "../modals/club_modal";
 import { EmptyTableInfo } from "../no_content/empty_table_info";
 import RequestErrorAlert from "../utils/error_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
-import { DateTime } from "../utils/datetime";
-import TableLayout, {
-  ThNotSortable,
-  ThSortable,
-  getTableState,
-  sortTableEntries,
-} from "./table";
 
 export default function ClubsTable({
   swrClubsResponse,
@@ -25,25 +27,66 @@ export default function ClubsTable({
 }) {
   const clubs: Club[] =
     swrClubsResponse.data != null ? swrClubsResponse.data.data : [];
-  const tableState = getTableState("name");
   const { t } = useTranslation();
 
-  // state for confirmation modal
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [clubToDelete, setClubToDelete] = useState<Club | null>(null);
+  // column definitions
+  const columns = useMemo<MRT_ColumnDef<Club>[]>(
+    () => [
+      {
+        accessorKey: 'name',
+        header: t('name_header', 'Name'),
+      },
+      {
+        accessorKey: 'abbreviation',
+        header: t('abbreviation_header', 'Abbreviation'),
+      },
+      {
+        accessorKey: 'representative',
+        header: t('representative_header', 'Representative'),
+        Cell: ({ cell }) => cell.getValue<string>() || '—',
+      },
+      {
+        accessorKey: 'contact_email',
+        header: t('email_header', 'Contact Email'),
+        Cell: ({ cell }) => {
+          const email = cell.getValue<string>();
+          return email ? <a href={`mailto:${email}`}>{email}</a> : '—';
+        },
+      },
+      {
+        accessorKey: 'updated',
+        header: t('updated_header', 'Last Updated'),
+        Cell: ({ cell }) => (
+          <time dateTime={cell.getValue<string>()}>{new Date(cell.getValue<string>()).toLocaleString()}</time>
+        ),
+      },
+    ],
+    [t]
+  );
 
-  const openConfirm = (club: Club) => {
-    setClubToDelete(club);
-    setConfirmOpen(true);
+  // 4) define create/update/delete handlers
+  const handleCreate: MaterialReactTableProps<Club>['onCreatingRowSave'] = async ({ values, table }) => {
+    // values is Record<fieldKey, any>
+    // await createPlayer(tournamentData.id, { data: values });
+    await swrClubsResponse.mutate();
+    table.setCreatingRow(null);
   };
 
-  const handleConfirmDelete = async () => {
-    if (clubToDelete) {
-      await deleteClub(clubToDelete.id);
-      await swrClubsResponse.mutate();
+  const handleUpdate: MaterialReactTableProps<Club>['onEditingRowSave'] = async ({ values, row, table }) => {
+    // await updatePlayer(
+    //   tournamentData.id,
+    //   row.original.id,
+    //   { data: values }
+    // );
+    await swrClubsResponse.mutate();
+    table.setEditingRow(null);
+  };
+
+  const handleDelete = (row: MRT_Row<Club>) => {
+    if (window.confirm(t('confirm_delete_message', { name: row.original.name }))) {
+      deleteClub(row.original.id);
+      swrClubsResponse.mutate();
     }
-    setConfirmOpen(false);
-    setClubToDelete(null);
   };
 
   if (swrClubsResponse.error)
@@ -52,83 +95,43 @@ export default function ClubsTable({
   if (clubs.length === 0)
     return <EmptyTableInfo entity_name={t("clubs_title")} />;
 
-  const rows = clubs
-    .sort((a, b) => sortTableEntries(a, b, tableState))
-    .map((club) => (
-      <Table.Tr key={club.id}>
-        <Table.Td>{club.name}</Table.Td>
-        <Table.Td>{club.abbreviation}</Table.Td>
-        <Table.Td>{club.representative ?? "—"}</Table.Td>
-        <Table.Td>
-          {club.contact_email ? (
-            <a href={`mailto:${club.contact_email}`}>{club.contact_email}</a>
-          ) : (
-            "—"
-          )}
-        </Table.Td>
-        <Table.Td>
-          <DateTime datetime={club.updated} />
-        </Table.Td>
-        <Table.Td>
-          <ClubModal swrClubsResponse={swrClubsResponse} club={club} />
-          <DeleteButton
-            onClick={() => openConfirm(club)}
-            title={t("delete_button")}
-          />
-        </Table.Td>
-      </Table.Tr>
-    ));
-
   return (
-    <>
-      <TableLayout>
-        <Table.Thead>
-          <Table.Tr>
-            <ThSortable state={tableState} field="name">
-              {t("name_header", "Name")}
-            </ThSortable>
-            <ThSortable state={tableState} field="abbreviation">
-              {t("abbreviation_header", "Abbreviation")}
-            </ThSortable>
-            <ThSortable state={tableState} field="representative">
-              {t("representative_header", "Representative")}
-            </ThSortable>
-            <ThSortable state={tableState} field="contact_email">
-              {t("email_header", "Contact Email")}
-            </ThSortable>
-            <ThSortable state={tableState} field="updated">
-              {t("updated_header", "Last Updated")}
-            </ThSortable>
-            <ThNotSortable>{null}</ThNotSortable>
-          </Table.Tr>
-        </Table.Thead>
-
-        <Table.Tbody>{rows}</Table.Tbody>
-      </TableLayout>
-
-      {/* Confirmation Modal */}
-      <Modal
-        opened={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        title={t("confirm_delete_title", "Confirm deletion")}
-        centered
-      >
-        <Text mb="md">
-          {t(
-            "confirm_delete_message",
-            'Are you sure you want to delete "{name}"?',
-            { name: clubToDelete?.name }
-          )}
-        </Text>
-        <Group justify="flex-end" gap="sm">
-          <Button variant="default" onClick={() => setConfirmOpen(false)}>
-            {t("no", "No")}
-          </Button>
-          <Button color="red" onClick={handleConfirmDelete}>
-            {t("yes", "Yes")}
-          </Button>
-        </Group>
-      </Modal>
-    </>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <MaterialReactTable<Club>
+        columns={columns}
+        data={clubs}
+        enableColumnOrdering={true}
+        enableStickyHeader={true}
+        enableEditing
+        createDisplayMode="row"
+        editDisplayMode="row"
+        onCreatingRowSave={handleCreate}
+        onEditingRowSave={handleUpdate}
+        renderTopToolbarCustomActions={({ table }) => (
+          <ClubModal
+            club={null}
+            swrClubsResponse={swrClubsResponse}
+          />
+        )}
+        renderRowActions={({ row, table }) => (
+          <Box sx={{ display: 'flex', gap: '0.5rem' }}>
+            <Tooltip title={t('edit_button', 'Edit')}>          
+              <IconButton size="small" onClick={() => table.setEditingRow(row)}>
+                <EditIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={t('delete_button', 'Delete')}>          
+              <IconButton
+                size="small"
+                color="error"
+                onClick={() => handleDelete(row)}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        )}
+      />
+    </LocalizationProvider>
   );
 }

@@ -1,25 +1,13 @@
 // pages/tournaments/[id]/_tournament_layout.tsx
-import React, { useState } from "react";
+import React from "react";
 import { useRouter } from "next/router";
-import {
-  Box,
-  Flex,
-  Title,
-  Text,
-  Button,
-  FileButton,
-  Tabs,
-  useMantineTheme,
-} from '@mantine/core';
-import { IconUpload, IconPlus, IconUser, IconUsers } from '@tabler/icons-react';
+import { Box, Tabs, useMantineTheme } from "@mantine/core";
+import { IconUser, IconUsers } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next";
 
 import { TournamentLinks } from "../../components/navbar/_main_links";
 import { responseIsValid } from "../../components/utils/util";
 import { getTournamentById } from "../../services/adapter";
-
-import TemplateConfigModal, { TemplateConfig } from "../../components/modals/template_config_modal";
-import ClubImportModal, { ClubUpload }     from "../../components/modals/excel_create_modal";
 
 import Layout from "../_layout";
 
@@ -42,28 +30,6 @@ export default function TournamentLayout({
     <h2>/ {tournamentResponse.data.data.name}</h2>
   ) : null;
 
-  // state for modal & uploading
-  const [isTemplateModalOpen, setTemplateModalOpen] = useState(false);
-  const [isClubImportOpen,    setClubImportOpen]    = useState(false);
-  const [templateConfig,      setTemplateConfig]    = useState<TemplateConfig | null>(null);
-
-  // 1) Save template‐schema, then jump to club‐upload phase
-  const handleTemplateSave = (config: TemplateConfig) => {
-    setTemplateConfig(config);
-    setTemplateModalOpen(false);
-    setClubImportOpen(true);
-  };
-
-  // 2) Import all club sheets using saved templateConfig
-  const handleImportAll = async (uploads: ClubUpload[]) => {
-    if (!templateConfig) return;
-    // TODO: loop through uploads and your API call, e.g.:
-    // for (const { file, clubName, clubAbbr } of uploads) {
-    //   await importClubSheet(tournament_id, templateConfig, { file, clubName, clubAbbr });
-    // }
-    setClubImportOpen(false);
-  };
-
   return (
     <Layout
       additionalNavbarLinks={<TournamentLinks tournament_id={tournament_id} />}
@@ -71,52 +37,6 @@ export default function TournamentLayout({
     >
       {isParticipants && (
         <Box mb="lg">
-          <Text color="dimmed" size="sm" mb="md">
-            {t(
-              'participants_description',
-              'Generate or import your players data here.'
-            )}
-          </Text>
-
-          {/* 2. Action buttons */}
-          <Flex justify="space-between" mb="md" align="center">
-            <Flex gap="sm">
-              {/* Always show “Configure Template” */}
-              <Button
-                leftSection={<IconUpload size={16} />}
-                variant="outline"
-                onClick={() => setTemplateModalOpen(true)}
-              >
-                {t("configure_template", "Configure Template")}
-              </Button>
-
-              {/* Always show “Import Sheet”, but disable until we have a template */}
-              <Button
-                leftSection={<IconUpload size={16} />}
-                variant="outline"
-                onClick={() => setClubImportOpen(true)}
-                // disabled={!templateConfig}
-              >
-                {t("import_sheet", "Import Filled Sheet")}
-              </Button>
-            </Flex>
-          </Flex>
-
-          {/* 1) Define your template once */}
-          <TemplateConfigModal
-            tournament_id={tournament_id}
-            opened={isTemplateModalOpen}
-            onClose={() => setTemplateModalOpen(false)}
-            onSave={handleTemplateSave}
-          />
-
-          {/* 2) Then batch‐upload club sheets */}
-          <ClubImportModal
-            opened={isClubImportOpen}
-            onClose={() => setClubImportOpen(false)}
-            onImportAll={handleImportAll}
-          />
-
           {/* 3. Tabs—with pills, bigger font, colored underline */}
           <Tabs
             value={path}
@@ -131,9 +51,9 @@ export default function TournamentLayout({
               /* style every tab, including its active state */
               tab: {
                 fontSize: theme.fontSizes.md,
-                padding: '8px 16px',
+                padding: "8px 16px",
                 /* target active tab */
-                '&[data-active]': {
+                "&[data-active]": {
                   backgroundColor: theme.colors.blue[0],
                   color: theme.colors.blue[7],
                   fontWeight: 600,
@@ -142,11 +62,17 @@ export default function TournamentLayout({
             }}
           >
             <Tabs.List grow>
-              <Tabs.Tab value={`${base}/participants/players`} leftSection={<IconUser size={16} stroke={1.5} />}>
-                {t('players_title')}
+              <Tabs.Tab
+                value={`${base}/participants/players`}
+                leftSection={<IconUser size={16} stroke={1.5} />}
+              >
+                {t("players_title")}
               </Tabs.Tab>
-              <Tabs.Tab value={`${base}/participants/teams`} leftSection={<IconUsers size={16} stroke={1.5} />}>
-                {t('teams_title')}
+              <Tabs.Tab
+                value={`${base}/participants/teams`}
+                leftSection={<IconUsers size={16} stroke={1.5} />}
+              >
+                {t("teams_title")}
               </Tabs.Tab>
             </Tabs.List>
           </Tabs>

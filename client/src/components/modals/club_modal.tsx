@@ -1,13 +1,12 @@
-import { Button, Modal, TextInput, Group } from '@mantine/core';
+import { Button, Modal, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { BiEditAlt } from 'react-icons/bi';
 import { GoPlus } from 'react-icons/go';
 import { useTranslation } from 'next-i18next';
 import { useState } from 'react';
 import { SWRResponse } from 'swr';
 
 import { Club, ClubFormValues } from '../../interfaces/club';
-import { createClub, updateClub } from '../../services/club';
+import { createClub } from '../../services/club';
 import SaveButton from '../buttons/save';
 
 export default function ClubModal({
@@ -17,37 +16,19 @@ export default function ClubModal({
   club: Club | null;
   swrClubsResponse: SWRResponse;
 }) {
-  console.log("club info: ", club);
   const { t } = useTranslation();
-  const isCreate = club == null;
-  const operationText = isCreate
-    ? t('create_club_button')
-    : t('edit_button');
-  const icon = isCreate
-    ? <GoPlus size={20} />
-    : <BiEditAlt size={20} />;
+  const operationText = t('create_club_button');
 
   const [opened, setOpened] = useState(false);
 
-  const openButton = isCreate ? (
+  const openButton =
     <SaveButton
       mx="0"
-      fullWidth
+      // fullWidth
       onClick={() => setOpened(true)}
       leftSection={<GoPlus size={24} />}
       title={operationText}
-    />
-  ) : (
-    <Button
-      color="green"
-      size="xs"
-      mr="sm"
-      onClick={() => setOpened(true)}
-      leftSection={icon}
-    >
-      {operationText}
-    </Button>
-  );
+    />;
 
   const form = useForm<ClubFormValues>({
     initialValues: {
@@ -64,11 +45,7 @@ export default function ClubModal({
   });
 
   const handleSubmit = form.onSubmit(async (values) => {
-    if (isCreate) {
-      await createClub(values);
-    } else {
-      await updateClub(club!.id, values);
-    }
+    await createClub(values);
     await swrClubsResponse.mutate();
     setOpened(false);
   });
