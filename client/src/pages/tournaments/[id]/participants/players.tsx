@@ -5,17 +5,14 @@ import React from 'react';
 
 import PlayerCreateModal from '../../../../components/modals/player_create_modal';
 import PlayersTable from '../../../../components/tables/players';
-import { getTableState, tableStateToPagination } from '../../../../components/tables/table';
 import { capitalize, getTournamentIdFromRouter } from '../../../../components/utils/util';
-import { getPlayersPaginated, getPlayerFields } from '../../../../services/adapter';
+import { getPlayers, getPlayerFields } from '../../../../services/adapter';
 import TournamentLayout from '../../_tournament_layout';
 
 export default function Players() {
-  const tableState = getTableState('name');
   const { tournamentData } = getTournamentIdFromRouter();
-  const swrPlayersResponse = getPlayersPaginated(
-    tournamentData.id,
-    tableStateToPagination(tableState)
+  const swrPlayersResponse = getPlayers(
+    tournamentData.id
   );
   const swrPlayerFieldsResponse = getPlayerFields(tournamentData.id);
   const { t } = useTranslation();

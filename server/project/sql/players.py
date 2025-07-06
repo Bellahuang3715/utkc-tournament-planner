@@ -17,25 +17,14 @@ async def get_all_players_in_tournament(
     tournament_id: TournamentId,
     *,
     not_in_team: bool = False,
-    pagination: PaginationPlayers | None = None,
 ) -> list[Player]:
     not_in_team_filter = "AND players.team_id IS NULL" if not_in_team else ""
-    limit_filter = "LIMIT :limit" if pagination is not None and pagination.limit is not None else ""
-    offset_filter = (
-        "OFFSET :offset" if pagination is not None and pagination.offset is not None else ""
-    )
-    sort_by = pagination.sort_by if pagination is not None else "name"
-    sort_direction = pagination.sort_direction if pagination is not None else ""
     query = f"""
         SELECT
           id,
           tournament_id,
           created,
-          elo_score,
-          swiss_score,
           wins,
-          draws,
-          losses,
           data,
           data ->> 'name'     AS name,
           data ->> 'rank'     AS rank,
@@ -46,9 +35,7 @@ async def get_all_players_in_tournament(
         FROM players
         WHERE players.tournament_id = :tournament_id
         {not_in_team_filter}
-        ORDER BY {sort_by} {sort_direction}
-        {limit_filter}
-        {offset_filter}
+        ORDER BY data ->> 'name'
         """
 
     result = await database.fetch_all(
@@ -56,8 +43,6 @@ async def get_all_players_in_tournament(
         values=dict_without_none(
             {
                 "tournament_id": tournament_id,
-                "offset": pagination.offset if pagination is not None else None,
-                "limit": pagination.limit if pagination is not None else None,
             }
         ),
     )
@@ -115,7 +100,5 @@ async def insert_player(player_body: PlayerBody, tournament_id: TournamentId) ->
             **player_body.model_dump(),
             created=datetime_utc.now(),
             tournament_id=tournament_id,
-            elo_score=START_ELO,
-            swiss_score=Decimal("0.0"),
         ).model_dump(),
     )

@@ -34,19 +34,9 @@ async def get_teams_with_members(
     *,
     only_active_teams: bool = False,
     team_id: TeamId | None = None,
-    pagination: PaginationTeams | None = None,
 ) -> list[FullTeamWithPlayers]:
     active_team_filter = "AND teams.active IS TRUE" if only_active_teams else ""
     team_id_filter = "AND teams.id = :team_id" if team_id is not None else ""
-    limit_filter = "LIMIT :limit" if pagination is not None and pagination.limit is not None else ""
-    offset_filter = (
-        "OFFSET :offset" if pagination is not None and pagination.offset is not None else ""
-    )
-    sort = (
-        f"teams.{pagination.sort_by} {pagination.sort_direction}"
-        if pagination is not None
-        else "teams.elo_score DESC, teams.wins DESC, name ASC"
-    )
     query = f"""
         SELECT
             teams.*,
@@ -58,16 +48,11 @@ async def get_teams_with_members(
         {active_team_filter}
         {team_id_filter}
         GROUP BY teams.id
-        ORDER BY {sort}
-        {limit_filter}
-        {offset_filter}
         """
     values = dict_without_none(
         {
             "tournament_id": tournament_id,
             "team_id": team_id,
-            "limit": pagination.limit if pagination is not None else None,
-            "offset": pagination.offset if pagination is not None else None,
         }
     )
     result = await database.fetch_all(query=query, values=values)

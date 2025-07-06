@@ -68,12 +68,11 @@ async def update_team_members(
 @router.get("/tournaments/{tournament_id}/teams", response_model=TeamsWithPlayersResponse)
 async def get_teams(
     tournament_id: TournamentId,
-    pagination: PaginationTeams = Depends(),
     _: UserPublic = Depends(firebase_user_authenticated),
 ) -> TeamsWithPlayersResponse:
     return TeamsWithPlayersResponse(
         data=PaginatedTeams(
-            teams=await get_teams_with_members(tournament_id, pagination=pagination),
+            teams=await get_teams_with_members(tournament_id),
             count=await get_team_count(tournament_id),
         )
     )

@@ -1,10 +1,9 @@
-import { Grid, Select, Title } from '@mantine/core';
+import { Grid, Select } from '@mantine/core';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import React, { useState } from 'react';
 
 import TeamCreateModal from '../../../../components/modals/team_create_modal';
-import { getTableState, tableStateToPagination } from '../../../../components/tables/table';
 import TeamsTable from '../../../../components/tables/teams';
 import {
   capitalize,
@@ -14,7 +13,7 @@ import {
 import { StageItemWithRounds } from '../../../../interfaces/stage_item';
 import { StageItemInput } from '../../../../interfaces/stage_item_input';
 import { TeamInterface } from '../../../../interfaces/team';
-import { getStages, getTeamsPaginated } from '../../../../services/adapter';
+import { getStages, getTeams } from '../../../../services/adapter';
 import { getStageItemList, getStageItemTeamIdsLookup } from '../../../../services/lookups';
 import TournamentLayout from '../../_tournament_layout';
 
@@ -44,11 +43,10 @@ function StageItemSelect({
 }
 
 export default function Teams() {
-  const tableState = getTableState('name');
   const { t } = useTranslation();
   const [filteredStageItemId, setFilteredStageItemId] = useState(null);
   const { tournamentData } = getTournamentIdFromRouter();
-  const swrTeamsResponse = getTeamsPaginated(tournamentData.id, tableStateToPagination(tableState));
+  const swrTeamsResponse = getTeams(tournamentData.id);
   const swrStagesResponse = getStages(tournamentData.id);
   const stageItemInputLookup = responseIsValid(swrStagesResponse)
     ? getStageItemList(swrStagesResponse)
@@ -94,8 +92,6 @@ export default function Teams() {
         swrTeamsResponse={swrTeamsResponse}
         tournamentData={tournamentData}
         teams={teams}
-        tableState={tableState}
-        teamCount={teamCount}
       />
     </TournamentLayout>
   );

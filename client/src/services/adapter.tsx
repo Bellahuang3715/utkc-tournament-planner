@@ -134,28 +134,14 @@ export function getPlayerFields(tournament_id: number): SWRResponse {
 
 export function getPlayers(tournament_id: number, not_in_team: boolean = false): SWRResponse {
   return useSWR(
-    `tournaments/${tournament_id}/players?not_in_team=${not_in_team}&limit=100`,
-    fetcher
-  );
-}
-
-export function getPlayersPaginated(tournament_id: number, pagination: Pagination): SWRResponse {
-  return useSWR(
-    `tournaments/${tournament_id}/players?limit=${pagination.limit}&offset=${pagination.offset}&sort_by=${pagination.sort_by}&sort_direction=${pagination.sort_direction}`,
+    `tournaments/${tournament_id}/players?not_in_team=${not_in_team}`,
     fetcher
   );
 }
 
 export function getTeams(tournament_id: number | null): SWRResponse {
   return useSWR(
-    tournament_id == null ? null : `tournaments/${tournament_id}/teams?limit=100`,
-    fetcher
-  );
-}
-
-export function getTeamsPaginated(tournament_id: number, pagination: Pagination): SWRResponse {
-  return useSWR(
-    `tournaments/${tournament_id}/teams?limit=${pagination.limit}&offset=${pagination.offset}&sort_by=${pagination.sort_by}&sort_direction=${pagination.sort_direction}`,
+    tournament_id == null ? null : `tournaments/${tournament_id}/teams`,
     fetcher
   );
 }
