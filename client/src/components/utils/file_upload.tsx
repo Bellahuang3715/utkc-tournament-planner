@@ -10,7 +10,6 @@ import { TeamInterface } from "../../interfaces/team";
 import { Tournament } from "../../interfaces/tournament";
 import {
   handleRequestError,
-  uploadTeamLogo,
   uploadTournamentLogo,
 } from "../../services/adapter";
 
@@ -33,9 +32,6 @@ export function DropzoneButton({
     if (variant === "tournament") {
       return uploadTournamentLogo.bind(null, tournamentId);
     }
-
-    if (teamId === undefined) throw new TypeError("Team is undefined");
-    return uploadTeamLogo.bind(null, tournamentId, teamId);
   }, [tournamentId, teamId, variant]);
 
   return (

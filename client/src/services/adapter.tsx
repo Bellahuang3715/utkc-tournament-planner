@@ -4,7 +4,6 @@ import { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
 import { useRouter } from 'next/router';
 import useSWR, { SWRResponse } from 'swr';
 
-import { getBaseURL, Pagination } from '../components/utils/util';
 import { SchedulerSettings } from '../interfaces/match';
 import { RoundInterface } from '../interfaces/round';
 import { getAuth } from 'firebase/auth';
@@ -221,19 +220,6 @@ export async function uploadTournamentLogo(tournament_id: number, file: any) {
 export async function removeTournamentLogo(tournament_id: number) {
   const axiosInstance = await createAxios();
   return axiosInstance.post(`tournaments/${tournament_id}/logo`);
-}
-
-export async function uploadTeamLogo(tournament_id: number, team_id: number, file: any) {
-  const bodyFormData = new FormData();
-  bodyFormData.append('file', file, file.name);
-
-  const axiosInstance = await createAxios();
-  return axiosInstance.post(`tournaments/${tournament_id}/teams/${team_id}/logo`, bodyFormData);
-}
-
-export async function removeTeamLogo(tournament_id: number, team_id: number) {
-  const axiosInstance = await createAxios();
-  return axiosInstance.post(`tournaments/${tournament_id}/teams/${team_id}/logo`);
 }
 
 export function checkForAuthError(response: any) {

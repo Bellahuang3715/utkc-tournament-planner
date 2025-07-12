@@ -1,7 +1,7 @@
+import React from 'react';
 import HCaptcha from '@hcaptcha/react-hcaptcha';
 import { Center } from '@mantine/core';
 import { useRouter } from 'next/router';
-import React from 'react';
 import { SWRResponse } from 'swr';
 
 import classes from '../../pages/register.module.css';
@@ -92,11 +92,4 @@ export function HCaptchaInput({
       <HCaptcha sitekey={siteKey} onVerify={setCaptchaToken} theme="dark" />
     </Center>
   );
-}
-
-export interface Pagination {
-  offset: number;
-  limit: number;
-  sort_by: string;
-  sort_direction: 'asc' | 'desc';
 }

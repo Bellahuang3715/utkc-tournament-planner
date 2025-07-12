@@ -4,7 +4,6 @@ from project.database import database
 from project.logic.ranking.statistics import TeamStatistics
 from project.models.db.team import FullTeamWithPlayers, Team
 from project.utils.id_types import StageItemInputId, TeamId, TournamentId
-from project.utils.pagination import PaginationTeams
 from project.utils.types import dict_without_none
 
 

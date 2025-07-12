@@ -9,7 +9,6 @@ from project.logic.ranking.statistics import START_ELO
 from project.models.db.player import Player, PlayerBody, PlayerToInsert
 from project.schema import players
 from project.utils.id_types import PlayerId, TournamentId
-from project.utils.pagination import PaginationPlayers
 from project.utils.types import dict_without_none
 
 

@@ -20,7 +20,6 @@ from project.sql.players import (
 )
 from project.utils.db import fetch_one_parsed
 from project.utils.id_types import PlayerId, TournamentId
-from project.utils.pagination import PaginationPlayers
 from project.utils.types import assert_some
 
 router = APIRouter()
