@@ -16,15 +16,6 @@ export async function createTeam(
   }
 }
 
-export async function createTeams(tournament_id: number, names: string, active: boolean) {
-  try {
-    const axiosInstance = await createAxios();
-    return await axiosInstance.post(`tournaments/${tournament_id}/teams_multi`, { names, active });
-  } catch (error: any) {
-    return handleRequestError(error);
-  }
-}
-
 export async function deleteTeam(tournament_id: number, team_id: number) {
   try {
     const axiosInstance = await createAxios();

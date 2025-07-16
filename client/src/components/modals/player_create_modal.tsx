@@ -2,7 +2,6 @@ import { Button, Checkbox, Modal, Tabs, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { IconUser, IconUsers } from '@tabler/icons-react';
 import { useTranslation } from 'next-i18next';
-import { useState } from 'react';
 import { SWRResponse } from 'swr';
 
 import { createPlayer } from '../../services/player';
@@ -30,7 +29,7 @@ function SinglePlayerTab({
   return (
     <form
       onSubmit={form.onSubmit(async (values) => {
-        await createPlayer(tournament_id, values.name, values.active);
+        // await createPlayer(tournament_id, values.name, values.active);
         await swrPlayersResponse.mutate();
         setOpened(false);
       })}
@@ -58,12 +57,15 @@ function SinglePlayerTab({
 export default function PlayerCreateModal({
   tournament_id,
   swrPlayersResponse,
+  opened,
+  setOpened,
 }: {
   tournament_id: number;
   swrPlayersResponse: SWRResponse;
+  opened: boolean;
+  setOpened: (open: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const [opened, setOpened] = useState(false);
   return (
     <>
       <Modal

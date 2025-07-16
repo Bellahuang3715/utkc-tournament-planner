@@ -1,20 +1,15 @@
-import os
 from uuid import uuid4
 
-import aiofiles
-import aiofiles.os
-from fastapi import APIRouter, Depends, UploadFile
+from fastapi import APIRouter, Depends
 from heliclockter import datetime_utc
 
 from project.database import database
 from project.logic.subscriptions import check_requirement
-from project.logic.teams import get_team_logo_path
 from project.models.db.team import (
     FullTeamWithPlayers,
     Team,
     TeamBody,
     TeamInsertable,
-    TeamMultiBody,
 )
 from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated
@@ -36,8 +31,6 @@ from project.sql.validation import check_foreign_keys_belong_to_tournament
 from project.utils.db import fetch_one_parsed
 from project.utils.errors import ForeignKey, check_foreign_key_violation
 from project.utils.id_types import PlayerId, TeamId, TournamentId
-from project.utils.logging import logger
-from project.utils.pagination import PaginationTeams
 from project.utils.types import assert_some
 
 router = APIRouter()
@@ -107,43 +100,6 @@ async def update_team_by_id(
     )
 
 
-@router.post("/tournaments/{tournament_id}/teams/{team_id}/logo", response_model=SingleTeamResponse)
-async def update_team_logo(
-    tournament_id: TournamentId,
-    file: UploadFile | None = None,
-    _: UserPublic = Depends(firebase_user_authenticated),
-    team: Team = Depends(team_dependency),
-) -> SingleTeamResponse:
-    old_logo_path = await get_team_logo_path(tournament_id, team.id)
-    filename: str | None = None
-    new_logo_path: str | None = None
-
-    if file:
-        assert file.filename is not None
-        extension = os.path.splitext(file.filename)[1]
-        assert extension in (".png", ".jpg", ".jpeg")
-
-        filename = f"{uuid4()}{extension}"
-        new_logo_path = f"static/team-logos/{filename}" if file is not None else None
-
-        if new_logo_path:
-            await aiofiles.os.makedirs("static/team-logos", exist_ok=True)
-            async with aiofiles.open(new_logo_path, "wb") as f:
-                await f.write(await file.read())
-
-    if old_logo_path is not None and old_logo_path != new_logo_path:
-        try:
-            await aiofiles.os.remove(old_logo_path)
-        except Exception as exc:
-            logger.error(f"Could not remove logo that should still exist: {old_logo_path}\n{exc}")
-
-    await database.execute(
-        teams.update().where(teams.c.id == team.id),
-        values={"logo_path": filename},
-    )
-    return SingleTeamResponse(data=assert_some(await get_team_by_id(team.id, tournament_id)))
-
-
 @router.delete("/tournaments/{tournament_id}/teams/{team_id}", response_model=SuccessResponse)
 async def delete_team(
     tournament_id: TournamentId,
@@ -185,27 +141,3 @@ async def create_team(
     team_result = await get_team_by_id(last_record_id, tournament_id)
     assert team_result is not None
     return SingleTeamResponse(data=team_result)
-
-
-@router.post("/tournaments/{tournament_id}/teams_multi", response_model=SuccessResponse)
-async def create_multiple_teams(
-    team_body: TeamMultiBody,
-    tournament_id: TournamentId,
-    user: UserPublic = Depends(firebase_user_authenticated),
-) -> SuccessResponse:
-    team_names = [team.strip() for team in team_body.names.split("\n") if len(team) > 0]
-    existing_teams = await get_teams_with_members(tournament_id)
-    check_requirement(existing_teams, user, "max_teams", additions=len(team_names))
-
-    for team_name in team_names:
-        await database.execute(
-            query=teams.insert(),
-            values=TeamInsertable(
-                name=team_name,
-                active=team_body.active,
-                created=datetime_utc.now(),
-                tournament_id=tournament_id,
-            ).model_dump(),
-        )
-
-    return SuccessResponse()
