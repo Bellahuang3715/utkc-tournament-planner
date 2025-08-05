@@ -1,10 +1,10 @@
 import { createAxios, handleRequestError } from './adapter';
 import { PlayerBody } from '../interfaces/player';
 
-export async function createPlayer(tournament_id: number, data: PlayerBody) {
+export async function createPlayer(tournament_id: number, body: PlayerBody) {
   try {
     const axiosInstance = await createAxios();
-    return await axiosInstance.post(`tournaments/${tournament_id}/players`, { data });
+    return await axiosInstance.post(`tournaments/${tournament_id}/players`, body);
   } catch (error: any) {
     handleRequestError(error);
   }

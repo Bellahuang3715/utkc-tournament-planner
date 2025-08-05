@@ -1,5 +1,5 @@
 import { useTranslation } from "next-i18next";
-import React, { useMemo, useState } from "react";
+import React, { useState, useMemo } from "react";
 import { SWRResponse } from "swr";
 import {
   MaterialReactTable,
@@ -7,17 +7,15 @@ import {
   type MRT_ColumnDef,
   type MRT_Row,
 } from "material-react-table";
-import { Box, IconButton, Tooltip } from "@mui/material";
-import { Flex, Button } from "@mantine/core";
-import { IconUpload, IconPlus, IconUser, IconUsers } from "@tabler/icons-react";
+import { Box, IconButton, Tooltip, Button } from "@mui/material";
 
-import SaveButton from "../buttons/save";
+import AddBoxIcon from "@mui/icons-material/AddBox";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import PlayerCreateModal from "../modals/player_create_modal";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { IconUserPlus } from "@tabler/icons-react";
 import { mkConfig, generateCsv, download } from "export-to-csv";
 
 import { Player } from "../../interfaces/player";
@@ -32,11 +30,6 @@ import { NoContent } from "../no_content/empty_table_info";
 import RequestErrorAlert from "../utils/error_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
 
-import TemplateConfigModal, {
-  TemplateConfig,
-} from "../modals/template_config_modal";
-import ClubImportModal, { ClubUpload } from "../modals/excel_create_modal";
-
 export default function PlayersTable({
   swrPlayersResponse,
   swrPlayerFieldsResponse,
@@ -46,30 +39,8 @@ export default function PlayersTable({
   swrPlayerFieldsResponse: SWRResponse;
   tournamentData: TournamentMinimal;
 }) {
-  // state for modal & uploading
-  const [isTemplateModalOpen, setTemplateModalOpen] = useState(false);
-  const [isClubImportOpen, setClubImportOpen] = useState(false);
-  const [templateConfig, setTemplateConfig] = useState<TemplateConfig | null>(
-    null
-  );
-
-  // 1) Save template‐schema, then jump to club‐upload phase
-  const handleTemplateSave = (config: TemplateConfig) => {
-    setTemplateConfig(config);
-    setTemplateModalOpen(false);
-    setClubImportOpen(true);
-  };
-
-  // 2) Import all club sheets using saved templateConfig
-  const handleImportAll = async (uploads: ClubUpload[]) => {
-    if (!templateConfig) return;
-    // TODO: loop through uploads and your API call, e.g.:
-    // for (const { file, clubName, clubAbbr } of uploads) {
-    //   await importClubSheet(tournament_id, templateConfig, { file, clubName, clubAbbr });
-    // }
-    setClubImportOpen(false);
-  };
   const { t } = useTranslation();
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const players: Player[] =
     swrPlayersResponse.data != null ? swrPlayersResponse.data.data.players : [];
@@ -77,7 +48,8 @@ export default function PlayersTable({
 
   const playerFields: FieldInsertable[] =
     swrPlayerFieldsResponse.data?.fields ?? [];
-  console.log("playerFields", playerFields);
+    
+  // console.log("playerFields", playerFields);
 
   // ────── CSV CONFIG ─────────────────────────────────────────────
   const csvConfig = mkConfig({
@@ -115,7 +87,7 @@ export default function PlayersTable({
             filterVariant:
               f.type === "TEXT"
                 ? "text"
-                : f.type === "BOOLEAN"
+                : f.type === "CHECKBOX"
                 ? "checkbox"
                 : f.type === "NUMBER"
                 ? "range"
@@ -128,25 +100,13 @@ export default function PlayersTable({
           if (f.type === "NUMBER") {
             col.filterFn = "between";
           }
-          if (f.type === "BOOLEAN") {
+          if (f.type === "CHECKBOX") {
             // MRT expects strings for checkbox filters
             col.accessorFn = (row) => (row.data[f.key] ? "true" : "false");
             col.Cell = ({ cell }) =>
               cell.getValue<string>() === "true" ? t("yes") : t("no");
           }
           return col;
-        })
-        .concat({
-          id: "actions",
-          header: t("actions", "Actions"),
-          enableEditing: false,
-          enableColumnFilter: false,
-          enableSorting: false,
-          Cell: ({ row, table }) => (
-            <Box sx={{ display: "flex", gap: "0.5rem" }}>
-              {/* edit/delete as before */}
-            </Box>
-          ),
         }),
     [playerFields, t]
   );
@@ -171,14 +131,14 @@ export default function PlayersTable({
   const handleCreate: MaterialReactTableProps<Player>["onCreatingRowSave"] =
     async ({ values, table }) => {
       // values is Record<fieldKey, any>
-      await createPlayer(tournamentData.id, { data: values });
+      await createPlayer(tournamentData.id, values);
       await swrPlayersResponse.mutate();
       table.setCreatingRow(null);
     };
 
   const handleSave: MaterialReactTableProps<Player>["onEditingRowSave"] =
     async ({ values, row, table }) => {
-      await updatePlayer(tournamentData.id, row.original.id, { data: values });
+      await updatePlayer(tournamentData.id, row.original.id, values );
       await swrPlayersResponse.mutate();
       table.setEditingRow(null);
     };
@@ -198,117 +158,105 @@ export default function PlayersTable({
 
   // 4) render
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <MaterialReactTable<Player>
-        columns={columns}
-        data={players}
-        enableColumnOrdering={true}
-        enableStickyHeader={true}
-        enableColumnPinning={true}
-        enableRowPinning={true}
-        enableRowSelection={true}
-        // enableRowNumbers={true}
-        // enableColumnResizing={true}
-        rowPinningDisplayMode="select-sticky"
-        getRowId={(row) => row.id.toString()}
-        enableEditing
-        createDisplayMode="row"
-        editDisplayMode="row"
-        onCreatingRowSave={handleCreate}
-        onEditingRowSave={handleSave}
-        renderRowActions={({ row, table }) => (
-          <Box sx={{ display: "flex", gap: "0.5rem" }}>
-            <Tooltip title={t("edit")}>
-              <IconButton size="small" onClick={() => table.setEditingRow(row)}>
-                <EditIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title={t("delete")}>
-              <IconButton
-                size="small"
-                color="error"
-                onClick={() => handleDelete(row)}
-              >
-                <DeleteIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        )}
-        renderTopToolbarCustomActions={({ table }) => (
-          <>
-            <Flex justify="space-between" mb="md" align="center">
-              {/* create new */}
-              <SaveButton
-                variant="contained"
-                leftSection={<IconUserPlus size={24} />}
-                title={t("add_player_button")}
-                onClick={() => table.setCreatingRow(true)}
-              >
-                {t("add_player_button")}
-              </SaveButton>
-
-              <Flex gap="sm">
-                {/* Always show “Configure Template” */}
-                <Button
-                  leftSection={<IconUpload size={16} />}
-                  variant="outline"
-                  onClick={() => setTemplateModalOpen(true)}
-                >
-                  {t("configure_template", "Configure Template")}
-                </Button>
-
-                {/* Always show “Import Sheet”, but disable until we have a template */}
-                <Button
-                  leftSection={<IconUpload size={16} />}
-                  variant="outline"
-                  onClick={() => setClubImportOpen(true)}
-                  // disabled={!templateConfig}
-                >
-                  {t("import_sheet", "Import Filled Sheet")}
-                </Button>
-              </Flex>
-            </Flex>
-
-            {/* 1) Define your template once */}
-            <TemplateConfigModal
-              tournament_id={tournamentData.id}
-              opened={isTemplateModalOpen}
-              onClose={() => setTemplateModalOpen(false)}
-              onSave={handleTemplateSave}
-            />
-
-            {/* 2) Then batch‐upload club sheets */}
-            <ClubImportModal
-              opened={isClubImportOpen}
-              onClose={() => setClubImportOpen(false)}
-              onImportAll={handleImportAll}
-            />
-          </>
-        )}
-        renderBottomToolbarCustomActions={({ table }) => (
-          <Box sx={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-            {/* export all data */}
-            <Button
-              leftSection={<FileDownloadIcon />}
-              onClick={handleExportAll}
-            >
-              {t("export_all_data", "Export All Data")}
-            </Button>
-
-            {/* export selected rows */}
-            <Button
-              leftSection={<FileDownloadIcon />}
-              disabled={!table.getIsSomeRowsSelected()}
-              onClick={() =>
-                handleExportSelected(table.getSelectedRowModel().rows)
-              }
-            >
-              {t("export_selected_rows", "Export Selected Rows")}
-            </Button>
-          </Box>
-        )}
-        initialState={{ showColumnFilters: true }}
+    <>
+      <PlayerCreateModal
+        swrPlayersResponse={swrPlayersResponse}
+        tournament_id={tournamentData.id}
+        opened={createModalOpen}
+        setOpened={setCreateModalOpen}
       />
-    </LocalizationProvider>
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <MaterialReactTable<Player>
+          columns={columns}
+          data={players}
+          enableColumnOrdering
+          enableStickyHeader
+          enableColumnPinning
+          enableRowPinning
+          enableRowSelection
+          enableEditing
+          // enableRowNumbers={true}
+          // enableColumnResizing={true}
+          rowPinningDisplayMode="select-sticky"
+          getRowId={(row) => row.id.toString()}
+          renderRowActions={({ row, table }) => (
+            <Box sx={{ display: "flex", gap: "0.5rem" }}>
+              <Tooltip title={t("edit")}>
+                <IconButton
+                  size="small"
+                  onClick={() => table.setEditingRow(row)}
+                >
+                  <EditIcon />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          )}
+          renderTopToolbarCustomActions={({ table }) => {
+            const handleRemoveUsers = () => {
+              confirm("Are you sure you want to remove the selected players?");
+            };
+
+            return (
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                mb={2}
+              >
+                <Tooltip title="Add Player">
+                  <IconButton onClick={() => setCreateModalOpen(true)}>
+                    <AddBoxIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Remove Player(s)">
+                  <span>
+                    <IconButton
+                      disabled={
+                        table.getSelectedRowModel().flatRows.length === 0
+                      }
+                      onClick={handleRemoveUsers}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </Box>
+            );
+          }}
+          renderBottomToolbarCustomActions={({ table }) => (
+            <Box
+              sx={{
+                display: "flex",
+                gap: "16px",
+                padding: "8px",
+                flexWrap: "wrap",
+              }}
+            >
+              {/* export all data */}
+              <Button
+                startIcon={<FileDownloadIcon />}
+                onClick={handleExportAll}
+                sx={{ textTransform: "none" }}
+              >
+                {t("export_all_data", "Export All Data")}
+              </Button>
+
+              {/* export selected rows */}
+              <Button
+                startIcon={<FileDownloadIcon />}
+                disabled={!table.getIsSomeRowsSelected()}
+                onClick={() =>
+                  handleExportSelected(table.getSelectedRowModel().rows)
+                }
+                sx={{ textTransform: "none" }}
+              >
+                {t("export_selected_rows", "Export Selected Rows")}
+              </Button>
+            </Box>
+          )}
+          initialState={{ showColumnFilters: true }}
+        />
+      </LocalizationProvider>
+    </>
   );
 }

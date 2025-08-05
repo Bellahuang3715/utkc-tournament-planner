@@ -54,6 +54,11 @@ export default function TeamsTable({
         enableSorting: false,
       },
       {
+        accessorKey: "category",
+        header: t("members_table_header"),
+        enableSorting: false,
+      },
+      {
         accessorKey: "created",
         header: t("created"),
         enableColumnFilter: false,
@@ -119,19 +124,6 @@ export default function TeamsTable({
           enableRowSelection
           enableSorting
           enablePagination
-          // enableEditing
-          renderRowActions={({ row, table }) => (
-            <Box sx={{ display: "flex", gap: "0.5rem" }}>
-              <Tooltip title={t("edit")}>
-                <IconButton
-                  size="small"
-                  onClick={() => table.setEditingRow(row)}
-                >
-                  <EditIcon />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          )}
           renderTopToolbarCustomActions={({ table }) => {
             const handleRemoveUsers = () => {
               confirm("Are you sure you want to remove the selected team(s)?");

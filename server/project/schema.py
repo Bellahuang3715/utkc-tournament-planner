@@ -7,6 +7,26 @@ Base = declarative_base()
 metadata = Base.metadata
 DateTimeTZ = DateTime(timezone=True)
 
+users = Table(
+    "users",
+    metadata,
+    Column("id", BigInteger, primary_key=True, index=True),
+    Column("email", String, nullable=False, index=True, unique=True),
+    Column("name", String, nullable=False),
+    Column("password_hash", String, nullable=False),
+    Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
+    Column(
+        "account_type",
+        Enum(
+            "REGULAR",
+            "ADMIN",
+            "DEMO",
+            name="account_type",
+        ),
+        nullable=False,
+    ),
+)
+
 clubs = Table(
     "clubs",
     metadata,
@@ -36,6 +56,97 @@ tournaments = Table(
     Column("duration_minutes", Integer, nullable=False, server_default="15"),
     Column("margin_minutes", Integer, nullable=False, server_default="5"),
 )
+
+players = Table(
+    "players",
+    metadata,
+    Column("id", BigInteger, primary_key=True, index=True),
+    Column("tournament_id", BigInteger, ForeignKey("tournaments.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column("name", String, nullable=False, index=True),
+    Column("club", String, nullable=False, index=True),
+    Column("code", String, nullable=True, unique=True, index=True),
+    Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
+    Column("wins", Integer, nullable=False),
+    Column("data", JSONB, nullable=False),
+    # optional: GIN index for fast JSON queries
+    Index("ix_players_data_gin", "data", postgresql_using="gin"),
+)
+
+players_field = Table(
+    "players_field",
+    metadata,
+    Column("id", BigInteger, primary_key=True, index=True),
+    Column("tournament_id", BigInteger, ForeignKey("tournaments.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column("key", String, nullable=False),
+    Column("label", String, nullable=False),
+    Column("include", Boolean, nullable=False, server_default="t"), # checkbox state to include in table
+    Column("type", 
+           Enum(
+               "TEXT",
+               "CHECKBOX",
+               "NUMBER",
+               "DROPDOWN",
+               name="player_field_type"), 
+           nullable=False),
+    Column("position", Integer, nullable=False),    # to preserve column order
+    Column("options", JSONB, nullable=False, server_default=text("'[]'::jsonb")),    # only used for dropdowns
+)
+
+teams = Table(
+    "teams",
+    metadata,
+    Column("id", BigInteger, primary_key=True, index=True),
+    Column("code", String, nullable=False, index=True),
+    Column("name", String, nullable=False, index=True),
+    Column("category", String, nullable=False, index=True),
+    Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
+    Column("updated", DateTimeTZ, nullable=False, server_default=func.now()),
+    # try this later: Column("updated", DateTimeTZ, nullable=False, server_default=func.now(), onupdate=func.now()),
+    Column("tournament_id", BigInteger, ForeignKey("tournaments.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column("active", Boolean, nullable=False, index=True, server_default="t"),
+    Column("wins", Integer, nullable=False, server_default="0"),
+)
+
+teams_category = Table(
+    "teams_category",
+    metadata,
+    Column("id", BigInteger, primary_key=True, index=True),
+    Column("tournament_id", BigInteger, ForeignKey("tournaments.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column("name", String, nullable=False),
+    Column("color", String, nullable=False),
+    # Column("position", Integer, nullable=False, server_default="0"),
+)
+
+players_x_teams = Table(
+    "players_x_teams",
+    metadata,
+    Column("id", BigInteger, primary_key=True, index=True),
+    Column("player_id", BigInteger, ForeignKey("players.id", ondelete="CASCADE"), nullable=False),
+    Column("team_id", BigInteger, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False),
+    Column(
+      "position",
+      Enum(
+        "SENPO",
+        "JIHOU",
+        "CHUKEN",
+        "FUKUSHOU",
+        "TAISHO",
+        name="player_position_type",
+      ),
+      nullable=True,
+    ),
+)
+
+# divisions = Table(
+#     "divisions",
+#     metadata,
+#     Column("id", BigInteger, primary_key=True, index=True),
+#     Column("name", String, nullable=False, index=True),
+#     Column("tournament_id", BigInteger, ForeignKey("tournaments.id"), index=True, nullable=False),
+#     Column("duration_minutes", Integer, nullable=False, server_default="15"),
+#     Column("margin_minutes", Integer, nullable=False, server_default="5"),
+#     Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
+# )
 
 stages = Table(
     "stages",
@@ -134,83 +245,6 @@ matches = Table(
     Column("stage_item_input1_score", Integer, nullable=False),
     Column("stage_item_input2_score", Integer, nullable=False),
     Column("position_in_schedule", Integer, nullable=True),
-)
-
-teams = Table(
-    "teams",
-    metadata,
-    Column("id", BigInteger, primary_key=True, index=True),
-    Column("name", String, nullable=False, index=True),
-    Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
-    Column("tournament_id", BigInteger, ForeignKey("tournaments.id"), index=True, nullable=False),
-    Column("active", Boolean, nullable=False, index=True, server_default="t"),
-    Column("wins", Integer, nullable=False, server_default="0"),
-    Column("draws", Integer, nullable=False, server_default="0"),
-    Column("losses", Integer, nullable=False, server_default="0"),
-)
-
-players = Table(
-    "players",
-    metadata,
-    Column("id", BigInteger, primary_key=True, index=True),
-    Column("tournament_id", BigInteger, ForeignKey("tournaments.id"), index=True, nullable=False),
-    Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
-    Column("elo_score", Float, nullable=False),
-    Column("swiss_score", Float, nullable=False),
-    Column("wins", Integer, nullable=False),
-    Column("draws", Integer, nullable=False),
-    Column("losses", Integer, nullable=False),
-    Column("data", JSONB, nullable=False),
-    # optional: GIN index for fast JSON queries
-    Index("ix_players_data_gin", "data", postgresql_using="gin"),
-)
-
-players_field = Table(
-    "players_field",
-    metadata,
-    Column("id", BigInteger, primary_key=True, index=True),
-    Column("tournament_id", BigInteger, ForeignKey("tournaments.id", ondelete="CASCADE"), index=True, nullable=False),
-    Column("key", String, nullable=False),
-    Column("label", String, nullable=False),
-    Column("include", Boolean, nullable=False, server_default="t"), # checkbox state to include in table
-    Column("type", 
-           Enum(
-               "TEXT",
-               "BOOLEAN",
-               "NUMBER",
-               "DROPDOWN",
-               name="player_field_type"), 
-           nullable=False),
-    Column("position", Integer, nullable=False),    # to preserve column order
-    Column("options", JSONB, nullable=False, server_default=text("'[]'::jsonb")),    # only used for dropdowns
-)
-
-users = Table(
-    "users",
-    metadata,
-    Column("id", BigInteger, primary_key=True, index=True),
-    Column("email", String, nullable=False, index=True, unique=True),
-    Column("name", String, nullable=False),
-    Column("password_hash", String, nullable=False),
-    Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
-    Column(
-        "account_type",
-        Enum(
-            "REGULAR",
-            "ADMIN",
-            "DEMO",
-            name="account_type",
-        ),
-        nullable=False,
-    ),
-)
-
-players_x_teams = Table(
-    "players_x_teams",
-    metadata,
-    Column("id", BigInteger, primary_key=True, index=True),
-    Column("player_id", BigInteger, ForeignKey("players.id", ondelete="CASCADE"), nullable=False),
-    Column("team_id", BigInteger, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False),
 )
 
 courts = Table(

@@ -1,31 +1,33 @@
-import React, { useState } from "react";
+// rename to players_import_modal later
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Modal,
   Button,
   FileButton,
-  TextInput,
+  Select,
   Group,
   Text,
   ActionIcon,
-  Box,
-  NumberInput,
+  Paper,
+  Stack,
   useMantineTheme,
+  Loader,
+  NumberInput,
 } from "@mantine/core";
 import { IconX, IconUpload } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next";
+import useSWR from "swr";
+import ExcelJS from "exceljs";
 
-export type FieldDefinition = {
-  key: string;
-  label: string;
-  include: boolean;
-  options: string[];
-};
+import { getClubs } from "../../services/adapter";
+import ClubModal from "./club_modal";
+import { Club } from "../../interfaces/club";
 
 export interface ClubUpload {
   file: File;
   clubName: string;
-  clubAbbr: string;
-  numberOfTeams: number;
+  sheet: string;
+  headerRow: number;
 }
 
 interface ClubImportModalProps {
@@ -34,22 +36,57 @@ interface ClubImportModalProps {
   onImportAll: (uploads: ClubUpload[]) => void;
 }
 
-export default function ClubImportModal({ opened, onClose, onImportAll }: ClubImportModalProps) {
+export default function ClubImportModal({
+  opened,
+  onClose,
+  onImportAll,
+}: ClubImportModalProps) {
   const theme = useMantineTheme();
   const { t } = useTranslation();
 
-  const [clubName, setClubName] = useState("");
-  const [clubAbbr, setClubAbbr] = useState("");
-  const [clubFile, setClubFile] = useState<File | null>(null);
-  const [numberOfTeams, setNumberOfTeams] = useState<number | undefined>(undefined);
-  const [uploads, setUploads] = useState<ClubUpload[]>([]);
+  const swrClubs = getClubs();
+  const clubs: Club[] = swrClubs.data?.data ?? [];
+  const isLoadingClubs = swrClubs.isLoading;
+  const isErrorClubs = !!swrClubs.error;
 
-  const canAdd =
-    !!clubFile &&
-    clubName.trim() !== "" &&
-    clubAbbr.trim() !== "" &&
-    typeof numberOfTeams === "number" &&
-    numberOfTeams > 0;
+  // memoize the dropdown data
+  const selectData = useMemo(
+    () =>
+      clubs.map((c) => ({
+        value: c.name,
+        label: `${c.name} (${c.abbreviation})`,
+      })),
+    [clubs],
+  );
+
+  const [clubName, setClubName] = useState<string | null>(null);
+  const [clubFile, setClubFile] = useState<File | null>(null);
+  const [sheetNames, setSheetNames] = useState<string[]>([]);
+  const [selectedSheet, setSelectedSheet] = useState<string>("");
+  const [headerRow, setHeaderRow] = useState<number>(1);
+  const [uploads, setUploads] = useState<ClubUpload[]>([]);
+  const [clubModalOpen, setClubModalOpen] = useState(false);
+
+  // scan file for sheet names
+  useEffect(() => {
+    if (!clubFile) {
+      setSheetNames([]);
+      setSelectedSheet("");
+      return;
+    }
+    (async () => {
+      const buffer = await clubFile.arrayBuffer();
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(buffer);
+      const names = wb.worksheets.map((ws) => ws.name);
+      setSheetNames(names);
+      if (!selectedSheet && names.length > 0) {
+        setSelectedSheet(names[0]);
+      }
+    })();
+  }, [clubFile]);
+
+  const canAdd = !!clubFile && !!selectedSheet && headerRow >= 1 && !!clubName;
 
   const handleAdd = () => {
     if (!canAdd) return;
@@ -57,91 +94,150 @@ export default function ClubImportModal({ opened, onClose, onImportAll }: ClubIm
       ...u,
       {
         file: clubFile!,
-        clubName: clubName.trim(),
-        clubAbbr: clubAbbr.trim(),
-        numberOfTeams: numberOfTeams!,
+        clubName: clubName!,
+        sheet: selectedSheet,
+        headerRow,
       },
     ]);
     setClubFile(null);
-    setClubName("");
-    setClubAbbr("");
-    setNumberOfTeams(undefined);
+    setClubName(null);
+    setSheetNames([]);
+    setSelectedSheet("");
+    setHeaderRow(1);
   };
 
   return (
-    <Modal opened={opened} onClose={onClose} size="lg" title={t("import_clubs", "Import Club Sheets")}
-    >
-      <Group align="center" gap="sm" mb="md">
-        {clubFile ? (
-          <>
-            <IconUpload size={20} />
-            <Text>{clubFile.name}</Text>
-            <ActionIcon onClick={() => setClubFile(null)}>
-              <IconX size={16} />
-            </ActionIcon>
-          </>
-        ) : (
+    <>
+      <ClubModal
+        club={null}
+        swrClubsResponse={swrClubs}
+        opened={clubModalOpen}
+        setOpened={setClubModalOpen}
+      />
+      <Modal
+        opened={opened}
+        onClose={onClose}
+        size="lg"
+        centered
+        title={t("import_clubs", "Import Club Sheets")}
+      >
+        <Stack gap="md" p="md">
+          {/* 1) File Upload */}
           <FileButton onChange={setClubFile} accept=".xlsx">
             {(props) => (
               <Button
                 {...props}
                 variant="outline"
                 leftSection={<IconUpload size={16} />}
+                fullWidth
               >
-                {t("upload_club_file", "Upload Club Sheet")}
+                {clubFile
+                  ? clubFile.name
+                  : t("upload_club_file", "Upload .xlsx file")}
               </Button>
             )}
           </FileButton>
-        )}
-      </Group>
 
-      <TextInput
-        label={t("club_name", "Club Name")}
-        value={clubName}
-        onChange={(e) => setClubName(e.currentTarget.value)}
-        required
-        mb="sm"
-      />
-      <TextInput
-        label={t("club_abbr", "Club Abbreviation")}
-        value={clubAbbr}
-        onChange={(e) => setClubAbbr(e.currentTarget.value)}
-        required
-        mb="sm"
-      />
-      <NumberInput
-        label={t("number_of_teams", "Number of Teams")}
-        min={0}
-        required
-        value={numberOfTeams}
-        onChange={(val) => {
-          if (typeof val === "number") setNumberOfTeams(val);
-        }}
-        mb="sm"
-      />
-      <Button disabled={!canAdd} onClick={handleAdd} mb="md">
-        {t("add_club", "Add to List")}
-      </Button>
-
-      <Box>
-        {uploads.map((u, i) => (
-          <Group key={i} justify="space-between" mb="xs">
-            <Text>{u.clubName} ({u.clubAbbr}) — {u.file.name}</Text>
-            <ActionIcon onClick={() => setUploads((us) => us.filter((_, j) => j !== i))}>
-              <IconX size={16} />
-            </ActionIcon>
+          <Group gap="sm" align="flex-end">
+            {/* 2) Sheet & Header Row */}
+            <Select
+              label={t("select_sheet", "Which sheet contains the participants' info?")}
+              data={sheetNames.map((n) => ({ value: n, label: n }))}
+              required
+              placeholder={t(
+                "sheet_select_placeholder",
+                "Select a sheet..."
+              )}
+              value={selectedSheet}
+              onChange={(v) => v && setSelectedSheet(v)}
+              disabled={!sheetNames.length}
+              w="100%"
+            />
+            <NumberInput
+              label={t("header_row", "Enter the row that contains the table headers (Ex. Name, Rank, etc.)")}
+              min={1}
+              required
+              value={headerRow}
+              onChange={(v) => typeof v === "number" && setHeaderRow(v)}
+              disabled={!clubFile}
+              w="100%"
+            />
+            {/* 3) Club Select & Add */}
+            {isLoadingClubs ? (
+              <Loader size="sm" />
+            ) : isErrorClubs ? (
+              <Text color="red" size="sm">
+                {t("failed_load_clubs", "Failed to load clubs")}
+              </Text>
+            ) : (
+              <Select
+                label={t("club_select", "Select the club the participants belong to")}
+                data={[
+                  ...selectData,
+                  {
+                    value: "__add__",
+                    label: `+ ${t("add_new_club", "Add new club…")}`,
+                  },
+                ]}
+                required
+                placeholder={t(
+                  "club_select_pla",
+                  "Select club (or add new if not listed)"
+                )}
+                searchable
+                nothingFoundMessage={t("no_clubs_found", "No clubs found")}
+                value={clubName}
+                onChange={(val) => {
+                  if (val === "__add__") setClubModalOpen(true);
+                  else setClubName(val);
+                }}
+                w="100%"
+              />
+            )}
+            <Button onClick={handleAdd} disabled={!canAdd}>
+              {t("add_club", "Add")}
+            </Button>
           </Group>
-        ))}
-      </Box>
 
-      <Button
-        mt="md"
-        fullWidth
-        disabled={uploads.length === 0}
-        onClick={() => onImportAll(uploads)}
-      >
-        {t("import_all", "Import All Clubs")}
-      </Button>
-    </Modal>
+          {/* 4) Preview List */}
+          {uploads.length > 0 && (
+            <Paper withBorder p="sm">
+              <Stack gap="xs">
+                {uploads.map((u, idx) => (
+                  <Group key={idx} justify="space-between">
+                    <div>
+                      <Text size="sm">
+                        <strong>{u.clubName}</strong> — {u.file.name}
+                      </Text>
+                      <Text size="xs" color="dimmed">
+                        {t("sheet")}: {u.sheet} | {t("header_row")}:{" "}
+                        {u.headerRow}
+                      </Text>
+                    </div>
+                    <ActionIcon
+                      onClick={() =>
+                        setUploads((list) => list.filter((_, i) => i !== idx))
+                      }
+                    >
+                      <IconX size={16} />
+                    </ActionIcon>
+                  </Group>
+                ))}
+              </Stack>
+            </Paper>
+          )}
+
+          {/* 5) Final Import */}
+          <Button
+            fullWidth
+            color="green"
+            disabled={uploads.length === 0}
+            onClick={() => onImportAll(uploads)}
+          >
+            {t("import_all", "Import All Clubs")}
+          </Button>
+        </Stack>
+      </Modal>
+    </>
   );
 }

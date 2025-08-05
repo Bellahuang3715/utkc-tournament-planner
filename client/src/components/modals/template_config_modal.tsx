@@ -16,14 +16,9 @@ import {
   Paper,
   useMantineTheme,
 } from "@mantine/core";
+import { showNotification } from '@mantine/notifications';
 import { IconX, IconUpload, IconPlus } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next";
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  type DropResult,
-} from "react-beautiful-dnd";
 import { PlayerFieldTypes, FieldInsertable } from "../../interfaces/player_fields";
 import { updatePlayerFields } from "../../services/player_fields";
 
@@ -196,19 +191,40 @@ export default function TemplateConfigModal({ tournament_id, opened, onClose, on
   };
 
   async function handleSave() {
-    console.log("Saving fields:", fields);
-    await updatePlayerFields(tournament_id, fields);
-    onSave({ sheetName: selectedSheet, headerRow, fields });
+    // 1) Normalize keys for any first/last name fields:
+    const normalizedFields = fields.map((f) => {
+      const txt = `${f.key} ${f.label}`.toLowerCase();
+      if (/\b(first\s*name|firstname)\b/.test(txt)) {
+        return { ...f, key: 'firstname' };
+      }
+      if (/\b(last\s*name|lastname)\b/.test(txt)) {
+        return { ...f, key: 'lastname' };
+      }
+      return f;
+    });
+
+    // 2) Check that at least one Name field (first or last or generic) is present:
+    const hasNameField = normalizedFields.some((f) => {
+      const txt = `${f.key} ${f.label}`.toLowerCase();
+      return /\b(name|firstname|lastname)\b/.test(txt);
+    });
+
+    if (!hasNameField) {
+      showNotification({
+        title: t('error', 'Error'),
+        message: t(
+          'template_missing_name',
+          'You must include at least one Name field (e.g. "Name", "First Name", "Last Name").'
+        ),
+        color: 'red',
+      });
+      return;
+    }
+
+    // 3) All good → send normalized fields up
+    await updatePlayerFields(tournament_id, normalizedFields);
+    onSave({ sheetName: selectedSheet, headerRow, fields: normalizedFields });
     onClose();
-  }
-  
-  function onDragEnd(result: DropResult) {
-    const { source, destination } = result;
-    if (!destination) return;
-    const next = Array.from(fields);
-    const [moved] = next.splice(source.index, 1);
-    next.splice(destination.index, 0, moved);
-    setFields(next);
   }
   
   return (
@@ -216,7 +232,7 @@ export default function TemplateConfigModal({ tournament_id, opened, onClose, on
       opened={opened}
       onClose={onClose}
       size="lg"
-      title={t("configure_template", "Configure Template")}
+      title={t("configure_template", "Manage Fields")}
     >
       <Stepper active={activeStep} onStepClick={setActiveStep} size="sm">
         <Stepper.Step label={t("general", "General")}> 
@@ -349,60 +365,6 @@ export default function TemplateConfigModal({ tournament_id, opened, onClose, on
           <Text size="sm" color={theme.colors.blue[7]} mb="lg">
           {t("review_instr", "Confirm your fields and options; these cannot be changed later.")}
           </Text>
-{/* 
-          <DragDropContext onDragEnd={onDragEnd}>
-            <Droppable droppableId="fields">
-              {(droppable) => (
-                <div
-                  ref={droppable.innerRef}
-                  {...droppable.droppableProps}
-                  style={{ maxHeight: 400, overflowY: "auto" }}
-                >
-                  {fields.filter((f) => f.include).map((field, idx) => (
-                    <Draggable key={field.key} draggableId={field.key} index={idx}>
-                      {(draggable) => (
-                        <Paper
-                          withBorder
-                          p="sm"
-                          mb="xs"
-                          ref={draggable.innerRef}
-                          {...draggable.draggableProps}
-                          {...draggable.dragHandleProps}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            ...draggable.draggableProps.style,
-                          }}
-                        >
-                          <Text mr="md" fw={700}>
-                            {idx + 1}.
-                          </Text>
-
-                          <Box style={{ flex: 1 }}>
-                            <Text fw={600}>{field.label}</Text>
-                            {field.type === "dropdown" && field.options.length > 0 ? (
-                              <Text size="sm" color="dimmed">
-                                {t("options", "Options")}: {field.options.join(", ")}
-                              </Text>
-                            ) : (
-                              <Text size="sm" color="dimmed">
-                                {t("type", "Type")}:{" "}
-                                {t(`type_${field.type}`, field.type.charAt(0).toUpperCase() + field.type.slice(1))}
-                              </Text>
-                            )}
-                          </Box>
-                        </Paper>
-                      )}
-                    </Draggable>
-                  ))}
-                  {droppable.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext> */}
-
-
 
           {/* final review - fields only */}
           <Text fw={500} mb="sm">

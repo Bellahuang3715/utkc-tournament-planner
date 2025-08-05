@@ -1,4 +1,4 @@
-export type PlayerFieldTypes = 'TEXT' | 'BOOLEAN' | 'NUMBER' | 'DROPDOWN';
+export type PlayerFieldTypes = 'TEXT' | 'CHECKBOX' | 'NUMBER' | 'DROPDOWN';
 
 export interface FieldInsertable {
   key: string;

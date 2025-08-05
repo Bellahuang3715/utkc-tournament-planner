@@ -1,34 +1,26 @@
-import { Button, Modal, TextInput } from '@mantine/core';
+import { useEffect } from 'react';
 import { useForm } from '@mantine/form';
-import { GoPlus } from 'react-icons/go';
 import { useTranslation } from 'next-i18next';
-import { useState } from 'react';
+import { Button, Modal, TextInput } from '@mantine/core';
 import { SWRResponse } from 'swr';
 
 import { Club, ClubFormValues } from '../../interfaces/club';
 import { createClub } from '../../services/club';
-import SaveButton from '../buttons/save';
 
 export default function ClubModal({
   club,
   swrClubsResponse,
+  opened,
+  setOpened,
 }: {
   club: Club | null;
   swrClubsResponse: SWRResponse;
+  opened: boolean;
+  setOpened: (o: boolean) => void;
 }) {
   const { t } = useTranslation();
+  const isEdit = Boolean(club);
   const operationText = t('create_club_button');
-
-  const [opened, setOpened] = useState(false);
-
-  const openButton =
-    <SaveButton
-      mx="0"
-      // fullWidth
-      onClick={() => setOpened(true)}
-      leftSection={<GoPlus size={24} />}
-      title={operationText}
-    />;
 
   const form = useForm<ClubFormValues>({
     initialValues: {
@@ -44,15 +36,34 @@ export default function ClubModal({
     },
   });
 
+  useEffect(() => {
+    if (!opened) return;
+    if (isEdit && club) {
+      form.setValues({
+        name:           club.name,
+        abbreviation:   club.abbreviation,
+        representative: club.representative ?? '',
+        contact_email:  club.contact_email ?? '',
+      });
+    } else {
+      form.reset();
+    }
+  }, [opened]);
+
   const handleSubmit = form.onSubmit(async (values) => {
-    await createClub(values);
+    if (isEdit && club) {
+      // await updateClub(club.id, values);
+    }
+    else {
+      await createClub(values);
+    }
     await swrClubsResponse.mutate();
     setOpened(false);
   });
 
   return (
     <>
-      <Modal opened={opened} onClose={() => setOpened(false)} title={operationText}>
+      <Modal opened={opened} onClose={() => setOpened(false)} title={operationText} zIndex={2000}>
         <form onSubmit={handleSubmit}>
           <TextInput
             withAsterisk
@@ -77,6 +88,7 @@ export default function ClubModal({
           />
 
           <TextInput
+            type="email"
             label={t('contact_email_input_label', 'Contact Email')}
             placeholder={t('contact_email_input_placeholder', 'Enter contact email')}
             mt="sm"
@@ -88,8 +100,6 @@ export default function ClubModal({
           </Button>
         </form>
       </Modal>
-
-      {openButton}
     </>
   );
 }
