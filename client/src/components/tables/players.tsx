@@ -72,44 +72,59 @@ export default function PlayersTable({
   };
 
   // 1) build the column definitions
-  const columns = useMemo<MRT_ColumnDef<Player>[]>(
-    () =>
-      playerFields
-        .filter((f) => f.include)
-        .sort((a, b) => a.position - b.position)
-        .map((f) => {
-          const col: MRT_ColumnDef<Player> = {
-            id: f.key,
-            header: f.label,
-            accessorFn: (row) => row.data[f.key],
-            // size: 150,
-            // pick filterVariant by field type
-            filterVariant:
-              f.type === "TEXT"
-                ? "text"
-                : f.type === "CHECKBOX"
-                ? "checkbox"
-                : f.type === "NUMBER"
-                ? "range"
-                : "multi-select",
-          };
+   const columns = useMemo<MRT_ColumnDef<Player>[]>(
+     () => {
+      // 1a) explicit "club" column
+      const clubCol: MRT_ColumnDef<Player> = {
+        accessorKey: 'club',
+        header: t('club_header', 'Club'),
+        filterVariant: 'text',
+      };
 
-          if (f.type === "DROPDOWN") {
-            col.filterSelectOptions = f.options;
-          }
-          if (f.type === "NUMBER") {
-            col.filterFn = "between";
-          }
-          if (f.type === "CHECKBOX") {
-            // MRT expects strings for checkbox filters
-            col.accessorFn = (row) => (row.data[f.key] ? "true" : "false");
-            col.Cell = ({ cell }) =>
-              cell.getValue<string>() === "true" ? t("yes") : t("no");
-          }
-          return col;
-        }),
-    [playerFields, t]
-  );
+       const fieldCols = playerFields
+         .filter((f) => f.include)
+         .sort((a, b) => a.position - b.position)
+         .map((f) => {
+           const col: MRT_ColumnDef<Player> = {
+             id: f.key,
+             header: f.label,
+             accessorFn: (row) => row.data[f.key],
+             filterVariant:
+               f.type === "TEXT"
+                 ? "text"
+                 : f.type === "CHECKBOX"
+                 ? "checkbox"
+                 : f.type === "NUMBER"
+                 ? "range"
+                 : "multi-select",
+           };
+           if (f.type === "DROPDOWN") {
+             col.filterSelectOptions = f.options;
+           }
+           if (f.type === "NUMBER") {
+             col.filterFn = "between";
+           }
+           if (f.type === "CHECKBOX") {
+             col.accessorFn = (row) => (row.data[f.key] ? "true" : "false");
+             col.Cell = ({ cell }) =>
+               cell.getValue<string>() === "true" ? t("yes") : t("no");
+           }
+           return col;
+         });
+
+      // if there’s at least one field column, put it first, then club, then the rest
+      if (fieldCols.length > 2) {
+        return [
+          fieldCols[0],
+          clubCol,
+          ...fieldCols.slice(1),
+        ];
+      }
+      // fallback: no fields at all
+      return [clubCol];
+      },
+     [playerFields, t]
+   );
 
   if (swrPlayersResponse.error || swrPlayerFieldsResponse.error) {
     return (

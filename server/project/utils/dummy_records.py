@@ -152,28 +152,40 @@ DUMMY_USER = UserInsertable(
 
 DUMMY_TEAM1 = TeamInsertable(
     created=DUMMY_MOCK_TIME,
-    name="Team 1",
+    updated=DUMMY_MOCK_TIME,
+    code="UOT A",
+    name="University of Toronto",
+    category="Mixed",
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     active=True,
 )
 
 DUMMY_TEAM2 = TeamInsertable(
     created=DUMMY_MOCK_TIME,
-    name="Team 2",
+    updated=DUMMY_MOCK_TIME,
+    code="NOR B",
+    name="Nord Kendo Club",
+    category="Mixed",
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     active=True,
 )
 
 DUMMY_TEAM3 = TeamInsertable(
     created=DUMMY_MOCK_TIME,
-    name="Team 3",
+    updated=DUMMY_MOCK_TIME,
+    code="YOR C",
+    name="York University",
+    category="Mixed",
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     active=True,
 )
 
 DUMMY_TEAM4 = TeamInsertable(
     created=DUMMY_MOCK_TIME,
-    name="Team 4",
+    updated=DUMMY_MOCK_TIME,
+    code="MIX A",
+    name="North York x Renshin",
+    category="Mixed",
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     active=True,
 )
@@ -182,6 +194,8 @@ DUMMY_TEAM4 = TeamInsertable(
 DUMMY_PLAYER1 = PlayerInsertable(
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     created=DUMMY_MOCK_TIME,
+    name="John Doe",
+    club="University of Toronto",
     data={
        "name":     "John Doe",
        "rank":     "1D",
@@ -195,6 +209,8 @@ DUMMY_PLAYER1 = PlayerInsertable(
 DUMMY_PLAYER2 = PlayerInsertable(
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     created=DUMMY_MOCK_TIME,
+    name="Thomas Kim",
+    club="University of Toronto",
     data={
        "name":     "Thomas Kim",
        "rank":     "1D",
@@ -208,6 +224,8 @@ DUMMY_PLAYER2 = PlayerInsertable(
 DUMMY_PLAYER3 = PlayerInsertable(
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     created=DUMMY_MOCK_TIME,
+    name="Wryan Jeong",
+    club="University of Toronto",
     data={
        "name":     "Wryan Jeong",
        "rank":     "4D",
@@ -221,6 +239,8 @@ DUMMY_PLAYER3 = PlayerInsertable(
 DUMMY_PLAYER4 = PlayerInsertable(
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     created=DUMMY_MOCK_TIME,
+    name="Taeyoon You",
+    club="University of Toronto",
     data={
        "name":     "Taeyoon You",
        "rank":     "3D",
@@ -234,6 +254,8 @@ DUMMY_PLAYER4 = PlayerInsertable(
 DUMMY_PLAYER5 = PlayerInsertable(
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     created=DUMMY_MOCK_TIME,
+    name="Jin Kim",
+    club="University of Toronto",
     data={
        "name":     "Jin Kim",
        "rank":     "Kyu",
@@ -247,6 +269,8 @@ DUMMY_PLAYER5 = PlayerInsertable(
 DUMMY_PLAYER6 = PlayerInsertable(
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     created=DUMMY_MOCK_TIME,
+    name="Kisoo Choe",
+    club="University of Toronto",
     data={
        "name":     "Kisoo Choe",
        "rank":     "2D",
@@ -260,6 +284,8 @@ DUMMY_PLAYER6 = PlayerInsertable(
 DUMMY_PLAYER7 = PlayerInsertable(
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     created=DUMMY_MOCK_TIME,
+    name="Sang Hoon Lee",
+    club="University of Toronto",
     data={
        "name":     "Sang Hoon Lee",
        "rank":     "6D",
@@ -273,6 +299,8 @@ DUMMY_PLAYER7 = PlayerInsertable(
 DUMMY_PLAYER8 = PlayerInsertable(
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     created=DUMMY_MOCK_TIME,
+    name="Alex Jeong",
+    club="University of Toronto",
     data={
        "name":     "Alex Jeong",
        "rank":     "Kyu",
@@ -286,6 +314,7 @@ DUMMY_PLAYER8 = PlayerInsertable(
 DUMMY_PLAYER_X_TEAM = PlayerXTeamInsertable(
     player_id=PlayerId(DB_PLACEHOLDER_ID),
     team_id=TeamId(DB_PLACEHOLDER_ID),
+    position="SENPO",
 )
 
 DUMMY_COURT1 = CourtInsertable(

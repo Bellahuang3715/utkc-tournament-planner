@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 
 from project.database import database
 from project.logic.subscriptions import check_requirement
-from project.models.db.player import Player, PlayerBody, PlayerMultiBody
+from project.models.db.player import Player, PlayerBody
 from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated
 from project.routes.models import (
@@ -83,7 +83,7 @@ async def create_single_player(
     tournament_id: TournamentId,
     user: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
-    existing_players = await get_all_players_in_tournament(tournament_id)
-    check_requirement(existing_players, user, "max_players")
+    # existing_players = await get_all_players_in_tournament(tournament_id)
+    # check_requirement(existing_players, user, "max_players")
     await insert_player(player_body, tournament_id)
     return SuccessResponse()

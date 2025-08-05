@@ -15,13 +15,13 @@ from project.utils.id_types import PlayerId, TeamId, TournamentId
 
 
 class TeamInsertable(BaseModelORM):
-    created: datetime_utc
+    code: str
     name: str
+    category: str
+    created: datetime_utc
     tournament_id: TournamentId
     active: bool
     wins: int = 0
-    draws: int = 0
-    losses: int = 0
 
 
 class Team(TeamInsertable):
@@ -32,8 +32,6 @@ class TeamWithPlayers(BaseModel):
     id: TeamId
     players: list[Player]
     wins: int = 0
-    draws: int = 0
-    losses: int = 0
     name: str
 
     @property

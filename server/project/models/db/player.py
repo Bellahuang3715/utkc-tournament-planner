@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Any, Dict
+from typing import Optional, Any, Dict
 
 from heliclockter import datetime_utc
 from pydantic import Field
@@ -10,12 +10,11 @@ from project.utils.id_types import PlayerId, TournamentId
 
 class PlayerInsertable(BaseModelORM):
     tournament_id: TournamentId
+    name: str
+    club: str
+    code: Optional[str] = None
     created: datetime_utc
-    elo_score: Decimal = Decimal("0.0")
-    swiss_score: Decimal = Decimal("0.0")
     wins: int = 0
-    draws: int = 0
-    losses: int = 0
     data: Dict[str, Any]
 
 
@@ -27,18 +26,12 @@ class Player(PlayerInsertable):
 
 
 class PlayerBody(BaseModelORM):
+    name: str
+    club: str
     data: Dict[str, Any]
-
-
-class PlayerMultiBody(BaseModelORM):
-    names: str = Field(..., min_length=1)
 
 
 class PlayerToInsert(PlayerBody):
     created: datetime_utc
     tournament_id: TournamentId
-    elo_score: Decimal = Decimal("1200.0")
-    swiss_score: Decimal
     wins: int = 0
-    draws: int = 0
-    losses: int = 0

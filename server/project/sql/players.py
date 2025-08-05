@@ -5,7 +5,6 @@ from typing import cast
 from heliclockter import datetime_utc
 
 from project.database import database
-from project.logic.ranking.statistics import START_ELO
 from project.models.db.player import Player, PlayerBody, PlayerToInsert
 from project.schema import players
 from project.utils.id_types import PlayerId, TournamentId
@@ -22,19 +21,16 @@ async def get_all_players_in_tournament(
         SELECT
           id,
           tournament_id,
+          name,
+          club,
+          code,
           created,
           wins,
-          data,
-          data ->> 'name'     AS name,
-          data ->> 'rank'     AS rank,
-          data ->> 'division' AS division,
-          data ->> 'lunch'    AS lunch,
-          (data ->> 'active')::boolean AS active,
-          (data ->> 'paid')   ::boolean AS paid
+          data
         FROM players
         WHERE players.tournament_id = :tournament_id
         {not_in_team_filter}
-        ORDER BY data ->> 'name'
+        ORDER BY name
         """
 
     result = await database.fetch_all(

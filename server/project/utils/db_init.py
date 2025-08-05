@@ -185,16 +185,16 @@ async def sql_create_dev_db() -> UserId:
     team_id_3 = await insert_dummy(DUMMY_TEAM3, TeamId, {"tournament_id": tournament_id_1})
     team_id_4 = await insert_dummy(DUMMY_TEAM4, TeamId, {"tournament_id": tournament_id_1})
     team_id_5 = await insert_dummy(
-        DUMMY_TEAM4, TeamId, {"name": "Team 5", "tournament_id": tournament_id_1}
+        DUMMY_TEAM4, TeamId, {"name": "Team 5", "code": "UOT B", "category": "Womens", "tournament_id": tournament_id_1}
     )
     team_id_6 = await insert_dummy(
-        DUMMY_TEAM4, TeamId, {"name": "Team 6", "tournament_id": tournament_id_1}
+        DUMMY_TEAM4, TeamId, {"name": "Team 6", "code": "UOT B", "category": "Womens", "tournament_id": tournament_id_1}
     )
     team_id_7 = await insert_dummy(
-        DUMMY_TEAM4, TeamId, {"name": "Team 7", "tournament_id": tournament_id_1}
+        DUMMY_TEAM4, TeamId, {"name": "Team 7", "code": "UOT B", "category": "Womens", "tournament_id": tournament_id_1}
     )
     team_id_8 = await insert_dummy(
-        DUMMY_TEAM4, TeamId, {"name": "Team 8", "tournament_id": tournament_id_1}
+        DUMMY_TEAM4, TeamId, {"name": "Team 8", "code": "UOT B", "category": "Womens", "tournament_id": tournament_id_1}
     )
 
     player_id_1 = await insert_dummy(DUMMY_PLAYER1, PlayerId, {"tournament_id": tournament_id_1, "data": DUMMY_PLAYER1.data})
