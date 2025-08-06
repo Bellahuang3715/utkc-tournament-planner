@@ -1,7 +1,5 @@
-// rename to players_import_modal later
 import React, { useState, useEffect, useMemo } from "react";
 import {
-  Modal,
   Button,
   FileButton,
   Select,
@@ -16,31 +14,26 @@ import {
 } from "@mantine/core";
 import { IconX, IconUpload } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next";
-import useSWR from "swr";
 import ExcelJS from "exceljs";
 
 import { getClubs } from "../../services/adapter";
 import ClubModal from "./club_modal";
 import { Club } from "../../interfaces/club";
 
-export interface ClubUpload {
+export interface PlayersUpload {
   file: File;
   clubName: string;
   sheet: string;
   headerRow: number;
 }
 
-interface ClubImportModalProps {
-  opened: boolean;
-  onClose: () => void;
-  onImportAll: (uploads: ClubUpload[]) => void;
+interface PlayersImportModalProps {
+  onImportAll: (uploads: PlayersUpload[]) => void;
 }
 
-export default function ClubImportModal({
-  opened,
-  onClose,
+export default function PlayersImportModal({
   onImportAll,
-}: ClubImportModalProps) {
+}: PlayersImportModalProps) {
   const theme = useMantineTheme();
   const { t } = useTranslation();
 
@@ -64,7 +57,7 @@ export default function ClubImportModal({
   const [sheetNames, setSheetNames] = useState<string[]>([]);
   const [selectedSheet, setSelectedSheet] = useState<string>("");
   const [headerRow, setHeaderRow] = useState<number>(1);
-  const [uploads, setUploads] = useState<ClubUpload[]>([]);
+  const [uploads, setUploads] = useState<PlayersUpload[]>([]);
   const [clubModalOpen, setClubModalOpen] = useState(false);
 
   // scan file for sheet names
@@ -114,13 +107,6 @@ export default function ClubImportModal({
         opened={clubModalOpen}
         setOpened={setClubModalOpen}
       />
-      <Modal
-        opened={opened}
-        onClose={onClose}
-        size="lg"
-        centered
-        title={t("import_clubs", "Import Club Sheets")}
-      >
         <Stack gap="md" p="md">
           {/* 1) File Upload */}
           <FileButton onChange={setClubFile} accept=".xlsx">
@@ -237,7 +223,6 @@ export default function ClubImportModal({
             {t("import_all", "Import All Clubs")}
           </Button>
         </Stack>
-      </Modal>
     </>
   );
 }
