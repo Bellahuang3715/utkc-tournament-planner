@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Modal,
   Button,
@@ -24,51 +24,70 @@ import { getPlayerFields } from '../../services/adapter';
 import { FieldInsertable, PlayerFieldTypes } from '../../interfaces/player_fields';
 import PlayersImportModal, { PlayersUpload } from "./players_import_modal";
 import { inferFieldsFromSheet } from "../utils/excel";
+import { Player } from "../../interfaces/player";
 
 function SinglePlayerTab({
   tournament_id,
   swrPlayersResponse,
   setOpened,
+  player,
 }: {
   tournament_id: number;
   swrPlayersResponse: SWRResponse;
   setOpened: (open: boolean) => void;
+  player?: Player | null;
 }) {
   const { t } = useTranslation();
+  const isEdit = Boolean(player);
 
   const swrPlayerFieldsResponse = getPlayerFields(tournament_id);
   const playerFields: FieldInsertable[] =
     swrPlayerFieldsResponse.data?.fields ?? [];
 
+  // build initial values, pulling from player.data when editing
   const initial: Record<string, any> = {
-    name: "",
-    club: "",
+    name: player?.data.name ?? "",
+    club: player?.data.club ?? "",
   };
   playerFields
     .filter((f) => f.include)
     .forEach((f) => {
-      initial[f.key] =
-        f.type === "CHECKBOX" ? false : f.type === "NUMBER" ? 0 : "";
+      const existing = player?.data[f.key];
+      if (existing !== undefined) {
+        initial[f.key] = existing;
+      } else {
+        initial[f.key] =
+          f.type === "CHECKBOX" ? false : f.type === "NUMBER" ? 0 : "";
+      }
     });
 
-  const form = useForm({
-    initialValues: initial,
-    validate: {
+  const form = useForm({ initialValues: initial, validate: {
       name: (v) => (v.length > 0 ? null : t("too_short_name_validation")),
       club: (v) => (v.length > 0 ? null : t("too_short_club_validation")),
-    },
+  }});
+
+  // whenever player changes (or first mount), reset or set values
+  useEffect(() => {
+    if (player) {
+      form.setValues(initial);
+    } else {
+      form.reset();
+    }
+  }, [player]);
+
+  const onSubmit = form.onSubmit(async (values) => {
+    if (isEdit && player) {
+      // await updatePlayer(tournament_id, player.id, { data: values });
+    } else {
+      // await createPlayer(tournament_id, { data: values });
+    }
+    await swrPlayersResponse.mutate();
+    setOpened(false);
   });
 
   return (
-    <form
-      onSubmit={form.onSubmit(async (values) => {
-        // await createPlayer(tournament_id, values.name, values.active);
-        await swrPlayersResponse.mutate();
-        setOpened(false);
-      })}
-    >
+    <form onSubmit={onSubmit}>
       <Stack gap="sm">
-        {/* Name + Club */}
         <TextInput
           withAsterisk
           label={t("name_input_label", "Name")}
@@ -83,57 +102,55 @@ function SinglePlayerTab({
         />
 
         {/* dynamic fields */}
-        {playerFields
-          .filter((f) => f.include)
-          .map((f) => {
-            const key = f.key;
-            const label = f.label;
-            switch (f.type as PlayerFieldTypes) {
-              case "TEXT":
-                return (
-                  <TextInput
-                    key={key}
-                    label={label}
-                    placeholder={label}
-                    {...form.getInputProps(key)}
-                  />
-                );
-              case "NUMBER":
-                return (
-                  <NumberInput
-                    key={key}
-                    label={label}
-                    placeholder={label}
-                    hideControls
-                    {...form.getInputProps(key)}
-                  />
-                );
-              case "CHECKBOX":
-                return (
-                  <Checkbox
-                    key={key}
-                    label={label}
-                    {...form.getInputProps(key, { type: "checkbox" })}
-                  />
-                );
-              case "DROPDOWN":
-                return (
-                  <Select
-                    key={key}
-                    label={label}
-                    data={f.options.map((o) => ({ value: o, label: o }))}
-                    searchable
-                    // nothingFound="―"
-                    {...form.getInputProps(key)}
-                  />
-                );
-              default:
-                return null;
-            }
-          })}
+        {playerFields.filter((f) => f.include).map((f) => {
+          const key = f.key;
+          const label = f.label;
+          switch (f.type as PlayerFieldTypes) {
+            case "TEXT":
+              return (
+                <TextInput
+                  key={key}
+                  label={label}
+                  placeholder={label}
+                  {...form.getInputProps(key)}
+                />
+              );
+            case "NUMBER":
+              return (
+                <NumberInput
+                  key={key}
+                  label={label}
+                  placeholder={label}
+                  hideControls
+                  {...form.getInputProps(key)}
+                />
+              );
+            case "CHECKBOX":
+              return (
+                <Checkbox
+                  key={key}
+                  label={label}
+                  {...form.getInputProps(key, { type: "checkbox" })}
+                />
+              );
+            case "DROPDOWN":
+              return (
+                <Select
+                  key={key}
+                  label={label}
+                  data={f.options.map((o) => ({ value: o, label: o }))}
+                  searchable
+                  // nothingFound="―"
+                  {...form.getInputProps(key)}
+                />
+              );
+            default:
+              return null;
+          }
+        })}
 
         <Button fullWidth mt="md" color="green" type="submit">
-          {t("save_players_button", "Save")}
+          {isEdit ? t("save_button", "Save") : t("create_button", "Create")}
         </Button>
       </Stack>
     </form>
@@ -152,8 +169,6 @@ export default function PlayerCreateModal({
   setOpened: (open: boolean) => void;
 }) {
   const { t } = useTranslation();
-  // state for our import-from-club modal
-  const [importOpen, setImportOpen] = useState(false);
 
   // import all club sheets
   const handleImportAll = async (uploads: PlayersUpload[]) => {
@@ -246,6 +261,42 @@ export default function PlayerCreateModal({
           </Group>
           </Tabs.Panel>
         </Tabs>
+      </Modal>
+    </>
+  );
+}
+
+
+export function PlayerEditModal({
+  tournament_id,
+  swrPlayersResponse,
+  opened,
+  setOpened,
+  player,
+}: {
+  tournament_id: number;
+  swrPlayersResponse: SWRResponse;
+  opened: boolean;
+  setOpened: (open: boolean) => void;
+  player: Player | null;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <>
+      <Modal
+        opened={opened}
+        onClose={() => setOpened(false)}
+        title={t('create_player_modal_title')}
+        size="lg"
+        centered
+      >
+        <SinglePlayerTab
+          swrPlayersResponse={swrPlayersResponse}
+          tournament_id={tournament_id}
+          setOpened={setOpened}
+          player={player}
+        />
       </Modal>
     </>
   );

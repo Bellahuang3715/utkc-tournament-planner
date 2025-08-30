@@ -77,6 +77,13 @@ export function BracketSpotlight() {
       leftSection: <IconUsers size="1.2rem" />,
     },
     {
+      id: 'brackets',
+      title: t('brackets_title'),
+      description: t('brackets_spotlight_description'),
+      onClick: () => router.push(`/tournaments/${tournamentId}/brackets`),
+      leftSection: <IconSettings size="1.2rem" />,
+    },
+    {
       id: 'stages',
       title: t('stage_title'),
       description: t('stage_spotlight_description'),

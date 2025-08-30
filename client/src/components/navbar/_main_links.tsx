@@ -120,14 +120,14 @@ export function TournamentLinks({ tournament_id }: any) {
       link: `${tm_prefix}/participants`,
     },
     {
-      icon: IconCalendar,
-      label: capitalize(t('schedule_title')),
-      link: `${tm_prefix}/schedule`,
-    },
-    {
       icon: IconBrackets,
       label: capitalize(t('brackets_title')),
       link: `${tm_prefix}/brackets`,
+    },
+    {
+      icon: IconCalendar,
+      label: capitalize(t('schedule_title')),
+      link: `${tm_prefix}/schedule`,
     },
     {
       icon: IconScoreboard,
