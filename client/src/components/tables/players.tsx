@@ -73,7 +73,12 @@ export default function PlayersTable({
   // 1) build the column definitions
    const columns = useMemo<MRT_ColumnDef<Player>[]>(
      () => {
-      // 1a) explicit "club" column
+      // 1a) explicit "name" column
+      const nameCol: MRT_ColumnDef<Player> = {
+        accessorKey: 'name',
+        header: t('name_header', 'Name'),
+        filterVariant: 'text',
+      };
       const clubCol: MRT_ColumnDef<Player> = {
         accessorKey: 'club',
         header: t('club_header', 'Club'),
@@ -120,35 +125,28 @@ export default function PlayersTable({
           size: 100,
           Cell: ({ row }: { row: MRT_Row<Player> }) => (
             <Box sx={{ display: "flex", gap: "0.5rem" }}>
-              <Tooltip title={t("edit_player_button", "Edit")}>
-                <Button
-                  color="green"
-                  size="xs"
-                  style={{ marginRight: 10 }}
-                  onClick={() => {
-                    setEditingPlayer(row.original);
-                    setEditModalOpen(true);
-                  }}
-                  leftSection={<BiEditAlt size={20} />}
-                >
-                  {t("edit_team_title")}
-                </Button>
-              </Tooltip>
+              <Button
+                color="green"
+                size="xs"
+                style={{ marginRight: 10 }}
+                onClick={() => {
+                  setEditingPlayer(row.original);
+                  setEditModalOpen(true);
+                }}
+                leftSection={<BiEditAlt size={20} />}
+              >
+                {t("edit_player_title")}
+              </Button>
             </Box>
           ),
         }
 
-        // if there’s at least one field column, put it first, then club, then the rest
-        if (fieldCols.length > 2) {
-          return [
-            fieldCols[0],
-            clubCol,
-            ...fieldCols.slice(1),
-            actionsCol
-          ];
-        }
-        // fallback: no fields at all
-        return [clubCol, actionsCol];
+        return [
+          nameCol,
+          clubCol,
+          ...fieldCols,
+          actionsCol
+        ];
       },
      [playerFields, t]
    );
@@ -261,7 +259,7 @@ export default function PlayersTable({
               </Button>
 
               {/* export selected rows */}
-              <Button
+              {/* <Button
                 leftSection={<FileDownloadIcon />}
                 disabled={!table.getIsSomeRowsSelected()}
                 onClick={() =>
@@ -270,7 +268,7 @@ export default function PlayersTable({
                 style={{ textTransform: "none" }}
               >
                 {t("export_selected_rows", "Export Selected Rows")}
-              </Button>
+              </Button> */}
 
               {/* brackets generator */}
               <GenerateBracketsButton
@@ -284,7 +282,7 @@ export default function PlayersTable({
               />
             </Box>
           )}
-          initialState={{ showColumnFilters: true }}
+          initialState={{ showColumnFilters: true, density: 'compact' }}
         />
       </LocalizationProvider>
     </>

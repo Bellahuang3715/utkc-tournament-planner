@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 from project.logic.scheduling.handle_stage_activation import StageItemInputUpdate
 from project.models.db.club import Club
+from project.models.db.division import Division
 from project.models.db.court import Court
 from project.models.db.match import Match, SuggestedMatch
 from project.models.db.player import Player
@@ -42,6 +43,14 @@ class TournamentResponse(DataResponse[Tournament]):
 
 
 class TournamentsResponse(DataResponse[list[Tournament]]):
+    pass
+
+
+class DivisionsResponse(DataResponse[list[Division]]):
+    pass
+
+
+class DivisionResponse(DataResponse[Division | None]):
     pass
 
 

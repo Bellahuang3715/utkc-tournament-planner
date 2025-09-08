@@ -1,5 +1,5 @@
 // components/modals/bracket_create_modal.tsx
-import { useMemo, useState } from 'react';
+import { useMemo, useState } from "react";
 import {
   Modal,
   Stepper,
@@ -16,13 +16,16 @@ import {
   ScrollArea,
   Alert,
   Badge,
-} from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
-import { useForm } from '@mantine/form';
-import BuildCircleIcon from '@mui/icons-material/BuildCircle';
-import type { MRT_TableInstance } from 'material-react-table';
+} from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
+import { useForm } from "@mantine/form";
+import BuildIcon from "@mui/icons-material/Build";
+import type { MRT_TableInstance } from "material-react-table";
+import { useRouter } from "next/router";
 
-type BracketType = 'single_elim' | 'double_elim' | 'round_robin';
+import { createDivision, addPlayersToDivision } from "../../services/division";
+import { DivisionType } from "../../interfaces/division";
+import { getTournamentIdFromRouter } from "../utils/util";
 
 type PlayerRow = {
   id: string | number;
@@ -42,7 +45,7 @@ export interface GeneratePayload {
     prefix?: string;
     durationMinutes: number;
     marginMinutes: number;
-    type: BracketType;
+    type: DivisionType;
   };
   selectedPlayerIds: Array<string | number>;
   appliedFilters: string[]; // human-readable
@@ -62,6 +65,9 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
   onGenerate,
   t = (k, f) => f ?? k,
 }: GenerateBracketsButtonProps<TRow>) {
+  const { id: tournamentId } = getTournamentIdFromRouter();
+  const router = useRouter();
+
   const [opened, { open, close }] = useDisclosure(false);
   const [active, setActive] = useState(0);
 
@@ -70,11 +76,11 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
   const selectedCount = selectedRows.length;
   const selectedPlayers = useMemo(
     () => selectedRows.map((r) => r.original as PlayerRow),
-    [selectedRows],
+    [selectedRows]
   );
   const selectedPlayerIds = useMemo(
     () => selectedPlayers.map((p) => p.id),
-    [selectedPlayers],
+    [selectedPlayers]
   );
 
   // filters snapshot
@@ -82,10 +88,14 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
     () => summarizeFilters(table),
     // depend specifically on changing state slices to avoid extra re-renders
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [table.getState().columnFilters, table.getState().globalFilter, table.getState().sorting],
+    [
+      table.getState().columnFilters,
+      table.getState().globalFilter,
+      table.getState().sorting,
+    ]
   );
 
-    // bias selection state
+  // bias selection state
   const [biasIds, setBiasIds] = useState<Array<string | number>>([]);
 
   const toggleBias = (id: string | number) => {
@@ -101,25 +111,27 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
   const biasCount = biasIds.length;
   const biasHint =
     biasCount === 0
-      ? t('bias_optional', 'Optional: pick 4–6 strong players')
-      : t('bias_selected_count', `Selected ${biasCount} (recommended 4–6)`);
+      ? t("bias_optional", "Optional: pick 4–6 strong players")
+      : t("bias_selected_count", `Selected ${biasCount} (recommended 4–6)`);
 
   // form
   const form = useForm({
     initialValues: {
-      name: '',
+      name: "",
       withPrefix: false,
-      prefix: '',
+      prefix: "",
       durationMinutes: 5,
       marginMinutes: 1,
-      type: 'single_elim' as BracketType,
+      type: "INDIVIDUALS" as DivisionType,
     },
     validate: {
-      name: (v) => (v.trim().length < 1 ? 'Division name is required' : null),
+      name: (v) => (v.trim().length < 1 ? "Division name is required" : null),
       prefix: (v, values) =>
-        values.withPrefix && v.trim().length < 1 ? 'Prefix cannot be empty when enabled' : null,
-      durationMinutes: (v) => (v <= 0 ? 'Must be > 0' : null),
-      marginMinutes: (v) => (v < 0 ? 'Cannot be negative' : null),
+        values.withPrefix && v.trim().length < 1
+          ? "Prefix cannot be empty when enabled"
+          : null,
+      durationMinutes: (v) => (v <= 0 ? "Must be > 0" : null),
+      marginMinutes: (v) => (v < 0 ? "Cannot be negative" : null),
     },
   });
 
@@ -128,7 +140,22 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
     form.reset();
   };
 
-  const handleSubmit = (values: typeof form.values) => {
+  const handleSubmit = async (values: typeof form.values) => {
+    const createRes = await createDivision({
+      tournament_id: tournamentId,
+      name: values.name.trim(),
+      prefix: values.withPrefix ? values.prefix.trim() : undefined,
+      duration_mins: values.durationMinutes,
+      margin_mins: values.marginMinutes,
+      division_type: values.type === "TEAMS" ? "TEAMS" : "INDIVIDUALS",
+    });
+
+    const divisionId: number = createRes?.data?.data?.id ?? createRes?.data?.id; // wrapper-safe
+
+    if (divisionId && selectedPlayerIds.length) {
+      await addPlayersToDivision(divisionId, selectedPlayerIds);
+    }
+
     const payload: GeneratePayload = {
       division: {
         name: values.name.trim(),
@@ -143,6 +170,8 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
       biasPlayerIds: biasIds, // pass along (can be empty)
     };
     onGenerate(payload);
+    router.push(`/tournaments/${tournamentId}/brackets`);
+
     close();
     resetWizard();
   };
@@ -150,12 +179,12 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
   return (
     <>
       <Button
-        leftSection={<BuildCircleIcon />}
+        leftSection={<BuildIcon />}
         disabled={selectedCount === 0}
         onClick={open}
-        style={{ textTransform: 'none' }}
+        style={{ textTransform: "none" }}
       >
-        {t('generate_brackets', 'Generate Brackets with Selected Players')}
+        {t("generate_brackets", "Generate Brackets with Selected Players")}
       </Button>
 
       <Modal
@@ -164,19 +193,28 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
           close();
           resetWizard();
         }}
-        title={t('generate_modal_title', 'Generate Brackets')}
+        title={t("generate_modal_title", "Generate Brackets")}
         size="lg"
         centered
         overlayProps={{ blur: 2 }}
       >
-        <Stepper active={active} onStepClick={setActive} allowNextStepsSelect={false}>
+        <Stepper
+          active={active}
+          onStepClick={setActive}
+          allowNextStepsSelect={false}
+        >
           {/* Step 1: Confirm */}
-          <Stepper.Step label={t('confirm', 'Confirm')} description={t('confirm_desc', 'Review selection')}>
+          <Stepper.Step
+            label={t("confirm", "Confirm")}
+            description={t("confirm_desc", "Review selection")}
+          >
             <Stack gap="md">
               <Text>
                 {t(
-                  'confirm_text',
-                  `Generate brackets for ${selectedCount} player${selectedCount === 1 ? '' : 's'} that match the following criteria:`,
+                  "confirm_text",
+                  `Generate brackets for ${selectedCount} player${
+                    selectedCount === 1 ? "" : "s"
+                  } that match the following criteria:`
                 )}
               </Text>
 
@@ -187,39 +225,49 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
                   ))}
                 </List>
               ) : (
-                <Text c="dimmed">{t('no_filters', 'No filters applied')}</Text>
+                <Text c="dimmed">{t("no_filters", "No filters applied")}</Text>
               )}
 
               <Divider />
 
               <Group justify="space-between">
-                <Button variant="default" onClick={() => { close(); resetWizard(); }}>
-                  {t('cancel', 'Cancel')}
+                <Button
+                  variant="default"
+                  onClick={() => {
+                    close();
+                    resetWizard();
+                  }}
+                >
+                  {t("cancel", "Cancel")}
                 </Button>
-                <Button onClick={() => setActive(1)}>{t('next', 'Next')}</Button>
+                <Button onClick={() => setActive(1)}>
+                  {t("next", "Next")}
+                </Button>
               </Group>
             </Stack>
           </Stepper.Step>
 
-           {/* Step 2: Player Bias (optional) */}
+          {/* Step 2: Player Bias (optional) */}
           <Stepper.Step
-            label={t('player_bias', 'Player bias')}
-            description={t('player_bias_desc', 'Optional')}
+            label={t("player_bias", "Player bias")}
+            description={t("player_bias_desc", "Optional")}
           >
             <Stack gap="sm">
               <Alert variant="light">
                 <Stack gap={4}>
                   <Text>
                     {t(
-                      'player_bias_note',
-                      'Pick 4–6 strong players to give a bias to. These players will be placed as far away from each other as possible, and will be given a bias spot in the tree if possible.',
+                      "player_bias_note",
+                      "Pick 4–6 strong players to give a bias to. These players will be placed as far away from each other as possible, and will be given a bias spot in the tree if possible."
                     )}
                   </Text>
                   <Group gap="xs" align="center">
-                    <Badge variant={biasCount ? 'filled' : 'light'}>{biasHint}</Badge>
+                    <Badge variant={biasCount ? "filled" : "light"}>
+                      {biasHint}
+                    </Badge>
                     {biasCount > 6 && (
                       <Text c="red" size="sm">
-                        {t('bias_max_six', 'Maximum 6 players.')}
+                        {t("bias_max_six", "Maximum 6 players.")}
                       </Text>
                     )}
                   </Group>
@@ -259,15 +307,17 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
 
               <Group justify="space-between" mt="sm">
                 <Button variant="subtle" onClick={clearBias}>
-                  {t('clear_selection', 'Clear selection')}
+                  {t("clear_selection", "Clear selection")}
                 </Button>
                 <Group>
                   <Button variant="default" onClick={() => setActive(0)}>
-                    {t('back', 'Back')}
+                    {t("back", "Back")}
                   </Button>
-                  <Button onClick={() => setActive(2)}>{t('next', 'Next')}</Button>
+                  <Button onClick={() => setActive(2)}>
+                    {t("next", "Next")}
+                  </Button>
                   <Button variant="light" onClick={() => setActive(2)}>
-                    {t('skip', 'Skip')}
+                    {t("skip", "Skip")}
                   </Button>
                 </Group>
               </Group>
@@ -275,64 +325,73 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
           </Stepper.Step>
 
           {/* Step 2: Division form */}
-          <Stepper.Step label={t('division', 'Division Details')} description={t('division_desc', 'Set details')}>
+          <Stepper.Step
+            label={t("division", "Division Details")}
+            description={t("division_desc", "Set details")}
+          >
             <form onSubmit={form.onSubmit(handleSubmit)}>
               <Stack gap="md">
                 <TextInput
-                  label={t('division_name', 'Division name')}
+                  label={t("division_name", "Division name")}
                   placeholder="Division A"
                   withAsterisk
-                  {...form.getInputProps('name')}
+                  {...form.getInputProps("name")}
                 />
 
                 <Checkbox
-                  label={t('use_prefix', 'Create prefix to generate player ID')}
-                  description={t('prefix_note', 'Prefix will be used to generate player code/ID (ex. A01, A02, ...)')}
-                  {...form.getInputProps('withPrefix', { type: 'checkbox' })}
+                  label={t("use_prefix", "Create prefix to generate player ID")}
+                  description={t(
+                    "prefix_note",
+                    "Prefix will be used to generate player code/ID (ex. A01, A02, ...)"
+                  )}
+                  {...form.getInputProps("withPrefix", { type: "checkbox" })}
                 />
                 <TextInput
-                  label={t('prefix', 'Prefix')}
+                  label={t("prefix", "Prefix")}
                   placeholder="A"
                   disabled={!form.values.withPrefix}
-                  {...form.getInputProps('prefix')}
+                  {...form.getInputProps("prefix")}
                 />
 
                 <Group grow>
                   <NumberInput
-                    label={t('duration_minutes', 'Duration (minutes)')}
+                    label={t("duration_minutes", "Duration (minutes)")}
                     min={1}
                     step={1}
-                    {...form.getInputProps('durationMinutes')}
+                    {...form.getInputProps("durationMinutes")}
                   />
                   <NumberInput
-                    label={t('margin_minutes', 'Margin (minutes)')}
+                    label={t("margin_minutes", "Margin (minutes)")}
                     min={0}
                     step={1}
-                    {...form.getInputProps('marginMinutes')}
+                    {...form.getInputProps("marginMinutes")}
                   />
                 </Group>
 
                 <SegmentedControl
                   fullWidth
                   data={[
-                    { label: t('individuals', 'Individuals'), value: 'individuals' },
-                    { label: t('teams', 'Teams'), value: 'teams' },
+                    {
+                      label: t("individuals", "Individuals"),
+                      value: "INDIVIDUALS",
+                    },
+                    { label: t("teams", "Teams"), value: "TEAMS" },
                   ]}
-                  {...form.getInputProps('type')}
+                  {...form.getInputProps("type")}
                 />
 
                 <Group justify="space-between" mt="sm">
                   <Button variant="default" onClick={() => setActive(0)}>
-                    {t('back', 'Back')}
+                    {t("back", "Back")}
                   </Button>
-                  <Button type="submit">{t('generate', 'Generate')}</Button>
+                  <Button type="submit">{t("generate", "Generate")}</Button>
                 </Group>
               </Stack>
             </form>
           </Stepper.Step>
 
           <Stepper.Completed>
-            <Text>{t('done', 'All done!')}</Text>
+            <Text>{t("done", "All done!")}</Text>
           </Stepper.Completed>
         </Stepper>
       </Modal>
@@ -341,7 +400,9 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
 }
 
 /** Build a readable list of filters from MRT/TanStack Table state */
-function summarizeFilters<TRow extends RowWithId>(table: MRT_TableInstance<TRow>): string[] {
+function summarizeFilters<TRow extends RowWithId>(
+  table: MRT_TableInstance<TRow>
+): string[] {
   const state = table.getState() as any;
   const filters: string[] = [];
 
@@ -351,12 +412,9 @@ function summarizeFilters<TRow extends RowWithId>(table: MRT_TableInstance<TRow>
     const col = table.getColumn(f.id);
     // Try to derive a label (string header or fallback to id)
     const rawHeader = col?.columnDef?.header as unknown;
-    const label =
-      typeof rawHeader === 'string'
-        ? rawHeader
-        : (col?.id ?? f.id);
+    const label = typeof rawHeader === "string" ? rawHeader : col?.id ?? f.id;
     const val = valueToLabel(f.value);
-    if (val !== '') filters.push(`${label}: ${val}`);
+    if (val !== "") filters.push(`${label}: ${val}`);
   }
 
   // Global filter
@@ -369,26 +427,23 @@ function summarizeFilters<TRow extends RowWithId>(table: MRT_TableInstance<TRow>
     const parts = state.sorting.map((s: any) => {
       const col = table.getColumn(s.id);
       const rawHeader = col?.columnDef?.header as unknown;
-      const label =
-        typeof rawHeader === 'string'
-          ? rawHeader
-          : (col?.id ?? s.id);
-      return `${label} ${s.desc ? '↓' : '↑'}`;
+      const label = typeof rawHeader === "string" ? rawHeader : col?.id ?? s.id;
+      return `${label} ${s.desc ? "↓" : "↑"}`;
     });
-    filters.push(`Sort: ${parts.join(', ')}`);
+    filters.push(`Sort: ${parts.join(", ")}`);
   }
 
   return filters;
 }
 
 function valueToLabel(v: unknown): string {
-  if (v == null) return '';
-  if (Array.isArray(v)) return v.map(valueToLabel).join(', ');
-  if (typeof v === 'object') {
+  if (v == null) return "";
+  if (Array.isArray(v)) return v.map(valueToLabel).join(", ");
+  if (typeof v === "object") {
     try {
       return JSON.stringify(v);
     } catch {
-      return '[object]';
+      return "[object]";
     }
   }
   return String(v);
@@ -398,11 +453,11 @@ function getPlayerName(p: PlayerRow): string {
   // Try common fields; fall back to dynamic data; finally use id
   const fromDynamic = p.data?.name ?? p.data?.full_name ?? p.data?.player_name;
   const composed =
-    [p.first_name, p.last_name].filter(Boolean).join(' ') ||
+    [p.first_name, p.last_name].filter(Boolean).join(" ") ||
     p.name ||
     p.display_name ||
     fromDynamic ||
-    '';
+    "";
   return composed || String(p.id);
 }
 

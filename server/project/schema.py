@@ -137,16 +137,75 @@ players_x_teams = Table(
     ),
 )
 
-# divisions = Table(
-#     "divisions",
+divisions = Table(
+    "divisions",
+    metadata,
+    Column("id", BigInteger, primary_key=True, index=True),
+    Column("name", String, nullable=False, index=True),
+    Column("prefix", String, nullable=True, index=True), # optional, ex 'E'
+    Column("tournament_id", BigInteger, ForeignKey("tournaments.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column("duration_mins", Integer, nullable=False),
+    Column("margin_mins", Integer, nullable=False),
+    Column(
+      "division_type",
+      Enum(
+        "INDIVIDUALS",
+        "TEAMS",
+        name="division_type",
+      ),
+      nullable=False,
+    ),
+    Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
+)
+
+players_x_divisions = Table(
+    "players_x_divisions",
+    metadata,
+    Column("id", BigInteger, primary_key=True, index=True),
+    Column("player_id", BigInteger, ForeignKey("players.id", ondelete="CASCADE"), nullable=False),
+    Column("division_id", BigInteger, ForeignKey("divisions.id", ondelete="CASCADE"), index=True, nullable=False),
+)
+
+brackets = Table(
+    "brackets",
+    metadata,
+    Column("id", BigInteger, primary_key=True, index=True),
+    Column("index", Integer, nullable=False), # order of brackets w/n division
+    Column("division_id", BigInteger, ForeignKey("divisions.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column("num_players", Integer, nullable=False),
+    Column("title", String, nullable=True), # title of the bracket, optional
+)
+
+players_x_brackets = Table(
+    "players_x_brackets",
+    metadata,
+    Column("id", BigInteger, primary_key=True, index=True),
+    Column("player_id", BigInteger, ForeignKey("players.id", ondelete="CASCADE"), nullable=False),
+    Column("bracket_id", BigInteger, ForeignKey("brackets.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column("bracket_idx", Integer, nullable=False),
+)
+
+# bracket_conns = Table(
+#     "bracket_conns",
 #     metadata,
 #     Column("id", BigInteger, primary_key=True, index=True),
-#     Column("name", String, nullable=False, index=True),
-#     Column("tournament_id", BigInteger, ForeignKey("tournaments.id"), index=True, nullable=False),
-#     Column("duration_minutes", Integer, nullable=False, server_default="15"),
-#     Column("margin_minutes", Integer, nullable=False, server_default="5"),
+#     Column("bracket_id", BigInteger, ForeignKey("brackets.id", ondelete="CASCADE"), index=True, nullable=False),
+#     Column("player_1", Integer, nullable=False), # should cascade from another table
+#     Column("player_2", Integer, nullable=False),
+#     Column("winner", Integer, nullable=False),
 #     Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
 # )
+
+# cell = Table(
+#     "cell",
+#     metadata,
+#     Column("id", BigInteger, primary_key=True, index=True),
+#     Column("bracket_id", BigInteger, ForeignKey("brackets.id", ondelete="CASCADE"), nullable=False),
+#     Column("player_id", BigInteger, ForeignKey("players.id", ondelete="CASCADE"), nullable=False),
+#     Column("score", String, nullable=False),
+# )
+
+# ------------------------------------------------------------ #
 
 stages = Table(
     "stages",
@@ -157,6 +216,7 @@ stages = Table(
     Column("tournament_id", BigInteger, ForeignKey("tournaments.id"), index=True, nullable=False),
     Column("is_active", Boolean, nullable=False, server_default="false"),
 )
+
 
 stage_items = Table(
     "stage_items",
