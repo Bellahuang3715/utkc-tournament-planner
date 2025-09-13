@@ -53,8 +53,6 @@ tournaments = Table(
     Column("dashboard_endpoint", String, nullable=True, index=True, unique=True),
     Column("players_can_be_in_multiple_teams", Boolean, nullable=False, server_default="f"),
     Column("auto_assign_courts", Boolean, nullable=False, server_default="f"),
-    Column("duration_minutes", Integer, nullable=False, server_default="15"),
-    Column("margin_minutes", Integer, nullable=False, server_default="5"),
 )
 
 players = Table(
@@ -164,6 +162,8 @@ players_x_divisions = Table(
     Column("id", BigInteger, primary_key=True, index=True),
     Column("player_id", BigInteger, ForeignKey("players.id", ondelete="CASCADE"), nullable=False),
     Column("division_id", BigInteger, ForeignKey("divisions.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column("bias", Boolean, nullable=False, server_default="f"),
+    UniqueConstraint("player_id", "division_id", name="unique_player_division"), # ensures player does not get inserted multiple times into same division
 )
 
 brackets = Table(

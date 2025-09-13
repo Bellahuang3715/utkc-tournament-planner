@@ -63,8 +63,6 @@ async def sql_update_tournament(
             dashboard_endpoint = :dashboard_endpoint,
             players_can_be_in_multiple_teams = :players_can_be_in_multiple_teams,
             auto_assign_courts = :auto_assign_courts,
-            duration_minutes = :duration_minutes,
-            margin_minutes = :margin_minutes
         WHERE tournaments.id = :tournament_id
         """
     await database.execute(
@@ -84,8 +82,6 @@ async def sql_create_tournament(tournament: TournamentBody) -> TournamentId:
             logo_path,
             players_can_be_in_multiple_teams,
             auto_assign_courts,
-            duration_minutes,
-            margin_minutes
         )
         VALUES (
             :name,
@@ -96,8 +92,6 @@ async def sql_create_tournament(tournament: TournamentBody) -> TournamentId:
             :logo_path,
             :players_can_be_in_multiple_teams,
             :auto_assign_courts,
-            :duration_minutes,
-            :margin_minutes
         )
         RETURNING id
         """

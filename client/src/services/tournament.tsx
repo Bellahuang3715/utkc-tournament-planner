@@ -9,8 +9,6 @@ export async function createTournament(
   start_time: string,
   end_time: string,
   auto_assign_courts: boolean,
-  duration_minutes: number,
-  margin_minutes: number
 ) {
   try {
     const axiosInstance = await createAxios();
@@ -22,8 +20,6 @@ export async function createTournament(
       start_time,
       end_time,
       auto_assign_courts,
-      duration_minutes,
-      margin_minutes,
     });
   } catch (error: any) {
     handleRequestError(error);
@@ -44,8 +40,6 @@ export async function updateTournament(
   players_can_be_in_multiple_teams: boolean,
   auto_assign_courts: boolean,
   start_time: string,
-  duration_minutes: number,
-  margin_minutes: number
 ) {
   try {
     const axiosInstance = await createAxios();
@@ -56,8 +50,6 @@ export async function updateTournament(
       players_can_be_in_multiple_teams,
       auto_assign_courts,
       start_time,
-      duration_minutes,
-      margin_minutes,
     });
   } catch (error: any) {
     handleRequestError(error);

@@ -76,8 +76,6 @@ function GeneralTournamentForm({
       players_can_be_in_multiple_teams:
         tournament.players_can_be_in_multiple_teams,
       auto_assign_courts: tournament.auto_assign_courts,
-      duration_minutes: tournament.duration_minutes,
-      margin_minutes: tournament.margin_minutes,
     },
 
     validate: {
@@ -85,10 +83,6 @@ function GeneralTournamentForm({
         value.length > 0 ? null : t("too_short_name_validation"),
       start_time: (value) =>
         value != null ? null : t("start_time_choose_title"),
-      duration_minutes: (value) =>
-        value != null && value > 0 ? null : t("duration_minutes_choose_title"),
-      margin_minutes: (value) =>
-        value != null && value > 0 ? null : t("margin_minutes_choose_title"),
     },
   });
 
@@ -104,8 +98,6 @@ function GeneralTournamentForm({
           values.players_can_be_in_multiple_teams,
           values.auto_assign_courts,
           values.start_time.toISOString(),
-          values.duration_minutes,
-          values.margin_minutes
         );
 
         await swrTournamentResponse.mutate();
@@ -139,23 +131,6 @@ function GeneralTournamentForm({
             >
               {t("set_to_new_button")}
             </Button>
-          </Grid.Col>
-        </Grid>
-
-        <Grid>
-          <Grid.Col span={{ sm: 6 }}>
-            <NumberInput
-              label={t("match_duration_label")}
-              mt="lg"
-              {...form.getInputProps("duration_minutes")}
-            />
-          </Grid.Col>
-          <Grid.Col span={{ sm: 6 }}>
-            <NumberInput
-              label={t("time_between_matches_label")}
-              mt="lg"
-              {...form.getInputProps("margin_minutes")}
-            />
           </Grid.Col>
         </Grid>
       </Fieldset>

@@ -4,7 +4,6 @@ import {
   Grid,
   Image,
   Modal,
-  NumberInput,
   Select,
   TextInput,
   Textarea,
@@ -58,8 +57,6 @@ function GeneralTournamentForm({
       description: "",
       club_id: null,
       auto_assign_courts: true,
-      duration_minutes: 10,
-      margin_minutes: 5,
     },
 
     validate: {
@@ -71,10 +68,6 @@ function GeneralTournamentForm({
         value != null ? null : t("start_time_choose_title"),
       end_time: (value) =>
         value != null ? null : t("end_time_choose_title"),
-      duration_minutes: (value) =>
-        value != null && value > 0 ? null : t("duration_minutes_choose_title"),
-      margin_minutes: (value) =>
-        value != null && value > 0 ? null : t("margin_minutes_choose_title"),
     },
   });
 
@@ -90,8 +83,6 @@ function GeneralTournamentForm({
           values.start_time.toISOString(),
           values.end_time.toISOString(),
           values.auto_assign_courts,
-          values.duration_minutes,
-          values.margin_minutes
         );
         await swrTournamentsResponse.mutate();
         setOpened(false);
@@ -116,7 +107,6 @@ function GeneralTournamentForm({
       />
 
       <TextInput
-        withAsterisk
         label={t("location_input_label")}
         placeholder={t("location_input_placeholder")}
         mt="lg"
@@ -147,23 +137,6 @@ function GeneralTournamentForm({
             leftSection={<IconCalendar size="1.1rem" stroke={1.5} />}
             mx="auto"
             {...form.getInputProps("end_time")}
-          />
-        </Grid.Col>
-      </Grid>
-
-      <Grid>
-        <Grid.Col span={{ sm: 6 }}>
-          <NumberInput
-            label={t("match_duration_label")}
-            mt="lg"
-            {...form.getInputProps("duration_minutes")}
-          />
-        </Grid.Col>
-        <Grid.Col span={{ sm: 6 }}>
-          <NumberInput
-            label={t("time_between_matches_label")}
-            mt="lg"
-            {...form.getInputProps("margin_minutes")}
           />
         </Grid.Col>
       </Grid>

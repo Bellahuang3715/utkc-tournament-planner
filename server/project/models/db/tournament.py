@@ -11,8 +11,6 @@ class TournamentInsertable(BaseModelORM):
     organizer: str
     created: datetime_utc
     start_time: datetime_utc
-    duration_minutes: int = Field(..., ge=1)
-    margin_minutes: int = Field(..., ge=0)
     dashboard_public: bool
     dashboard_endpoint: str | None = None
     logo_path: str | None = None
@@ -31,8 +29,6 @@ class TournamentUpdateBody(BaseModelORM):
     dashboard_endpoint: EmptyStrToNone | str = None
     players_can_be_in_multiple_teams: bool
     auto_assign_courts: bool
-    duration_minutes: int = Field(..., ge=1)
-    margin_minutes: int = Field(..., ge=0)
 
 
 class TournamentBody(TournamentUpdateBody):
