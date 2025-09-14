@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
-import { MaterialReactTable, type MRT_ColumnDef } from 'material-react-table';
-import { useTranslation } from 'next-i18next';
+import React from "react";
+import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
+import { useTranslation } from "next-i18next";
 
-import { getPlayerFields, getDivisionPlayers } from '../../services/adapter';
-import { Player } from '../../interfaces/player';
-import { FieldInsertable } from '../../interfaces/player_fields';
-import RequestErrorAlert from '../utils/error_alert';
-import { TableSkeletonSingleColumn } from '../utils/skeletons';
-import { NoContent } from '../no_content/empty_table_info';
+import { getPlayerFields, getDivisionPlayers } from "../../services/adapter";
+import { Player } from "../../interfaces/player";
+import RequestErrorAlert from "../utils/error_alert";
+import { TableSkeletonSingleColumn } from "../utils/skeletons";
+import { NoContent } from "../no_content/empty_table_info";
 
 export default function DivisionPlayersTable({
   tournamentId,
@@ -20,73 +19,42 @@ export default function DivisionPlayersTable({
 
   const swrPlayerFieldsResponse = getPlayerFields(tournamentId);
   const swrDivisionPlayersResponse = getDivisionPlayers(divisionId);
+  console.log("division players", swrDivisionPlayersResponse);
 
   if (swrPlayerFieldsResponse.error || swrDivisionPlayersResponse.error) {
     return (
       <RequestErrorAlert
-        error={swrPlayerFieldsResponse.error || swrDivisionPlayersResponse.error}
+        error={
+          swrPlayerFieldsResponse.error || swrDivisionPlayersResponse.error
+        }
       />
     );
   }
-  if (swrPlayerFieldsResponse.isLoading || swrDivisionPlayersResponse.isLoading) {
+  if (
+    swrPlayerFieldsResponse.isLoading ||
+    swrDivisionPlayersResponse.isLoading
+  ) {
     return <TableSkeletonSingleColumn />;
   }
 
-  const players: Player[] =
-    swrDivisionPlayersResponse.data?.data?.players ?? [];
-  const playerFields: FieldInsertable[] =
-    swrPlayerFieldsResponse.data?.fields ?? [];
+  const players: Player[] = swrDivisionPlayersResponse.data?.players ?? [];
+
+  console.log("players", players);
 
   if (players.length === 0) {
-    return <NoContent title={t('no_players_title')} />;
+    return <NoContent title={t("no_players_title")} />;
   }
 
-  // columns: same as tables/players, but no actions/generator
-  const columns = React.useMemo<MRT_ColumnDef<Player>[]>(() => {
-    const nameCol: MRT_ColumnDef<Player> = {
-      accessorKey: 'name',
-      header: t('name_header', 'Name'),
-      filterVariant: 'text',
-    };
-    const clubCol: MRT_ColumnDef<Player> = {
-      accessorKey: 'club',
-      header: t('club_header', 'Club'),
-      filterVariant: 'text',
-    };
-
-    const fieldCols: MRT_ColumnDef<Player>[] = playerFields
-      .filter((f) => f.include)
-      .sort((a, b) => a.position - b.position)
-      .map((f) => {
-        const col: MRT_ColumnDef<Player> = {
-          id: f.key,
-          header: f.label,
-          accessorFn: (row) => row.data[f.key],
-          filterVariant:
-            f.type === 'TEXT'
-              ? 'text'
-              : f.type === 'CHECKBOX'
-              ? 'checkbox'
-              : f.type === 'NUMBER'
-              ? 'range'
-              : 'multi-select',
-        };
-        if (f.type === 'DROPDOWN') {
-          col.filterSelectOptions = f.options;
-        }
-        if (f.type === 'NUMBER') {
-          col.filterFn = 'between';
-        }
-        if (f.type === 'CHECKBOX') {
-          col.accessorFn = (row) => (row.data[f.key] ? 'true' : 'false');
-          col.Cell = ({ cell }) =>
-            cell.getValue<string>() === 'true' ? t('yes') : t('no');
-        }
-        return col;
-      });
-
-    return [nameCol, clubCol, ...fieldCols];
-  }, [playerFields, t]);
+  const columns: MRT_ColumnDef<Player>[] = [
+    { accessorKey: "name", header: t("name_header", "Name") },
+    { accessorKey: "club", header: t("club_header", "Club") },
+    { accessorKey: "code", header: t("code_header", "Code") },
+    {
+      accessorKey: "bias",
+      header: t("bias", "Bias"),
+      Cell: ({ cell }) => (cell.getValue<boolean>() ? t("yes") : t("no")),
+    },
+  ];
 
   return (
     <MaterialReactTable<Player>
@@ -96,11 +64,10 @@ export default function DivisionPlayersTable({
       enableStickyHeader
       enableColumnPinning
       enableRowPinning
-      enableRowSelection
       rowPinningDisplayMode="select-sticky"
-      getRowId={(row) => row.id.toString()}
+      enableRowNumbers={true}
       // no row actions, no bottom toolbar buttons here
-      initialState={{ showColumnFilters: true }}
+      initialState={{ showColumnFilters: false, density: 'compact' }}
     />
   );
 }

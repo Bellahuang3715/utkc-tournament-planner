@@ -2,7 +2,6 @@ import { createAxios, handleRequestError } from "./adapter";
 import { ClubFormValues } from "../interfaces/club";
 
 export async function createClub(values: ClubFormValues) {
-  console.log("createClub called with values: ", values);
   try {
     const axios = await createAxios();
     return await axios.post("clubs", values);

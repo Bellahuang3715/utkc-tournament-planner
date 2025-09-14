@@ -6,7 +6,6 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { Box, IconButton, Tooltip } from "@mui/material";
 import AddBoxIcon from "@mui/icons-material/AddBox";
-import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { BiEditAlt } from "react-icons/bi";
 import { Badge, Button } from "@mantine/core";
@@ -156,6 +155,7 @@ export default function TeamsTable({
               </Box>
             );
           }}
+          initialState={{ density: 'compact' }}
         />
       </LocalizationProvider>
     </>

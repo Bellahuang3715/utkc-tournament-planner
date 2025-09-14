@@ -8,6 +8,7 @@ from project.models.db.division import Division
 from project.models.db.court import Court
 from project.models.db.match import Match, SuggestedMatch
 from project.models.db.player import Player
+from project.models.db.player import PlayerInDivision
 from project.models.db.ranking import Ranking
 from project.models.db.stage_item_inputs import (
     StageItemInputOptionFinal,
@@ -52,6 +53,10 @@ class DivisionsResponse(DataResponse[list[Division]]):
 
 class DivisionResponse(DataResponse[Division | None]):
     pass
+
+
+class DivisionPlayersResponse(BaseModel):
+    players: list[PlayerInDivision]
 
 
 class PaginatedPlayers(BaseModel):

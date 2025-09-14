@@ -151,16 +151,16 @@ export function getTeamsLive(tournament_id: number | null): SWRResponse {
   });
 }
 
-export function getDivisions(tournament_id: number | null, q?: string): SWRResponse {
-  if (tournament_id == null) return useSWR(null, fetcher);
-  const base = `divisions?tournament_id=${encodeURIComponent(String(tournament_id))}`;
-  const url = q && q.trim().length ? `${base}&q=${encodeURIComponent(q)}` : base;
-  return useSWR(url, fetcher);
+export function getDivisions(tournament_id: number): SWRResponse {
+  return useSWR(
+    `tournaments/${tournament_id}/divisions`,
+    fetcher
+  );
 }
 
 export function getDivisionPlayers(division_id: number): SWRResponse {
   return useSWR(
-    division_id == null ? null : `divisions/${division_id}/players`,
+    `divisions/${division_id}/players`,
     fetcher
   );
 }

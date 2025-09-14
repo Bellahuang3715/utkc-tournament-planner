@@ -1,4 +1,3 @@
-// components/modals/bracket_create_modal.tsx
 import { useMemo, useState } from "react";
 import {
   Modal,
@@ -22,10 +21,13 @@ import { useForm } from "@mantine/form";
 import BuildIcon from "@mui/icons-material/Build";
 import type { MRT_TableInstance } from "material-react-table";
 import { useRouter } from "next/router";
+import { useTranslation } from 'next-i18next';
 
 import { createDivision, addPlayersToDivision } from "../../services/division";
 import { DivisionType } from "../../interfaces/division";
 import { getTournamentIdFromRouter } from "../utils/util";
+import { assignBrackets, type SeedingPlayer } from "../utils/seeding";
+import { fetchDivisionPlayers } from "../../services/division";
 
 type PlayerRow = {
   id: string | number;
@@ -38,35 +40,29 @@ type PlayerRow = {
   [k: string]: any;
 };
 
-export interface GeneratePayload {
-  division: {
-    name: string;
-    prefixEnabled: boolean;
-    prefix?: string;
-    durationMinutes: number;
-    marginMinutes: number;
-    type: DivisionType;
-  };
-  selectedPlayerIds: Array<string | number>;
-  appliedFilters: string[]; // human-readable
-  biasPlayerIds: Array<string | number>; // NEW: optional bias choices (0..6)
-}
-
 type RowWithId = { id: string | number } & Record<string, any>;
 
 interface GenerateBracketsButtonProps<TRow extends RowWithId> {
   table: MRT_TableInstance<TRow>;
-  onGenerate: (payload: GeneratePayload) => void;
-  t?: (key: string, fallback?: string) => string;
 }
+
+const toSeedingPlayers = (
+  api: Array<{ name: string; club: string; code: string | null; bias: boolean }>,
+  divisionId: number
+): SeedingPlayer[] =>
+  api.map((p, idx) => ({
+    id: p.code ?? `div${divisionId}-row${idx}`, // fallback if code is null
+    name: p.name,
+    club: p.club,
+    bias: !!p.bias,
+  }));
 
 export function GenerateBracketsButton<TRow extends RowWithId>({
   table,
-  onGenerate,
-  t = (k, f) => f ?? k,
 }: GenerateBracketsButtonProps<TRow>) {
   const { id: tournamentId } = getTournamentIdFromRouter();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [opened, { open, close }] = useDisclosure(false);
   const [active, setActive] = useState(0);
@@ -150,26 +146,26 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
       division_type: values.type === "TEAMS" ? "TEAMS" : "INDIVIDUALS",
     });
 
-    const divisionId: number = createRes?.data?.data?.id ?? createRes?.data?.id; // wrapper-safe
+    const divisionId: number = createRes?.data?.data?.id ?? createRes?.data?.id;
 
     if (divisionId && selectedPlayerIds.length) {
-      await addPlayersToDivision(divisionId, selectedPlayerIds);
+      await addPlayersToDivision(divisionId, selectedPlayerIds, biasIds);
     }
 
-    const payload: GeneratePayload = {
-      division: {
-        name: values.name.trim(),
-        prefixEnabled: values.withPrefix,
-        prefix: values.withPrefix ? values.prefix.trim() : undefined,
-        durationMinutes: values.durationMinutes,
-        marginMinutes: values.marginMinutes,
-        type: values.type,
-      },
-      selectedPlayerIds,
-      appliedFilters,
-      biasPlayerIds: biasIds, // pass along (can be empty)
-    };
-    onGenerate(payload);
+    // TO-DO: this should only be called if addPlayersToDivision is successful
+    if (divisionId) {
+      const res = await fetchDivisionPlayers(divisionId);
+      const apiPlayers = res?.data?.players ?? [];
+      console.log("apiPlayers", apiPlayers);
+      
+      const input: SeedingPlayer[] = toSeedingPlayers(apiPlayers, divisionId);
+      const brackets = assignBrackets(input);
+
+      // For now, just print; later, call an API to persist brackets/slots
+      // (e.g., POST /divisions/:id/brackets with the structure you need)
+      console.log('Seeding result for division', divisionId, brackets);
+    }
+
     router.push(`/tournaments/${tournamentId}/brackets`);
 
     close();
@@ -206,7 +202,6 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
           {/* Step 1: Confirm */}
           <Stepper.Step
             label={t("confirm", "Confirm")}
-            description={t("confirm_desc", "Review selection")}
           >
             <Stack gap="md">
               <Text>
@@ -249,8 +244,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
 
           {/* Step 2: Player Bias (optional) */}
           <Stepper.Step
-            label={t("player_bias", "Player bias")}
-            description={t("player_bias_desc", "Optional")}
+            label={t("player_bias", "Strong Player Bias")}
           >
             <Stack gap="sm">
               <Alert variant="light">
@@ -258,7 +252,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
                   <Text>
                     {t(
                       "player_bias_note",
-                      "Pick 4–6 strong players to give a bias to. These players will be placed as far away from each other as possible, and will be given a bias spot in the tree if possible."
+                      "Pick 4–6 strong players to give a bias to. These players will be placed as far away from each other as possible, and will be given a bye spot if possible."
                     )}
                   </Text>
                   <Group gap="xs" align="center">
@@ -327,7 +321,6 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
           {/* Step 2: Division form */}
           <Stepper.Step
             label={t("division", "Division Details")}
-            description={t("division_desc", "Set details")}
           >
             <form onSubmit={form.onSubmit(handleSubmit)}>
               <Stack gap="md">
@@ -338,6 +331,11 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
                   {...form.getInputProps("name")}
                 />
 
+                <TextInput
+                  label={t("prefix", "Prefix")}
+                  placeholder="A"
+                  {...form.getInputProps("prefix")}
+                />
                 <Checkbox
                   label={t("use_prefix", "Create prefix to generate player ID")}
                   description={t(
@@ -345,12 +343,6 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
                     "Prefix will be used to generate player code/ID (ex. A01, A02, ...)"
                   )}
                   {...form.getInputProps("withPrefix", { type: "checkbox" })}
-                />
-                <TextInput
-                  label={t("prefix", "Prefix")}
-                  placeholder="A"
-                  disabled={!form.values.withPrefix}
-                  {...form.getInputProps("prefix")}
                 />
 
                 <Group grow>

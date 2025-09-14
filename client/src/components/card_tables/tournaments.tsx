@@ -1,4 +1,4 @@
-import { Button, Card, Group, Image, Text, UnstyledButton } from '@mantine/core';
+import { Button, Card, Group, Image, Text, UnstyledButton, Badge } from '@mantine/core';
 import { useTranslation } from 'next-i18next';
 import Link from 'next/link';
 import React from 'react';
@@ -57,7 +57,7 @@ export default function TournamentsCardTable({
     .sort((t1: Tournament, t2: Tournament) => t1.name.localeCompare(t2.name))
     .map((tournament) => (
       <Group key={tournament.id} className={classes.card}>
-        <UnstyledButton component={Link} href={`/tournaments/${tournament.id}/stages`} w="100%">
+        <UnstyledButton component={Link} href={`/tournaments/${tournament.id}/participants/players`} w="100%">
           <Card shadow="sm" padding="lg" radius="md" withBorder w="100%">
             <Card.Section>
               <TournamentLogo tournament={tournament} />
@@ -65,7 +65,7 @@ export default function TournamentsCardTable({
 
             <Group justify="space-between" mt="md" mb="xs">
               <Text fw={500}>{tournament.name}</Text>
-              {/*<Badge color="pink">Archived</Badge>*/}
+              <Badge color="pink">Archived</Badge>
             </Group>
 
             <Card.Section className={classes.section}>
@@ -78,7 +78,7 @@ export default function TournamentsCardTable({
                 color="blue"
                 fullWidth
                 radius="md"
-                href={`/tournaments/${tournament.id}/stages`}
+                href={`/tournaments/${tournament.id}/participants/players`}
               >
                 OPEN
               </Button>

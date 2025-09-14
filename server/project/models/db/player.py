@@ -35,3 +35,10 @@ class PlayerToInsert(PlayerBody):
     created: datetime_utc
     tournament_id: TournamentId
     wins: int = 0
+
+
+class PlayerInDivision(BaseModelORM):
+    name: str
+    club: str
+    code: str | None = None
+    bias: bool = False

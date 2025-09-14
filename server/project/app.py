@@ -21,6 +21,7 @@ from project.routes import (
     matches,
     players,
     players_fields,
+    divisions,
     rankings,
     rounds,
     stage_item_inputs,
@@ -63,6 +64,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 routers = {
     "Auth": auth.router,
     "Clubs": clubs.router,
+    "Divisions": divisions.router,
     "Courts": courts.router,
     "Internals": internals.router,
     "Matches": matches.router,

@@ -75,8 +75,6 @@ export default function CategoryConfigModal({
             <ColorInput
               value={cat.color}
               onChange={(c) => updateCat(cat.id, { color: c })}
-              swatchesPerRow={7}
-              swatches={[]}
               size="xs"
             />
             <TextInput

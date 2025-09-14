@@ -190,6 +190,7 @@ export default function ClubsTable({
               </Box>
             );
           }}
+          initialState={{ density: 'compact' }}
         />
       </LocalizationProvider>
     </>

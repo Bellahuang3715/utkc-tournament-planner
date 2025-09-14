@@ -1,4 +1,3 @@
-// interfaces/division.ts
 export type DivisionType = 'INDIVIDUALS' | 'TEAMS';
 
 export interface Division {
@@ -11,6 +10,13 @@ export interface Division {
   division_type: DivisionType;
   created: string; // ISO datetime
 }
+
+export type DivisionPlayer = {
+  name: string;
+  club: string;
+  code: string | null;
+  bias: boolean;
+};
 
 export interface DivisionFormValues {
   name: string;

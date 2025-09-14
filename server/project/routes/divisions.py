@@ -9,26 +9,27 @@ from project.routes.models import (
     DivisionResponse,
     DivisionsResponse,
     SuccessResponse,
+    DivisionPlayersResponse
 )
 from project.sql.divisions import (
     create_division,
     get_divisions_for_tournament,
     sql_delete_division,
     sql_update_division,
-    sql_attach_players_to_division
+    sql_attach_players_to_division,
+    sql_get_players_for_division
 )
 from project.utils.id_types import DivisionId, TournamentId
 
 router = APIRouter()
 
 
-@router.get("/divisions", response_model=DivisionsResponse)
-async def list_divisions(
-    tournament_id: TournamentId = Query(...),
-    q: Optional[str] = Query(None, description="Optional search string for name/prefix"),
+@router.get("/tournaments/{tournament_id}/divisions", response_model=DivisionsResponse)
+async def list_divisions_for_tournament(
+    tournament_id: TournamentId,
     _: UserPublic = Depends(firebase_user_authenticated),
 ) -> DivisionsResponse:
-    items = await get_divisions_for_tournament(tournament_id, q)
+    items = await get_divisions_for_tournament(tournament_id)
     return DivisionsResponse(data=items)
 
 
@@ -60,11 +61,20 @@ async def delete_division(
     return SuccessResponse()
 
 
+@router.get("/divisions/{division_id}/players", response_model=DivisionPlayersResponse)
+async def list_division_players(
+    division_id: DivisionId,
+    _: UserPublic = Depends(firebase_user_authenticated),
+) -> DivisionPlayersResponse:
+    players = await sql_get_players_for_division(division_id)
+    return DivisionPlayersResponse(players=players)
+
+
 @router.post("/divisions/{division_id}/players", response_model=SuccessResponse)
 async def attach_players_to_division(
     division_id: DivisionId,
     body: DivisionPlayersAttachBody,
     _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
-    await sql_attach_players_to_division(division_id, body.player_ids)
+    await sql_attach_players_to_division(division_id, body.player_ids, body.bias_player_ids or [])
     return SuccessResponse()

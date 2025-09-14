@@ -63,13 +63,6 @@ export default function PlayersTable({
     // download(csvConfig)(csv);
   };
 
-  // export only selected rows
-  const handleExportSelected = (rows: MRT_Row<Player>[]) => {
-    // const rowData = rows.map((r) => r.original);
-    // const csv = generateCsv(csvConfig)(rowData);
-    // download(csvConfig)(csv);
-  };
-
   // 1) build the column definitions
    const columns = useMemo<MRT_ColumnDef<Player>[]>(
      () => {
@@ -258,28 +251,8 @@ export default function PlayersTable({
                 {t("export_all_data", "Export All Data")}
               </Button>
 
-              {/* export selected rows */}
-              {/* <Button
-                leftSection={<FileDownloadIcon />}
-                disabled={!table.getIsSomeRowsSelected()}
-                onClick={() =>
-                  handleExportSelected(table.getSelectedRowModel().rows)
-                }
-                style={{ textTransform: "none" }}
-              >
-                {t("export_selected_rows", "Export Selected Rows")}
-              </Button> */}
-
               {/* brackets generator */}
-              <GenerateBracketsButton
-                table={table}
-                // t={t}
-                onGenerate={async (payload) => {
-                  // TODO: call your API
-                  // await api.brackets.generate(payload)
-                  console.log('generate payload', payload);
-                }}
-              />
+              <GenerateBracketsButton table={table} />
             </Box>
           )}
           initialState={{ showColumnFilters: true, density: 'compact' }}

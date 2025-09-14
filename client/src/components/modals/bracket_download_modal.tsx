@@ -9,7 +9,7 @@ import {
 } from "@mantine/core";
 import { useTranslation } from "next-i18next";
 
-type Format = "booklet" | "posterCollapsed" | "posterExpanded";
+type Format = "booklet" | "poster";
 
 export function BracketDownloadModal({
   opened,
@@ -23,8 +23,7 @@ export function BracketDownloadModal({
   const { t } = useTranslation();
   const [selected, setSelected] = useState<Record<Format, boolean>>({
     booklet: true,
-    posterCollapsed: false,
-    posterExpanded: false,
+    poster: false,
   });
 
   const toggle = (k: Format) =>
@@ -45,14 +44,9 @@ export function BracketDownloadModal({
             onChange={() => toggle("booklet")}
           />
           <Checkbox
-            label={t("poster_collapsed", "Poster (Collapsed)")}
-            checked={selected.posterCollapsed}
-            onChange={() => toggle("posterCollapsed")}
-          />
-          <Checkbox
-            label={t("poster_expanded", "Poster (Expanded)")}
-            checked={selected.posterExpanded}
-            onChange={() => toggle("posterExpanded")}
+            label={t("poster", "Poster")}
+            checked={selected.poster}
+            onChange={() => toggle("poster")}
           />
         </Stack>
         <Group justify="flex-end" mt="sm">
