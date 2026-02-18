@@ -1,10 +1,13 @@
-import { createAxios, handleRequestError } from './adapter';
-import { PlayerBody } from '../interfaces/player';
+import { createAxios, handleRequestError } from "./adapter";
+import { PlayerBody } from "../interfaces/player";
 
 export async function createPlayer(tournament_id: number, body: PlayerBody) {
   try {
     const axiosInstance = await createAxios();
-    return await axiosInstance.post(`tournaments/${tournament_id}/players`, body);
+    return await axiosInstance.post(
+      `tournaments/${tournament_id}/players`,
+      body,
+    );
   } catch (error: any) {
     handleRequestError(error);
   }
@@ -13,7 +16,9 @@ export async function createPlayer(tournament_id: number, body: PlayerBody) {
 export async function deletePlayer(tournament_id: number, player_id: number) {
   try {
     const axiosInstance = await createAxios();
-    return await axiosInstance.delete(`tournaments/${tournament_id}/players/${player_id}`);
+    return await axiosInstance.delete(
+      `tournaments/${tournament_id}/players/${player_id}`,
+    );
   } catch (error: any) {
     handleRequestError(error);
   }
@@ -26,9 +31,29 @@ export async function updatePlayer(
 ) {
   try {
     const axiosInstance = await createAxios();
-    return await axiosInstance.put(`tournaments/${tournament_id}/players/${player_id}`, {
-      data,
-    });
+    return await axiosInstance.put(
+      `tournaments/${tournament_id}/players/${player_id}`,
+      {
+        data,
+      },
+    );
+  } catch (error: any) {
+    handleRequestError(error);
+  }
+}
+
+export async function updatePlayerCodes(
+  tournament_id: number,
+  codes: Array<{ player_id: number; code: string }>,
+) {
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.put(
+      `tournaments/${tournament_id}/players/codes`,
+      {
+        codes,
+      },
+    );
   } catch (error: any) {
     handleRequestError(error);
   }

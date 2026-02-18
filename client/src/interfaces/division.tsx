@@ -12,6 +12,7 @@ export interface Division {
 }
 
 export type DivisionPlayer = {
+  id: number;
   name: string;
   club: string;
   code: string | null;

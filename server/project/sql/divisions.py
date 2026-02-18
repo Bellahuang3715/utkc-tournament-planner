@@ -54,9 +54,28 @@ async def sql_update_division(division_id: DivisionId, body: DivisionUpdateBody)
 
 
 async def sql_delete_division(division_id: DivisionId) -> None:
-    # Cascades will remove dependent rows (brackets / players_x_divisions) per your schema
-    query = "DELETE FROM divisions WHERE id = :division_id"
-    await database.execute(query=query, values={"division_id": division_id})
+    # IMPORTANT: reset player codes BEFORE deleting division,
+    # because players_x_divisions will be removed by cascade.
+    async with database.transaction():
+        # Set code=NULL for players that are in this division
+        await database.execute(
+            query="""
+                UPDATE players
+                SET code = NULL
+                WHERE id IN (
+                    SELECT player_id
+                    FROM players_x_divisions
+                    WHERE division_id = :division_id
+                )
+            """,
+            values={"division_id": division_id},
+        )
+
+        # Now delete the division (cascades remove brackets / players_x_divisions etc.)
+        await database.execute(
+            query="DELETE FROM divisions WHERE id = :division_id",
+            values={"division_id": division_id},
+        )
 
 
 async def get_divisions_for_tournament(
@@ -75,6 +94,7 @@ async def get_divisions_for_tournament(
 async def sql_get_players_for_division(division_id: DivisionId) -> list[PlayerInDivision]:
     query = """
         SELECT
+            p.id,
             p.name,
             p.club,
             p.code,

@@ -165,6 +165,13 @@ export function getDivisionPlayers(division_id: number): SWRResponse {
   );
 }
 
+export function getDivisionBrackets(division_id: number): SWRResponse {
+  return useSWR(
+    `divisions/${division_id}/brackets`,
+    fetcher
+  );
+}
+
 export function getAvailableStageItemInputs(tournament_id: number): SWRResponse {
   return useSWR(`tournaments/${tournament_id}/available_inputs`, fetcher);
 }

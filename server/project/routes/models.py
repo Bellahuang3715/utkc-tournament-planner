@@ -7,8 +7,8 @@ from project.models.db.club import Club
 from project.models.db.division import Division
 from project.models.db.court import Court
 from project.models.db.match import Match, SuggestedMatch
-from project.models.db.player import Player
-from project.models.db.player import PlayerInDivision
+from project.models.db.player import Player, PlayerInDivision
+from project.models.db.bracket import Bracket, BracketWithPlayers
 from project.models.db.ranking import Ranking
 from project.models.db.stage_item_inputs import (
     StageItemInputOptionFinal,
@@ -70,6 +70,18 @@ class PlayersResponse(DataResponse[PaginatedPlayers]):
 
 class SinglePlayerResponse(DataResponse[Player]):
     pass
+
+
+class BracketResponse(BaseModel):
+    data: Bracket
+
+
+class BracketsResponse(BaseModel):
+    data: list[Bracket]
+
+
+class BracketsWithPlayersResponse(BaseModel):
+    data: list[BracketWithPlayers]
 
 
 class StagesWithStageItemsResponse(DataResponse[list[StageWithStageItems]]):

@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, List
 
 from heliclockter import datetime_utc
 from pydantic import Field
@@ -38,7 +38,17 @@ class PlayerToInsert(PlayerBody):
 
 
 class PlayerInDivision(BaseModelORM):
+    id: PlayerId
     name: str
     club: str
     code: str | None = None
     bias: bool = False
+
+
+class PlayerCodeItem(BaseModelORM):
+    player_id: int
+    code: Optional[str] = None
+
+
+class PlayerCodesBody(BaseModelORM):
+    codes: List[PlayerCodeItem]

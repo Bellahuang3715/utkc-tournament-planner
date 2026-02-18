@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 
 from project.database import database
 from project.logic.subscriptions import check_requirement
-from project.models.db.player import Player, PlayerBody
+from project.models.db.player import Player, PlayerBody, PlayerCodesBody
 from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated
 from project.routes.models import (
@@ -41,6 +41,54 @@ async def get_players(
     )
 
 
+@router.post("/tournaments/{tournament_id}/players", response_model=SuccessResponse)
+async def create_single_player(
+    player_body: PlayerBody,
+    tournament_id: TournamentId,
+    user: UserPublic = Depends(firebase_user_authenticated),
+) -> SuccessResponse:
+    # existing_players = await get_all_players_in_tournament(tournament_id)
+    # check_requirement(existing_players, user, "max_players")
+    await insert_player(player_body, tournament_id)
+
+
+@router.delete("/tournaments/{tournament_id}/players/{player_id}", response_model=SuccessResponse)
+async def delete_player(
+    tournament_id: TournamentId,
+    player_id: PlayerId,
+    _: UserPublic = Depends(firebase_user_authenticated),
+) -> SuccessResponse:
+    await sql_delete_player(tournament_id, player_id)
+    return SuccessResponse()
+
+
+from fastapi import Request
+
+@router.put("/tournaments/{tournament_id}/players/codes", response_model=SuccessResponse)
+async def update_player_codes(
+    tournament_id: TournamentId,
+    body: PlayerCodesBody,
+    request: Request,
+    _: UserPublic = Depends(firebase_user_authenticated),
+) -> SuccessResponse:
+    
+    raw = await request.json()
+    print("RAW BODY:", raw)
+    print("PARSED:", body.model_dump())
+
+    async with database.transaction():
+        for item in body.codes:
+            await database.execute(
+                query=players.update().where(
+                    (players.c.id == item.player_id) &
+                    (players.c.tournament_id == tournament_id)
+                ),
+                values={"code": item.code},
+            )
+
+    return SuccessResponse()
+
+
 @router.put("/tournaments/{tournament_id}/players/{player_id}", response_model=SinglePlayerResponse)
 async def update_player_by_id(
     tournament_id: TournamentId,
@@ -65,25 +113,4 @@ async def update_player_by_id(
             )
         )
     )
-
-
-@router.delete("/tournaments/{tournament_id}/players/{player_id}", response_model=SuccessResponse)
-async def delete_player(
-    tournament_id: TournamentId,
-    player_id: PlayerId,
-    _: UserPublic = Depends(firebase_user_authenticated),
-) -> SuccessResponse:
-    await sql_delete_player(tournament_id, player_id)
-    return SuccessResponse()
-
-
-@router.post("/tournaments/{tournament_id}/players", response_model=SuccessResponse)
-async def create_single_player(
-    player_body: PlayerBody,
-    tournament_id: TournamentId,
-    user: UserPublic = Depends(firebase_user_authenticated),
-) -> SuccessResponse:
-    # existing_players = await get_all_players_in_tournament(tournament_id)
-    # check_requirement(existing_players, user, "max_players")
-    await insert_player(player_body, tournament_id)
     return SuccessResponse()

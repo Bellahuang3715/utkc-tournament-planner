@@ -21,13 +21,15 @@ import { useForm } from "@mantine/form";
 import BuildIcon from "@mui/icons-material/Build";
 import type { MRT_TableInstance } from "material-react-table";
 import { useRouter } from "next/router";
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from "next-i18next";
 
 import { createDivision, addPlayersToDivision } from "../../services/division";
-import { DivisionType } from "../../interfaces/division";
+import { DivisionType, DivisionPlayer } from "../../interfaces/division";
 import { getTournamentIdFromRouter } from "../utils/util";
-import { assignBrackets, type SeedingPlayer } from "../utils/seeding";
+import { assignBrackets } from "../utils/seeding";
 import { fetchDivisionPlayers } from "../../services/division";
+import { postDivisionBrackets } from "../../services/bracket";
+import { updatePlayerCodes } from "../../services/player";
 
 type PlayerRow = {
   id: string | number;
@@ -46,16 +48,14 @@ interface GenerateBracketsButtonProps<TRow extends RowWithId> {
   table: MRT_TableInstance<TRow>;
 }
 
-const toSeedingPlayers = (
-  api: Array<{ name: string; club: string; code: string | null; bias: boolean }>,
-  divisionId: number
-): SeedingPlayer[] =>
-  api.map((p, idx) => ({
-    id: p.code ?? `div${divisionId}-row${idx}`, // fallback if code is null
-    name: p.name,
-    club: p.club,
-    bias: !!p.bias,
-  }));
+function makePlayerCodes(prefix: string, n: number): string[] {
+  const width = String(n).length; // 1..n digits
+  const pfx = prefix.trim();
+  return Array.from(
+    { length: n },
+    (_, i) => `${pfx}${String(i + 1).padStart(width, "0")}`,
+  );
+}
 
 export function GenerateBracketsButton<TRow extends RowWithId>({
   table,
@@ -72,11 +72,11 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
   const selectedCount = selectedRows.length;
   const selectedPlayers = useMemo(
     () => selectedRows.map((r) => r.original as PlayerRow),
-    [selectedRows]
+    [selectedRows],
   );
   const selectedPlayerIds = useMemo(
     () => selectedPlayers.map((p) => p.id),
-    [selectedPlayers]
+    [selectedPlayers],
   );
 
   // filters snapshot
@@ -88,7 +88,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
       table.getState().columnFilters,
       table.getState().globalFilter,
       table.getState().sorting,
-    ]
+    ],
   );
 
   // bias selection state
@@ -154,16 +154,30 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
 
     // TO-DO: this should only be called if addPlayersToDivision is successful
     if (divisionId) {
+      
+      if (values.withPrefix) {
+        const codes = makePlayerCodes(values.prefix, selectedPlayerIds.length);
+        console.log("Generated player codes", codes);
+
+        console.log("Updating player codes for players", selectedPlayerIds);
+        
+        await updatePlayerCodes(
+          Number(tournamentId),
+          selectedPlayerIds.map((id, i) => ({
+            player_id: Number(id),
+            code: codes[i],
+          })),
+        );
+      }
+
       const res = await fetchDivisionPlayers(divisionId);
       const apiPlayers = res?.data?.players ?? [];
       console.log("apiPlayers", apiPlayers);
       
-      const input: SeedingPlayer[] = toSeedingPlayers(apiPlayers, divisionId);
-      const brackets = assignBrackets(input);
+      const seeded = assignBrackets(apiPlayers);
+      console.log('Seeding result for division', divisionId, seeded);
 
-      // For now, just print; later, call an API to persist brackets/slots
-      // (e.g., POST /divisions/:id/brackets with the structure you need)
-      console.log('Seeding result for division', divisionId, brackets);
+      await postDivisionBrackets(divisionId, seeded, true);
     }
 
     router.push(`/tournaments/${tournamentId}/brackets`);
@@ -200,16 +214,14 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
           allowNextStepsSelect={false}
         >
           {/* Step 1: Confirm */}
-          <Stepper.Step
-            label={t("confirm", "Confirm")}
-          >
+          <Stepper.Step label={t("confirm", "Confirm")}>
             <Stack gap="md">
               <Text>
                 {t(
                   "confirm_text",
                   `Generate brackets for ${selectedCount} player${
                     selectedCount === 1 ? "" : "s"
-                  } that match the following criteria:`
+                  } that match the following criteria:`,
                 )}
               </Text>
 
@@ -243,16 +255,14 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
           </Stepper.Step>
 
           {/* Step 2: Player Bias (optional) */}
-          <Stepper.Step
-            label={t("player_bias", "Strong Player Bias")}
-          >
+          <Stepper.Step label={t("player_bias", "Strong Player Bias")}>
             <Stack gap="sm">
               <Alert variant="light">
                 <Stack gap={4}>
                   <Text>
                     {t(
                       "player_bias_note",
-                      "Pick 4–6 strong players to give a bias to. These players will be placed as far away from each other as possible, and will be given a bye spot if possible."
+                      "Pick 4–6 strong players to give a bias to. These players will be placed as far away from each other as possible, and will be given a bye spot if possible.",
                     )}
                   </Text>
                   <Group gap="xs" align="center">
@@ -319,9 +329,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
           </Stepper.Step>
 
           {/* Step 2: Division form */}
-          <Stepper.Step
-            label={t("division", "Division Details")}
-          >
+          <Stepper.Step label={t("division", "Division Details")}>
             <form onSubmit={form.onSubmit(handleSubmit)}>
               <Stack gap="md">
                 <TextInput
@@ -340,7 +348,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
                   label={t("use_prefix", "Create prefix to generate player ID")}
                   description={t(
                     "prefix_note",
-                    "Prefix will be used to generate player code/ID (ex. A01, A02, ...)"
+                    "Prefix will be used to generate player code/ID (ex. A01, A02, ...)",
                   )}
                   {...form.getInputProps("withPrefix", { type: "checkbox" })}
                 />
@@ -393,7 +401,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
 
 /** Build a readable list of filters from MRT/TanStack Table state */
 function summarizeFilters<TRow extends RowWithId>(
-  table: MRT_TableInstance<TRow>
+  table: MRT_TableInstance<TRow>,
 ): string[] {
   const state = table.getState() as any;
   const filters: string[] = [];
@@ -404,7 +412,7 @@ function summarizeFilters<TRow extends RowWithId>(
     const col = table.getColumn(f.id);
     // Try to derive a label (string header or fallback to id)
     const rawHeader = col?.columnDef?.header as unknown;
-    const label = typeof rawHeader === "string" ? rawHeader : col?.id ?? f.id;
+    const label = typeof rawHeader === "string" ? rawHeader : (col?.id ?? f.id);
     const val = valueToLabel(f.value);
     if (val !== "") filters.push(`${label}: ${val}`);
   }
@@ -419,7 +427,8 @@ function summarizeFilters<TRow extends RowWithId>(
     const parts = state.sorting.map((s: any) => {
       const col = table.getColumn(s.id);
       const rawHeader = col?.columnDef?.header as unknown;
-      const label = typeof rawHeader === "string" ? rawHeader : col?.id ?? s.id;
+      const label =
+        typeof rawHeader === "string" ? rawHeader : (col?.id ?? s.id);
       return `${label} ${s.desc ? "↓" : "↑"}`;
     });
     filters.push(`Sort: ${parts.join(", ")}`);
