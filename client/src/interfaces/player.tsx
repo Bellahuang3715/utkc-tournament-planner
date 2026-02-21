@@ -14,3 +14,10 @@ export interface PlayerBody {
   club: string;
   data: Record<string, any>;
 }
+
+export interface PlayerLite {
+  id: number;
+  code: string | null;
+  name: string | null;
+  club?: string | null;
+}

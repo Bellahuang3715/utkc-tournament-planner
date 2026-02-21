@@ -17,13 +17,17 @@ import { useTranslation } from "next-i18next";
 import { IconDownload, IconPencil, IconTrash } from "@tabler/icons-react";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { useRouter } from "next/router";
+
 import TournamentLayout from "../../_tournament_layout";
 import { getTournamentIdFromRouter } from "../../../../components/utils/util";
 import { BracketDownloadModal } from "../../../../components/modals/bracket_download_modal";
 import DivisionDetailsModal from "../../../../components/modals/division_details_modal";
 import DivisionPlayersTable from "../../../../components/tables/division_players";
+import { getDivisions } from "../../../../services/adapter";
+import RequestErrorAlert from "../../../../components/utils/error_alert";
+import { deleteDivision } from "../../../../services/division";
 
-type Format = "booklet" | "posterCollapsed" | "posterExpanded";
+type Format = "booklet" | "poster";
 
 interface BracketData {
   id: string;
@@ -41,23 +45,23 @@ interface GroupModel {
   brackets: BracketData[];
 }
 
-async function fetchGroups(): Promise<GroupModel[]> {
-  return [
-    {
-      id: 1,
-      name: "Division A - Men's Individuals",
-      categoryId: "A",
-      matchDuration: 10,
-      overtimeDuration: 2,
-      totalPlayers: 24,
-      brackets: [
-        { id: "b1", name: "Pool 1", payload: {} },
-        { id: "b2", name: "Pool 2", payload: {} },
-        { id: "b3", name: "Pool 3", payload: {} },
-      ],
-    },
-  ];
-}
+// async function fetchGroups(): Promise<GroupModel[]> {
+//   return [
+//     {
+//       id: 1,
+//       name: "Division A - Men's Individuals",
+//       categoryId: "A",
+//       matchDuration: 10,
+//       overtimeDuration: 2,
+//       totalPlayers: 24,
+//       brackets: [
+//         { id: "b1", name: "Pool 1", payload: {} },
+//         { id: "b2", name: "Pool 2", payload: {} },
+//         { id: "b3", name: "Pool 3", payload: {} },
+//       ],
+//     },
+//   ];
+// }
 
 function BracketView({
   data,
@@ -90,7 +94,7 @@ function BracketView({
 export default function BracketsPage() {
   const { t } = useTranslation();
   const router = useRouter();
-  const [groups, setGroups] = useState<GroupModel[] | null>(null);
+  // const [groups, setGroups] = useState<GroupModel[] | null>(null);
 
   // control which accordion item is open (so we can know collapsed/expanded)
   const [openItem, setOpenItem] = useState<string | null>(null);
@@ -103,11 +107,16 @@ export default function BracketsPage() {
 
   const { tournamentData } = getTournamentIdFromRouter();
 
-  useEffect(() => {
-    fetchGroups().then(setGroups);
-  }, []);
+  // useEffect(() => {
+  //   fetchGroups().then(setGroups);
+  // }, []);
 
-  if (!groups) {
+  const swrDivisions = getDivisions(tournamentData.id);
+  // console.log("swrDivisions", swrDivisions);
+  
+  if (swrDivisions.error) return <RequestErrorAlert error={swrDivisions.error} />;
+
+  if (!swrDivisions.data) {
     return (
       <Center style={{ minHeight: 400 }}>
         <Loader />
@@ -115,8 +124,10 @@ export default function BracketsPage() {
     );
   }
 
-  const handleSaveGroupDetails = (updated: GroupModel) => {
-    setGroups((gs) => gs!.map((g) => (g.id === updated.id ? updated : g)));
+  const groups = swrDivisions.data.data; // list<Division>
+
+  const handleSaveGroupDetails = async () => {
+    await swrDivisions.mutate();;
     setEditDetailsOf(null);
   };
 
@@ -132,7 +143,7 @@ export default function BracketsPage() {
         <Title order={2}>{t("brackets")}</Title>
 
         <Accordion variant="separated" value={openItem} onChange={setOpenItem} chevronPosition="left">
-          {groups.map((group) => {
+          {groups.map((group: any) => {
             const opened = openItem === String(group.id);
 
             return (
@@ -160,11 +171,11 @@ export default function BracketsPage() {
                           size="xs"
                           color="red"
                           leftSection={<IconTrash size={16} />}
-                          onClick={(e) => {
+                          onClick={async (e) => {
                             e.stopPropagation();
                             if (confirm(t("confirm_delete_group", "Delete this group?"))) {
-                              // TODO: call API then update state
-                              setGroups((gs) => gs!.filter((g) => g.id !== group.id));
+                              await deleteDivision(group.id);
+                              await swrDivisions.mutate();
                             }
                           }}
                         >
@@ -199,12 +210,13 @@ export default function BracketsPage() {
                         <Grid>
                           <Grid.Col span={{ base: 12, sm: 6 }}>
                             <Text><b>{t("group_name", "Group Name")}:</b> {group.name}</Text>
-                            <Text><b>{t("category_id", "Category ID")}:</b> {group.categoryId}</Text>
-                            <Text><b>{t("total_players", "Total Players")}:</b> {group.totalPlayers}</Text>
+                            <Text><b>{t("prefix", "prefix")}:</b> {group.prefix ?? "—"}</Text>
+                            {/* <Text><b>{t("total_players", "Total Players")}:</b> {group.totalPlayers}</Text> */}
                           </Grid.Col>
                           <Grid.Col span={{ base: 12, sm: 6 }}>
-                            <Text><b>{t("match_duration", "Match Duration (min)")}:</b> {group.matchDuration}</Text>
-                            <Text><b>{t("overtime_duration", "Overtime Duration (min)")}:</b> {group.overtimeDuration}</Text>
+                            <Text><b>{t("match_duration", "Match Duration (min)")}:</b> {group.duration_mins}</Text>
+                            <Text><b>{t("overtime_duration", "Overtime Duration (min)")}:</b> {group.margin_mins}</Text>
+                            <Text><b>{t("division_type", "Type")}:</b> {group.division_type}</Text>
                           </Grid.Col>
                         </Grid>
                       </Stack>
@@ -227,7 +239,7 @@ export default function BracketsPage() {
                             leftSection={<IconPencil size={16} />}
                             onClick={() =>
                               router.push(
-                                `/tournaments/${tournamentData.id}/brackets/${group.id}/seeding`
+                                `/tournaments/${tournamentData.id}/divisions/${group.id}/edit`
                               )
                             }
                           >
@@ -244,7 +256,7 @@ export default function BracketsPage() {
 
                         <Divider />
 
-                        <FormatPreviewGrid group={group} />
+                        {/* <FormatPreviewGrid group={group} /> */}
                       </Stack>
                     </Tabs.Panel>
                   </Tabs>
@@ -278,9 +290,23 @@ export default function BracketsPage() {
   );
 }
 
-function FormatPreviewGrid({ group }: { group: GroupModel }) {
+/*
+function FormatPreviewGrid({ divisionId }: { divisionId: number }) {
   const { t } = useTranslation();
   const [format, setFormat] = useState<Format>("booklet");
+  const swrBrackets = getDivisionBrackets(divisionId);
+
+  if (swrBrackets.error) return <RequestErrorAlert error={swrBrackets.error} />;
+  if (!swrBrackets.data) {
+    return (
+      <Center style={{ minHeight: 120 }}>
+        <Loader />
+      </Center>
+    );
+  }
+
+  // expect [{ id, index, title, num_players, ... }]
+  const brackets = swrBrackets.data.data;
 
   return (
     <Stack>
@@ -289,13 +315,12 @@ function FormatPreviewGrid({ group }: { group: GroupModel }) {
         onChange={(v) => setFormat(v as Format)}
         data={[
           { label: t("booklet", "Booklet"), value: "booklet" },
-          { label: t("poster_collapsed", "Poster (Collapsed)"), value: "posterCollapsed" },
-          { label: t("poster_expanded", "Poster (Expanded)"), value: "posterExpanded" },
+          { label: t("poster", "Poster"), value: "poster" },
         ]}
       />
-      <div id={`bracket-${group.id}-${format}`}>
+      <div id={`bracket-${divisionId}-${format}`}>
         <Grid gutter="md">
-          {group.brackets.map((b) => (
+          {brackets.map((b: any) => (
             <Grid.Col key={b.id} span={{ base: 12, sm: 6, md: 4 }}>
               <BracketView data={b.payload} title={b.name} format={format} />
             </Grid.Col>
@@ -305,6 +330,7 @@ function FormatPreviewGrid({ group }: { group: GroupModel }) {
     </Stack>
   );
 }
+*/
 
 export const getServerSideProps = async ({ locale }: { locale: string }) => ({
   props: {

@@ -1,4 +1,4 @@
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 from project.database import database
 from project.models.db.bracket import (
     Bracket, BracketWithPlayers, DivisionBracketsCreateBody, BracketWithPlayersCreate
@@ -18,7 +18,6 @@ async def sql_list_division_brackets(division_id: DivisionId) -> List[Bracket]:
     return [Bracket.model_validate(dict(r._mapping)) for r in rows]
 
 
-# --- Read: list brackets + players for a division ---
 async def sql_list_division_brackets_with_players(division_id: DivisionId) -> List[BracketWithPlayers]:
     query = """
         SELECT
@@ -26,8 +25,11 @@ async def sql_list_division_brackets_with_players(division_id: DivisionId) -> Li
           COALESCE(
             JSONB_AGG(
               JSONB_BUILD_OBJECT(
-                'player_id', pxb.player_id,
-                'bracket_idx', pxb.bracket_idx
+                'player_id', p.id,
+                'bracket_idx', pxb.bracket_idx,
+                'name', p.name,
+                'club', p.club,
+                'code', p.code
               )
               ORDER BY pxb.bracket_idx
             ) FILTER (WHERE pxb.bracket_id IS NOT NULL),
@@ -35,17 +37,13 @@ async def sql_list_division_brackets_with_players(division_id: DivisionId) -> Li
           ) AS players
         FROM brackets b
         LEFT JOIN players_x_brackets pxb ON pxb.bracket_id = b.id
+        LEFT JOIN players p ON p.id = pxb.player_id
         WHERE b.division_id = :division_id
         GROUP BY b.id
         ORDER BY b."index", b.id
     """
     rows = await database.fetch_all(query, {"division_id": division_id})
-    out: List[BracketWithPlayers] = []
-    for r in rows:
-        m = dict(r._mapping)
-        # pydantic will coerce players JSON array -> list[PlayerSlot]
-        out.append(BracketWithPlayers.model_validate(m))
-    return out
+    return [BracketWithPlayers.model_validate(dict(r._mapping)) for r in rows]
 
 
 # --- Delete all brackets (and their players) for a division (used when replace=true) ---
@@ -122,3 +120,20 @@ async def sql_create_division_brackets(
                 )
 
     return created
+
+
+async def sql_update_bracket_title(bracket_id: BracketId, title: Optional[str]) -> Bracket:
+    # normalize: empty string -> NULL
+    norm = (title or "").strip() or None
+
+    row = await database.fetch_one(
+        """
+        UPDATE brackets
+        SET title = :title
+        WHERE id = :bracket_id
+        RETURNING id, "index", division_id, num_players, title
+        """,
+        {"bracket_id": bracket_id, "title": norm},
+    )
+    assert row is not None
+    return Bracket.model_validate(dict(row._mapping))

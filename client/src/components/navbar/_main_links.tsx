@@ -121,8 +121,8 @@ export function TournamentLinks({ tournament_id }: any) {
     },
     {
       icon: IconBrackets,
-      label: capitalize(t('brackets_title')),
-      link: `${tm_prefix}/brackets`,
+      label: capitalize(t('divisions_title')),
+      link: `${tm_prefix}/divisions`,
     },
     {
       icon: IconCalendar,

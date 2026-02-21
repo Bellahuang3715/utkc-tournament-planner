@@ -12,7 +12,9 @@ from project.sql.brackets import (
     sql_list_division_brackets_with_players,
     sql_create_division_brackets,
 )
-from project.utils.id_types import DivisionId
+from project.utils.id_types import DivisionId, BracketId
+from project.models.db.bracket import BracketTitleUpdateBody
+from project.sql.brackets import sql_update_bracket_title
 
 router = APIRouter()
 
@@ -42,3 +44,13 @@ async def create_division_brackets(
 ) -> BracketsResponse:
     created = await sql_create_division_brackets(division_id, body, replace=replace)
     return BracketsResponse(data=created)
+
+
+@router.patch("/brackets/{bracket_id}/title", response_model=SuccessResponse)
+async def update_bracket_title(
+    bracket_id: BracketId,
+    body: BracketTitleUpdateBody,
+    _: UserPublic = Depends(firebase_user_authenticated),
+) -> SuccessResponse:
+    await sql_update_bracket_title(bracket_id, body.title)
+    return SuccessResponse()

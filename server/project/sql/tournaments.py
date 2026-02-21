@@ -1,4 +1,5 @@
 from typing import Any
+from fastapi import HTTPException
 
 from project.database import database
 from project.models.db.tournament import Tournament, TournamentBody, TournamentUpdateBody
@@ -12,7 +13,9 @@ async def sql_get_tournament(tournament_id: TournamentId) -> Tournament:
         WHERE id = :tournament_id
         """
     result = await database.fetch_one(query=query, values={"tournament_id": tournament_id})
-    assert result is not None
+    if result is None:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+
     return Tournament.model_validate(result)
 
 

@@ -50,6 +50,7 @@
     "react-i18next": "^15.2.0",
     "react-icons": "^5.4.0",
     "swr": "^2.2.5",
+    "tournament-brackets-ui": "^0.1.1",
     "uuid": "^11.0.2",
     "web-vitals": "^2.1.4"
   },

@@ -1,6 +1,9 @@
 export interface BracketPlayerSlot {
   player_id: number;
   bracket_idx: number;
+  name?: string | null;
+  club?: string | null;
+  code?: string | null;
 }
 
 export interface BracketCreatePayload {
@@ -9,3 +12,12 @@ export interface BracketCreatePayload {
   title?: string | null;  // optional
   players: BracketPlayerSlot[];
 }
+
+export type BracketWithPlayers = {
+  id: number;
+  index: number;         // group number (1-based in your payloads)
+  division_id: number;
+  num_players: number;   // size
+  title?: string | null;
+  players: BracketPlayerSlot[];
+};

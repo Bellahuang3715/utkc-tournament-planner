@@ -180,7 +180,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
       await postDivisionBrackets(divisionId, seeded, true);
     }
 
-    router.push(`/tournaments/${tournamentId}/brackets`);
+    router.push(`/tournaments/${tournamentId}/divisions`);
 
     close();
     resetWizard();

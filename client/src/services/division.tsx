@@ -47,6 +47,7 @@ export async function fetchDivisionPlayers(division_id: number) {
       `divisions/${division_id}/players`
     );
   } catch (err: any) {
-    return handleRequestError(err);
+    handleRequestError(err);
+    throw err; // <-- IMPORTANT: keep return type consistent
   }
 }

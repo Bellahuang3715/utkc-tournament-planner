@@ -14,6 +14,7 @@ import { BracketSpotlight } from '../components/modals/spotlight';
 import PrivateRoute from "../components/protector/private_route";
 
 // import "bootstrap/dist/css/bootstrap.min.css";
+import "tournament-brackets-ui/style.css";
 
 const theme = createTheme({
   colors: {
