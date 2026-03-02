@@ -185,6 +185,25 @@ players_x_brackets = Table(
     Column("bracket_idx", Integer, nullable=False),
 )
 
+teams_x_divisions = Table(
+    "teams_x_divisions",
+    metadata,
+    Column("id", BigInteger, primary_key=True, index=True, autoincrement=True),
+    Column("team_id", BigInteger, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False),
+    Column("division_id", BigInteger, ForeignKey("divisions.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column("bias", Boolean, nullable=False, server_default="f"),
+    UniqueConstraint("team_id", "division_id", name="unique_team_division"),
+)
+
+teams_x_brackets = Table(
+    "teams_x_brackets",
+    metadata,
+    Column("id", BigInteger, primary_key=True, index=True, autoincrement=True),
+    Column("team_id", BigInteger, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False),
+    Column("bracket_id", BigInteger, ForeignKey("brackets.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column("bracket_idx", Integer, nullable=False),
+)
+
 # bracket_conns = Table(
 #     "bracket_conns",
 #     metadata,

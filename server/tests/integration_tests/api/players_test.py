@@ -25,11 +25,7 @@ async def test_players_endpoint(
                             "created": DUMMY_MOCK_TIME.isoformat().replace("+00:00", "Z"),
                             "id": player_inserted.id,
                             "active": True,
-                            "elo_score": "0.0",
-                            "swiss_score": "0.0",
                             "wins": 0,
-                            "draws": 0,
-                            "losses": 0,
                             "name": "Player 01",
                             "tournament_id": auth_context.tournament.id,
                         }

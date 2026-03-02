@@ -28,6 +28,18 @@ async def get_team_by_id(team_id: TeamId, tournament_id: TournamentId) -> Team |
     return result[0] if len(result) > 0 else None
 
 
+async def get_latest_team_for_tournament(tournament_id: TournamentId) -> Team | None:
+    """Return the most recently inserted team (by id) for the tournament."""
+    query = """
+        SELECT * FROM teams
+        WHERE tournament_id = :tournament_id
+        ORDER BY id DESC
+        LIMIT 1
+    """
+    row = await database.fetch_one(query=query, values={"tournament_id": tournament_id})
+    return Team.model_validate(row) if row else None
+
+
 async def get_teams_with_members(
     tournament_id: TournamentId,
     *,

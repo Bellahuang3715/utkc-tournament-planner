@@ -6,8 +6,9 @@ from project.models.db.division import (
     DivisionCreateBody,
     DivisionUpdateBody,
 )
-from project.utils.id_types import DivisionId, TournamentId
+from project.utils.id_types import DivisionId, TeamId, TournamentId
 from project.models.db.player import PlayerInDivision
+from project.models.db.team import TeamInDivision
 
 async def create_division(body: DivisionCreateBody) -> Division:
     query = """
@@ -129,4 +130,49 @@ async def sql_attach_players_to_division(division_id: DivisionId, player_ids: li
         await database.execute(
             query=update_q,
             values={"division_id": division_id, "bias_player_ids": bias_player_ids},
+        )
+
+
+async def sql_get_teams_for_division(division_id: DivisionId) -> list[TeamInDivision]:
+    query = """
+        SELECT
+            t.id,
+            t.name,
+            '' AS club,
+            COALESCE(t.category, '') AS category,
+            COALESCE(txd.bias, FALSE) AS bias
+        FROM teams t
+        JOIN teams_x_divisions txd ON txd.team_id = t.id
+        WHERE txd.division_id = :division_id
+        ORDER BY t.name, t.id
+    """
+    rows = await database.fetch_all(query, {"division_id": division_id})
+    return [TeamInDivision.model_validate(dict(r._mapping)) for r in rows]
+
+
+async def sql_attach_teams_to_division(
+    division_id: DivisionId,
+    team_ids: list[int],
+    bias_team_ids: list[int] | None = None,
+) -> None:
+    if not team_ids:
+        return
+    insert_q = """
+        INSERT INTO teams_x_divisions (team_id, division_id)
+        SELECT tid, :division_id
+        FROM UNNEST(CAST(:team_ids AS BIGINT[])) AS t(tid)
+        ON CONFLICT (team_id, division_id) DO NOTHING
+    """
+    await database.execute(query=insert_q, values={"division_id": division_id, "team_ids": team_ids})
+
+    if bias_team_ids:
+        update_q = """
+            UPDATE teams_x_divisions
+            SET bias = TRUE
+            WHERE division_id = :division_id
+              AND team_id = ANY(CAST(:bias_team_ids AS BIGINT[]))
+        """
+        await database.execute(
+            query=update_q,
+            values={"division_id": division_id, "bias_team_ids": bias_team_ids},
         )

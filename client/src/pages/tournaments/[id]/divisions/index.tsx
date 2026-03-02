@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Accordion,
   Tabs,
@@ -11,7 +11,7 @@ import {
   Grid,
   SegmentedControl,
   Text,
-  Divider,
+  Box,
 } from "@mantine/core";
 import { useTranslation } from "next-i18next";
 import { IconDownload, IconPencil, IconTrash } from "@tabler/icons-react";
@@ -23,9 +23,29 @@ import { getTournamentIdFromRouter } from "../../../../components/utils/util";
 import { BracketDownloadModal } from "../../../../components/modals/bracket_download_modal";
 import DivisionDetailsModal from "../../../../components/modals/division_details_modal";
 import DivisionPlayersTable from "../../../../components/tables/division_players";
+import DivisionTeamsTable from "../../../../components/tables/division_teams";
 import { getDivisions } from "../../../../services/adapter";
 import RequestErrorAlert from "../../../../components/utils/error_alert";
 import { deleteDivision } from "../../../../services/division";
+import {
+  BracketPairsSection,
+  PosterGroupsSection,
+  BracketPairsSectionTeams,
+  PosterGroupsSectionTeams,
+} from "../../../../components/utils/brackets_editor/index";
+import {
+  BracketWithPlayers,
+  BracketWithTeams,
+} from "../../../../interfaces/bracket";
+import {
+  fetchDivisionBracketsWithPlayers,
+  fetchDivisionBracketsWithTeams,
+} from "../../../../services/bracket";
+import { ViewMode } from "../../../../interfaces/bracket";
+
+import { exportBracketsToExcel } from "../../../../components/export/exportExcel";
+import { BracketsExportCanvas } from "../../../../components/export/BracketsExportCanvas";
+import { exportElementToPdf } from "../../../../components/export/exportPdf";
 
 type Format = "booklet" | "poster";
 
@@ -45,56 +65,9 @@ interface GroupModel {
   brackets: BracketData[];
 }
 
-// async function fetchGroups(): Promise<GroupModel[]> {
-//   return [
-//     {
-//       id: 1,
-//       name: "Division A - Men's Individuals",
-//       categoryId: "A",
-//       matchDuration: 10,
-//       overtimeDuration: 2,
-//       totalPlayers: 24,
-//       brackets: [
-//         { id: "b1", name: "Pool 1", payload: {} },
-//         { id: "b2", name: "Pool 2", payload: {} },
-//         { id: "b3", name: "Pool 3", payload: {} },
-//       ],
-//     },
-//   ];
-// }
-
-function BracketView({
-  data,
-  title,
-  format,
-}: {
-  data: any;
-  title: string;
-  format: string;
-}) {
-  return (
-    <Center
-      style={{
-        minHeight: 180,
-        border: "1px solid #ddd",
-        padding: 8,
-        flexDirection: "column",
-      }}
-    >
-      <Title order={5}>{title}</Title>
-      <div>
-        <em>{format}</em> view
-      </div>
-    </Center>
-  );
-}
-
-
-// --- MAIN PAGE ---------------------------------------------------------------
 export default function BracketsPage() {
   const { t } = useTranslation();
   const router = useRouter();
-  // const [groups, setGroups] = useState<GroupModel[] | null>(null);
 
   // control which accordion item is open (so we can know collapsed/expanded)
   const [openItem, setOpenItem] = useState<string | null>(null);
@@ -107,14 +80,73 @@ export default function BracketsPage() {
 
   const { tournamentData } = getTournamentIdFromRouter();
 
-  // useEffect(() => {
-  //   fetchGroups().then(setGroups);
-  // }, []);
+  const [brackets, setBrackets] = useState<BracketWithPlayers[] | null>(null);
+  const [bracketsTeams, setBracketsTeams] = useState<BracketWithTeams[] | null>(
+    null
+  );
+
+  const [viewMode, setViewMode] = useState<ViewMode>("booklet");
+
+  const exportRef = useRef<HTMLDivElement | null>(null);
+  const [exporting, setExporting] = useState<{
+    divisionId: number;
+    divisionName: string;
+    format: Format;
+    brackets: BracketWithPlayers[];
+  } | null>(null);
 
   const swrDivisions = getDivisions(tournamentData.id);
-  // console.log("swrDivisions", swrDivisions);
-  
-  if (swrDivisions.error) return <RequestErrorAlert error={swrDivisions.error} />;
+  const groups = swrDivisions.data?.data ?? [];
+
+  useEffect(() => {
+    if (!openItem) return;
+
+    const divisionId = Number(openItem);
+    if (!Number.isFinite(divisionId)) return;
+
+    const group = groups.find((g: any) => g.id === divisionId);
+    if (group?.division_type === "TEAMS") {
+      setBrackets(null);
+      fetchDivisionBracketsWithTeams(divisionId).then((res) => {
+        setBracketsTeams(res.data.data);
+      });
+    } else {
+      setBracketsTeams(null);
+      fetchDivisionBracketsWithPlayers(divisionId).then((res) => {
+        setBrackets(res.data.data);
+      });
+    }
+  }, [openItem, groups]);
+
+  const sorted = useMemo(
+    () => (brackets ?? []).slice().sort((a, b) => a.index - b.index),
+    [brackets],
+  );
+
+  const pairs = useMemo(() => {
+    const out: Array<{ left: BracketWithPlayers; right?: BracketWithPlayers }> =
+      [];
+    for (let i = 0; i < sorted.length; i += 2) {
+      out.push({ left: sorted[i], right: sorted[i + 1] });
+    }
+    return out;
+  }, [sorted]);
+
+  const sortedTeams = useMemo(
+    () => (bracketsTeams ?? []).slice().sort((a, b) => a.index - b.index),
+    [bracketsTeams],
+  );
+
+  const pairsTeams = useMemo(() => {
+    const out: Array<{ left: BracketWithTeams; right?: BracketWithTeams }> = [];
+    for (let i = 0; i < sortedTeams.length; i += 2) {
+      out.push({ left: sortedTeams[i], right: sortedTeams[i + 1] });
+    }
+    return out;
+  }, [sortedTeams]);
+
+  if (swrDivisions.error)
+    return <RequestErrorAlert error={swrDivisions.error} />;
 
   if (!swrDivisions.data) {
     return (
@@ -124,17 +156,57 @@ export default function BracketsPage() {
     );
   }
 
-  const groups = swrDivisions.data.data; // list<Division>
-
   const handleSaveGroupDetails = async () => {
-    await swrDivisions.mutate();;
+    await swrDivisions.mutate();
     setEditDetailsOf(null);
   };
 
-  const downloadPDF = async (groupId: number, format: Format) => {
-    // TODO: wire html2canvas/jsPDF here if desired.
-    // This function will be called once per selected format.
-    console.log("downloadPDF", { groupId, format });
+  const downloadPDF = async (divisionId: number, format: Format) => {
+    // Always fetch fresh for the division you’re exporting
+    const res = await fetchDivisionBracketsWithPlayers(divisionId);
+    const divisionBrackets = res.data.data as BracketWithPlayers[];
+
+    const divisionName =
+      groups.find((g: any) => g.id === divisionId)?.name ??
+      `Division ${divisionId}`;
+
+    // 1) mount hidden export canvas
+    setExporting({
+      divisionId,
+      divisionName,
+      format,
+      brackets: divisionBrackets,
+    });
+
+    // 2) wait one paint so React mounts it
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+
+    if (!exportRef.current) return;
+
+    // 3) capture + save
+    await exportElementToPdf(
+      exportRef.current,
+      `${divisionName}-${format}.pdf`,
+    );
+
+    // 4) unmount
+    setExporting(null);
+  };
+
+  const downloadExcel = async (divisionId: number) => {
+    const res = await fetchDivisionBracketsWithPlayers(divisionId);
+    const divisionBrackets = res.data.data as BracketWithPlayers[];
+
+    const divisionName =
+      groups.find((g: any) => g.id === divisionId)?.name ??
+      `Division ${divisionId}`;
+
+    exportBracketsToExcel(
+      divisionName,
+      divisionBrackets,
+      `${divisionName}.xlsx`,
+    );
   };
 
   return (
@@ -142,7 +214,12 @@ export default function BracketsPage() {
       <Stack gap="xl" p="md">
         <Title order={2}>{t("brackets")}</Title>
 
-        <Accordion variant="separated" value={openItem} onChange={setOpenItem} chevronPosition="left">
+        <Accordion
+          variant="separated"
+          value={openItem}
+          onChange={setOpenItem}
+          chevronPosition="left"
+        >
           {groups.map((group: any) => {
             const opened = openItem === String(group.id);
 
@@ -151,7 +228,10 @@ export default function BracketsPage() {
                 <Accordion.Control>
                   <Group justify="space-between" wrap="nowrap" w="100%">
                     <Text>
-                      {group.name} ({group.totalPlayers} {t("players")})
+                      {group.name}
+                      {typeof group.totalPlayers === "number" && (
+                        <> ({group.totalPlayers} {t("players")})</>
+                      )}
                     </Text>
 
                     {/* Right-side Download button visible when collapsed */}
@@ -164,7 +244,7 @@ export default function BracketsPage() {
                             e.stopPropagation();
                             setDlGroup(group);
                           }}
-                          >
+                        >
                           {t("download", "Download")}
                         </Button>
                         <Button
@@ -173,7 +253,11 @@ export default function BracketsPage() {
                           leftSection={<IconTrash size={16} />}
                           onClick={async (e) => {
                             e.stopPropagation();
-                            if (confirm(t("confirm_delete_group", "Delete this group?"))) {
+                            if (
+                              confirm(
+                                t("confirm_delete_group", "Delete this group?"),
+                              )
+                            ) {
                               await deleteDivision(group.id);
                               await swrDivisions.mutate();
                             }
@@ -189,8 +273,18 @@ export default function BracketsPage() {
                 <Accordion.Panel>
                   <Tabs defaultValue="details">
                     <Tabs.List>
-                      <Tabs.Tab value="details">{t("details", "Details")}</Tabs.Tab>
-                      <Tabs.Tab value="players">{t("players", "Players")}</Tabs.Tab>
+                      <Tabs.Tab value="details">
+                        {t("details", "Details")}
+                      </Tabs.Tab>
+                      {group.division_type === "TEAMS" ? (
+                        <Tabs.Tab value="teams">
+                          {t("teams_title", "Teams")}
+                        </Tabs.Tab>
+                      ) : (
+                        <Tabs.Tab value="players">
+                          {t("players", "Players")}
+                        </Tabs.Tab>
+                      )}
                       <Tabs.Tab value="trees">{t("trees", "Trees")}</Tabs.Tab>
                     </Tabs.List>
 
@@ -199,7 +293,9 @@ export default function BracketsPage() {
                       <Stack gap="sm">
                         {/* <Title order={4}>{t("group_information", "Group Information")}</Title> */}
                         <Group justify="space-between" align="center">
-                          <Title order={4}>{t("group_information", "Group Information")}</Title>
+                          <Title order={4}>
+                            {t("group_information", "Group Information")}
+                          </Title>
                           <Button
                             leftSection={<IconPencil size={16} />}
                             onClick={() => setEditDetailsOf(group)}
@@ -209,20 +305,43 @@ export default function BracketsPage() {
                         </Group>
                         <Grid>
                           <Grid.Col span={{ base: 12, sm: 6 }}>
-                            <Text><b>{t("group_name", "Group Name")}:</b> {group.name}</Text>
-                            <Text><b>{t("prefix", "prefix")}:</b> {group.prefix ?? "—"}</Text>
+                            <Text>
+                              <b>{t("group_name", "Group Name")}:</b>{" "}
+                              {group.name}
+                            </Text>
+                            <Text>
+                              <b>{t("prefix", "prefix")}:</b>{" "}
+                              {group.prefix ?? "—"}
+                            </Text>
                             {/* <Text><b>{t("total_players", "Total Players")}:</b> {group.totalPlayers}</Text> */}
                           </Grid.Col>
                           <Grid.Col span={{ base: 12, sm: 6 }}>
-                            <Text><b>{t("match_duration", "Match Duration (min)")}:</b> {group.duration_mins}</Text>
-                            <Text><b>{t("overtime_duration", "Overtime Duration (min)")}:</b> {group.margin_mins}</Text>
-                            <Text><b>{t("division_type", "Type")}:</b> {group.division_type}</Text>
+                            <Text>
+                              <b>
+                                {t("match_duration", "Match Duration (min)")}:
+                              </b>{" "}
+                              {group.duration_mins}
+                            </Text>
+                            <Text>
+                              <b>
+                                {t(
+                                  "overtime_duration",
+                                  "Overtime Duration (min)",
+                                )}
+                                :
+                              </b>{" "}
+                              {group.margin_mins}
+                            </Text>
+                            <Text>
+                              <b>{t("division_type", "Type")}:</b>{" "}
+                              {group.division_type}
+                            </Text>
                           </Grid.Col>
                         </Grid>
                       </Stack>
                     </Tabs.Panel>
 
-                    {/* PLAYERS TAB */}
+                    {/* PLAYERS TAB (Individuals only) */}
                     <Tabs.Panel value="players" pt="md">
                       <DivisionPlayersTable
                         tournamentId={tournamentData.id}
@@ -230,16 +349,26 @@ export default function BracketsPage() {
                       />
                     </Tabs.Panel>
 
+                    {/* TEAMS TAB (Teams only) */}
+                    <Tabs.Panel value="teams" pt="md">
+                      <DivisionTeamsTable divisionId={group.id} />
+                    </Tabs.Panel>
+
                     {/* TREES TAB */}
                     <Tabs.Panel value="trees" pt="md">
                       <Stack gap="sm">
                         <Group justify="space-between" align="center">
-                          <Title order={4}>{t("bracket_trees", "Bracket Trees")}</Title>
+                          <Text c="dimmed" size="sm">
+                            {t(
+                              "trees_note",
+                              "Choose a format to preview all trees in this group.",
+                            )}
+                          </Text>
                           <Button
                             leftSection={<IconPencil size={16} />}
                             onClick={() =>
                               router.push(
-                                `/tournaments/${tournamentData.id}/divisions/${group.id}/edit`
+                                `/tournaments/${tournamentData.id}/divisions/${group.id}/edit`,
                               )
                             }
                           >
@@ -247,16 +376,55 @@ export default function BracketsPage() {
                           </Button>
                         </Group>
 
-                        <Text c="dimmed" size="sm">
-                          {t(
-                            "trees_note",
-                            "Choose a format to preview all trees in this group."
+                        <Box
+                          style={{
+                            zIndex: 15,
+                            background: "var(--mantine-color-body)",
+                            borderBottom:
+                              "1px solid var(--mantine-color-gray-3)",
+                          }}
+                        >
+                          <Box p="sm">
+                            <SegmentedControl
+                              fullWidth
+                              value={viewMode}
+                              onChange={(v) => setViewMode(v as ViewMode)}
+                              data={[
+                                {
+                                  label: t("booklet", "Booklet"),
+                                  value: "booklet",
+                                },
+                                {
+                                  label: t("poster", "Poster"),
+                                  value: "poster",
+                                },
+                              ]}
+                            />
+                          </Box>
+                        </Box>
+
+                        {/* Trees preview for the active format */}
+                        <Stack gap="sm">
+                          {group.division_type === "TEAMS" ? (
+                            viewMode === "booklet" ? (
+                              <BracketPairsSectionTeams
+                                brackets={bracketsTeams}
+                                pairs={pairsTeams}
+                              />
+                            ) : (
+                              <PosterGroupsSectionTeams
+                                brackets={bracketsTeams}
+                              />
+                            )
+                          ) : viewMode === "booklet" ? (
+                            <BracketPairsSection
+                              brackets={brackets}
+                              pairs={pairs}
+                            />
+                          ) : (
+                            <PosterGroupsSection brackets={brackets} />
                           )}
-                        </Text>
-
-                        <Divider />
-
-                        {/* <FormatPreviewGrid group={group} /> */}
+                        </Stack>
                       </Stack>
                     </Tabs.Panel>
                   </Tabs>
@@ -285,52 +453,20 @@ export default function BracketsPage() {
           onClose={() => setEditDetailsOf(null)}
           onSave={handleSaveGroupDetails}
         />
+
+        {/* Hidden exporter */}
+        {exporting && (
+          <BracketsExportCanvas
+            ref={exportRef}
+            divisionName={exporting.divisionName}
+            format={exporting.format}
+            brackets={exporting.brackets}
+          />
+        )}
       </Stack>
     </TournamentLayout>
   );
 }
-
-/*
-function FormatPreviewGrid({ divisionId }: { divisionId: number }) {
-  const { t } = useTranslation();
-  const [format, setFormat] = useState<Format>("booklet");
-  const swrBrackets = getDivisionBrackets(divisionId);
-
-  if (swrBrackets.error) return <RequestErrorAlert error={swrBrackets.error} />;
-  if (!swrBrackets.data) {
-    return (
-      <Center style={{ minHeight: 120 }}>
-        <Loader />
-      </Center>
-    );
-  }
-
-  // expect [{ id, index, title, num_players, ... }]
-  const brackets = swrBrackets.data.data;
-
-  return (
-    <Stack>
-      <SegmentedControl
-        value={format}
-        onChange={(v) => setFormat(v as Format)}
-        data={[
-          { label: t("booklet", "Booklet"), value: "booklet" },
-          { label: t("poster", "Poster"), value: "poster" },
-        ]}
-      />
-      <div id={`bracket-${divisionId}-${format}`}>
-        <Grid gutter="md">
-          {brackets.map((b: any) => (
-            <Grid.Col key={b.id} span={{ base: 12, sm: 6, md: 4 }}>
-              <BracketView data={b.payload} title={b.name} format={format} />
-            </Grid.Col>
-          ))}
-        </Grid>
-      </div>
-    </Stack>
-  );
-}
-*/
 
 export const getServerSideProps = async ({ locale }: { locale: string }) => ({
   props: {

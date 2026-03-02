@@ -1,5 +1,5 @@
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import BracketsEditor from '../../../../../components/utils/brackets_editor';
+import BracketsEditor from "../../../../../components/utils/brackets_editor/index";
 
 export default function SeedingRoute() {
   return <BracketsEditor />;

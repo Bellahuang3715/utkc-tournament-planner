@@ -7,12 +7,15 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { Box, IconButton, Tooltip } from "@mui/material";
 import AddBoxIcon from "@mui/icons-material/AddBox";
 import DeleteIcon from "@mui/icons-material/Delete";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { BiEditAlt } from "react-icons/bi";
 import { Badge, Button } from "@mantine/core";
+import { mkConfig, generateCsv, download } from "export-to-csv";
 
 import { TeamInterface } from "../../interfaces/team";
 import { TournamentMinimal } from "../../interfaces/tournament";
 import { deleteTeam } from "../../services/team";
+import { GenerateBracketsButtonTeams } from "../modals/bracket_create_modal";
 import TeamModal from "../modals/team_modal";
 import { NoContent } from "../no_content/empty_table_info";
 import RequestErrorAlert from "../utils/error_alert";
@@ -30,6 +33,28 @@ export default function TeamsTable({
   const { t } = useTranslation();
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
+  // ────── CSV EXPORT ─────────────────────────────────────────────
+  const csvConfig = mkConfig({
+    fieldSeparator: ",",
+    decimalSeparator: ".",
+    useKeysAsHeaders: true,
+  });
+
+  const handleExportAll = () => {
+    const rows = teams.map((team) => ({
+      id: team.id,
+      code: team.code,
+      name: team.name,
+      club: team.club,
+      category: team.category,
+      created: team.created,
+      active: team.active,
+      wins: team.wins,
+    }));
+    const csv = generateCsv(csvConfig)(rows);
+    download(csvConfig)(csv);
+  };
+
   const columns = useMemo<MRT_ColumnDef<TeamInterface>[]>(
     () => [
       {
@@ -46,16 +71,20 @@ export default function TeamsTable({
       {
         accessorKey: "name",
         header: t("name_table_header"),
+        filterVariant: "text",
       },
       {
         accessorKey: "club",
         header: t("members_table_header"),
         enableSorting: false,
+        filterVariant: "text",
       },
       {
         accessorKey: "category",
-        header: t("members_table_header"),
+        header: t("category_table_header"),
         enableSorting: false,
+        filterVariant: "multi-select",
+        filterSelectOptions: ["Mixed", "Womens"],
       },
       {
         accessorKey: "created",
@@ -124,8 +153,25 @@ export default function TeamsTable({
           enableSorting
           enablePagination
           renderTopToolbarCustomActions={({ table }) => {
-            const handleRemoveUsers = () => {
-              confirm("Are you sure you want to remove the selected team(s)?");
+            const handleRemoveTeams = async () => {
+              const selected = table.getSelectedRowModel().flatRows;
+              if (selected.length === 0) return;
+              const ok = window.confirm(
+                t("confirm_remove_teams", "Are you sure you want to remove the selected team(s)?")
+              );
+              if (!ok) return;
+              const tournamentId = tournamentData.id;
+              try {
+                await Promise.all(
+                  selected.map((row) =>
+                    deleteTeam(tournamentId, row.original.id)
+                  )
+                );
+                table.resetRowSelection();
+                await swrTeamsResponse.mutate();
+              } catch (err) {
+                console.error("Failed to delete team(s):", err);
+              }
             };
 
             return (
@@ -146,7 +192,7 @@ export default function TeamsTable({
                       disabled={
                         table.getSelectedRowModel().flatRows.length === 0
                       }
-                      onClick={handleRemoveUsers}
+                      onClick={handleRemoveTeams}
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -155,6 +201,26 @@ export default function TeamsTable({
               </Box>
             );
           }}
+          renderBottomToolbarCustomActions={({ table }) => (
+            <Box
+              sx={{
+                display: "flex",
+                gap: "16px",
+                padding: "8px",
+                flexWrap: "wrap",
+              }}
+            >
+              <Button
+                leftSection={<FileDownloadIcon />}
+                onClick={handleExportAll}
+                style={{ textTransform: "none" }}
+              >
+                {t("export_all_data", "Export All Data")}
+              </Button>
+
+              <GenerateBracketsButtonTeams table={table} />
+            </Box>
+          )}
           initialState={{ density: 'compact' }}
         />
       </LocalizationProvider>

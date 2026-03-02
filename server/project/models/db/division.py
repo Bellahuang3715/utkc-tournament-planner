@@ -47,3 +47,8 @@ class DivisionUpdateBody(BaseModelORM):
 class DivisionPlayersAttachBody(BaseModelORM):
     player_ids: list[int]
     bias_player_ids: list[int] | None = None
+
+
+class DivisionTeamsAttachBody(BaseModelORM):
+    team_ids: list[int]
+    bias_team_ids: list[int] | None = None

@@ -36,7 +36,9 @@
     "express": "^4.20.0",
     "file-saver": "^2.0.5",
     "firebase": "^11.1.0",
+    "html2canvas": "^1.4.1",
     "i18next": "^24.2.0",
+    "jspdf": "^4.2.0",
     "material-react-table": "^3.2.1",
     "next": "^15.1.2",
     "next-i18next": "^15.4.1",
@@ -52,7 +54,8 @@
     "swr": "^2.2.5",
     "tournament-brackets-ui": "^0.1.1",
     "uuid": "^11.0.2",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "dev": "next dev",

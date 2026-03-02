@@ -1,3 +1,5 @@
+export type ViewMode = "booklet" | "poster";
+
 export interface BracketPlayerSlot {
   player_id: number;
   bracket_idx: number;
@@ -21,3 +23,25 @@ export type BracketWithPlayers = {
   title?: string | null;
   players: BracketPlayerSlot[];
 };
+
+export interface BracketTeamSlot {
+  team_id: number;
+  bracket_idx: number;
+  name?: string | null;
+}
+
+export type BracketWithTeams = {
+  id: number;
+  index: number;
+  division_id: number;
+  num_players: number;
+  title?: string | null;
+  teams: BracketTeamSlot[];
+};
+
+export interface BracketTeamsCreatePayload {
+  index: number;
+  num_players: number;
+  title?: string | null;
+  teams: { team_id: number; bracket_idx: number }[];
+}

@@ -1,7 +1,13 @@
 from typing import Iterable, List, Optional
 from project.database import database
 from project.models.db.bracket import (
-    Bracket, BracketWithPlayers, DivisionBracketsCreateBody, BracketWithPlayersCreate
+    Bracket,
+    BracketWithPlayers,
+    BracketWithTeams,
+    DivisionBracketsCreateBody,
+    DivisionTeamBracketsCreateBody,
+    BracketWithPlayersCreate,
+    BracketWithTeamsCreate,
 )
 from project.utils.id_types import DivisionId, BracketId
 
@@ -46,14 +52,49 @@ async def sql_list_division_brackets_with_players(division_id: DivisionId) -> Li
     return [BracketWithPlayers.model_validate(dict(r._mapping)) for r in rows]
 
 
-# --- Delete all brackets (and their players) for a division (used when replace=true) ---
+async def sql_list_division_brackets_with_teams(division_id: DivisionId) -> List[BracketWithTeams]:
+    query = """
+        SELECT
+          b.id, b."index", b.division_id, b.num_players, b.title,
+          COALESCE(
+            JSONB_AGG(
+              JSONB_BUILD_OBJECT(
+                'team_id', t.id,
+                'bracket_idx', txb.bracket_idx,
+                'name', t.name
+              )
+              ORDER BY txb.bracket_idx
+            ) FILTER (WHERE txb.bracket_id IS NOT NULL),
+            '[]'::jsonb
+          ) AS teams
+        FROM brackets b
+        LEFT JOIN teams_x_brackets txb ON txb.bracket_id = b.id
+        LEFT JOIN teams t ON t.id = txb.team_id
+        WHERE b.division_id = :division_id
+        GROUP BY b.id
+        ORDER BY b."index", b.id
+    """
+    rows = await database.fetch_all(query, {"division_id": division_id})
+    return [BracketWithTeams.model_validate(dict(r._mapping)) for r in rows]
+
+
+# --- Delete all brackets (and their players/teams) for a division (used when replace=true) ---
 async def sql_delete_division_brackets(division_id: DivisionId) -> None:
-    # players_x_brackets depends on brackets; delete children via join for speed
+    # players_x_brackets and teams_x_brackets depend on brackets; delete children via join for speed
     await database.execute(
         """
         DELETE FROM players_x_brackets pxb
         USING brackets b
         WHERE pxb.bracket_id = b.id
+          AND b.division_id = :division_id
+        """,
+        {"division_id": division_id},
+    )
+    await database.execute(
+        """
+        DELETE FROM teams_x_brackets txb
+        USING brackets b
+        WHERE txb.bracket_id = b.id
           AND b.division_id = :division_id
         """,
         {"division_id": division_id},
@@ -114,6 +155,61 @@ async def sql_create_division_brackets(
                     """,
                     {
                         "player_ids": player_ids,
+                        "bracket_ids": bracket_ids,
+                        "bracket_idxs": bracket_idxs,
+                    },
+                )
+
+    return created
+
+
+async def sql_create_division_brackets_teams(
+    division_id: DivisionId,
+    body: DivisionTeamBracketsCreateBody,
+    *,
+    replace: bool = False,
+) -> List[Bracket]:
+    """Create brackets for a team division and fill teams_x_brackets."""
+    created: List[Bracket] = []
+
+    async with database.transaction():
+        if replace:
+            await sql_delete_division_brackets(division_id)
+
+        for b in body.brackets:
+            row = await database.fetch_one(
+                """
+                INSERT INTO brackets ("index", division_id, num_players, title)
+                VALUES (:index, :division_id, :num_players, :title)
+                RETURNING id, "index", division_id, num_players, title
+                """,
+                {
+                    "index": b.index,
+                    "division_id": division_id,
+                    "num_players": b.num_players,
+                    "title": b.title,
+                },
+            )
+            assert row is not None
+            bracket = Bracket.model_validate(dict(row._mapping))
+            created.append(bracket)
+
+            if b.teams:
+                team_ids = [int(t.team_id) for t in b.teams]
+                bracket_idxs = [int(t.bracket_idx) for t in b.teams]
+                bracket_ids = [int(bracket.id)] * len(team_ids)
+
+                await database.execute(
+                    """
+                    INSERT INTO teams_x_brackets (team_id, bracket_id, bracket_idx)
+                    SELECT * FROM UNNEST(
+                        (:team_ids)::bigint[],
+                        (:bracket_ids)::bigint[],
+                        (:bracket_idxs)::int[]
+                    )
+                    """,
+                    {
+                        "team_ids": team_ids,
                         "bracket_ids": bracket_ids,
                         "bracket_idxs": bracket_idxs,
                     },

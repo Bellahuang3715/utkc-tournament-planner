@@ -22,6 +22,7 @@ from project.routes.models import (
 from project.routes.util import team_dependency, team_with_players_dependency
 from project.schema import players_x_teams, teams
 from project.sql.teams import (
+    get_latest_team_for_tournament,
     get_team_by_id,
     get_team_count,
     get_teams_with_members,
@@ -36,18 +37,19 @@ from project.utils.types import assert_some
 router = APIRouter()
 
 
+def _position_to_enum(value: str) -> str | None:
+    if not value:
+        return None
+    return value.upper()  # "Senpo" -> "SENPO"
+
+
 async def update_team_members(
-    team_id: TeamId, tournament_id: TournamentId, player_ids: set[PlayerId]
+    team_id: TeamId,
+    tournament_id: TournamentId,
+    player_ids: set[PlayerId],
+    positions: dict[PlayerId, str] | None = None,
 ) -> None:
     [team] = await get_teams_with_members(tournament_id, team_id=team_id)
-
-    # Add members to the team
-    for player_id in player_ids:
-        if player_id not in team.player_ids:
-            await database.execute(
-                query=players_x_teams.insert(),
-                values={"team_id": team_id, "player_id": player_id},
-            )
 
     # Remove old members from the team
     await database.execute(
@@ -56,6 +58,16 @@ async def update_team_members(
             & (players_x_teams.c.team_id == team_id)
         ),
     )
+
+    # Add members with optional position
+    for player_id in player_ids:
+        pos = None
+        if positions and player_id in positions:
+            pos = _position_to_enum(positions[player_id])
+        await database.execute(
+            query=players_x_teams.insert(),
+            values={"team_id": team_id, "player_id": player_id, "position": pos},
+        )
 
 
 @router.get("/tournaments/{tournament_id}/teams", response_model=TeamsWithPlayersResponse)
@@ -80,12 +92,24 @@ async def update_team_by_id(
 ) -> SingleTeamResponse:
     await check_foreign_keys_belong_to_tournament(team_body, tournament_id)
 
+    # Exclude club from DB write until schema has club column
     await database.execute(
         query=teams.update().where(
             (teams.c.id == team.id) & (teams.c.tournament_id == tournament_id)
         ),
-        values=team_body.model_dump(exclude={"player_ids"}),
+        values=team_body.model_dump(exclude={"player_ids", "positions", "club"}),
     )
+
+    player_ids_set = set(team_body.player_ids)
+    if player_ids_set:
+        positions_by_id = (
+            {PlayerId(int(k)): v for k, v in (team_body.positions or {}).items()}
+            if team_body.positions
+            else None
+        )
+        await update_team_members(
+            team.id, tournament_id, player_ids_set, positions=positions_by_id
+        )
 
     return SingleTeamResponse(
         data=assert_some(
@@ -129,15 +153,34 @@ async def create_team(
     existing_teams = await get_teams_with_members(tournament_id)
     check_requirement(existing_teams, user, "max_teams")
 
+    # Exclude club from DB write until schema has club column
+    insertable = TeamInsertable(
+        **team_to_insert.model_dump(exclude={"player_ids", "positions"}),
+        created=datetime_utc.now(),
+        tournament_id=tournament_id,
+    )
     last_record_id = await database.execute(
         query=teams.insert(),
-        values=TeamInsertable(
-            **team_to_insert.model_dump(exclude={"player_ids"}),
-            created=datetime_utc.now(),
-            tournament_id=tournament_id,
-        ).model_dump(),
+        values=insertable.model_dump(exclude={"club"}),
     )
 
-    team_result = await get_team_by_id(last_record_id, tournament_id)
-    assert team_result is not None
+    team_result = await get_team_by_id(
+        TeamId(last_record_id) if isinstance(last_record_id, int) else last_record_id,
+        tournament_id,
+    )
+    if team_result is None:
+        team_result = await get_latest_team_for_tournament(tournament_id)
+    team_result = assert_some(team_result)
+
+    player_ids_set = set(team_to_insert.player_ids)
+    if player_ids_set:
+        positions_by_id = (
+            {PlayerId(int(k)): v for k, v in (team_to_insert.positions or {}).items()}
+            if team_to_insert.positions
+            else None
+        )
+        await update_team_members(
+            team_result.id, tournament_id, player_ids_set, positions=positions_by_id
+        )
+
     return SingleTeamResponse(data=team_result)

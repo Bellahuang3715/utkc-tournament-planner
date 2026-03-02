@@ -139,6 +139,10 @@ async def check_foreign_keys_belong_to_tournament(
                     raise_exception(PlayerId, field_value)
             else:
                 raise Exception(f"Unknown set type: {field_info.annotation}")
+        elif isinstance(field_value, list):
+            if get_args(field_info.annotation) and get_args(field_info.annotation)[0] == PlayerId:
+                if not await check_players_belong_to_tournament(set(field_value), tournament_id):
+                    raise_exception(PlayerId, field_value)
         else:
             possible_types = [field_info.annotation, *get_args(field_info.annotation)]
             for possible_type in possible_types:

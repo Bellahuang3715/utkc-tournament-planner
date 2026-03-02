@@ -22,6 +22,7 @@ import { mkConfig, generateCsv, download } from "export-to-csv";
 import { Player } from "../../interfaces/player";
 import { FieldInsertable } from "../../interfaces/player_fields";
 import { TournamentMinimal } from "../../interfaces/tournament";
+import { deletePlayer } from "../../services/player";
 import { NoContent } from "../no_content/empty_table_info";
 import RequestErrorAlert from "../utils/error_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
@@ -43,7 +44,6 @@ export default function PlayersTable({
 
   const players: Player[] =
     swrPlayersResponse.data != null ? swrPlayersResponse.data.data.players : [];
-  console.log("players", players);
 
   const playerFields: FieldInsertable[] =
     swrPlayerFieldsResponse.data?.fields ?? [];
@@ -202,8 +202,25 @@ export default function PlayersTable({
             </Box>
           )}
           renderTopToolbarCustomActions={({ table }) => {
-            const handleRemoveUsers = () => {
-              confirm("Are you sure you want to remove the selected players?");
+            const handleRemovePlayers = async () => {
+              const selected = table.getSelectedRowModel().flatRows;
+              if (selected.length === 0) return;
+              const ok = window.confirm(
+                t("confirm_remove_players", "Are you sure you want to remove the selected players?")
+              );
+              if (!ok) return;
+              const tournamentId = tournamentData.id;
+              try {
+                await Promise.all(
+                  selected.map((row) =>
+                    deletePlayer(tournamentId, row.original.id)
+                  )
+                );
+                table.resetRowSelection();
+                await swrPlayersResponse.mutate();
+              } catch (err) {
+                console.error("Failed to delete player(s):", err);
+              }
             };
 
             return (
@@ -224,7 +241,7 @@ export default function PlayersTable({
                       disabled={
                         table.getSelectedRowModel().flatRows.length === 0
                       }
-                      onClick={handleRemoveUsers}
+                      onClick={handleRemovePlayers}
                     >
                       <DeleteIcon />
                     </IconButton>

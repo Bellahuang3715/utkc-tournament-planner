@@ -1,5 +1,5 @@
 import { createAxios, handleRequestError } from './adapter';
-import type { DivisionCreateValues, DivisionFormValues, DivisionPlayer } from '../interfaces/division';
+import type { DivisionCreateValues, DivisionFormValues, DivisionPlayer, DivisionTeam } from '../interfaces/division';
 
 export async function createDivision(values: DivisionCreateValues) {
   try {
@@ -49,5 +49,33 @@ export async function fetchDivisionPlayers(division_id: number) {
   } catch (err: any) {
     handleRequestError(err);
     throw err; // <-- IMPORTANT: keep return type consistent
+  }
+}
+
+export async function addTeamsToDivision(
+  division_id: number,
+  team_ids: number[],
+  bias_team_ids?: number[]
+) {
+  try {
+    const axios = await createAxios();
+    return await axios.post(`divisions/${division_id}/teams`, {
+      team_ids,
+      bias_team_ids: bias_team_ids ?? [],
+    });
+  } catch (err: any) {
+    return handleRequestError(err);
+  }
+}
+
+export async function fetchDivisionTeams(division_id: number) {
+  try {
+    const axios = await createAxios();
+    return await axios.get<{ teams: DivisionTeam[] }>(
+      `divisions/${division_id}/teams`
+    );
+  } catch (err: any) {
+    handleRequestError(err);
+    throw err;
   }
 }

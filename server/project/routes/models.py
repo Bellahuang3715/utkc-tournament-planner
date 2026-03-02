@@ -8,13 +8,13 @@ from project.models.db.division import Division
 from project.models.db.court import Court
 from project.models.db.match import Match, SuggestedMatch
 from project.models.db.player import Player, PlayerInDivision
-from project.models.db.bracket import Bracket, BracketWithPlayers
+from project.models.db.bracket import Bracket, BracketWithPlayers, BracketWithTeams
 from project.models.db.ranking import Ranking
 from project.models.db.stage_item_inputs import (
     StageItemInputOptionFinal,
     StageItemInputOptionTentative,
 )
-from project.models.db.team import FullTeamWithPlayers, Team
+from project.models.db.team import FullTeamWithPlayers, Team, TeamInDivision
 from project.models.db.tournament import Tournament
 from project.models.db.user import UserPublic
 from project.models.db.util import StageWithStageItems
@@ -59,6 +59,10 @@ class DivisionPlayersResponse(BaseModel):
     players: list[PlayerInDivision]
 
 
+class DivisionTeamsResponse(BaseModel):
+    teams: list[TeamInDivision]
+
+
 class PaginatedPlayers(BaseModel):
     count: int
     players: list[Player]
@@ -82,6 +86,10 @@ class BracketsResponse(BaseModel):
 
 class BracketsWithPlayersResponse(BaseModel):
     data: list[BracketWithPlayers]
+
+
+class BracketsWithTeamsResponse(BaseModel):
+    data: list[BracketWithTeams]
 
 
 class StagesWithStageItemsResponse(DataResponse[list[StageWithStageItems]]):

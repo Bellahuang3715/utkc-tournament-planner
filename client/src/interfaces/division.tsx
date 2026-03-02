@@ -19,6 +19,14 @@ export type DivisionPlayer = {
   bias: boolean;
 };
 
+export type DivisionTeam = {
+  id: number;
+  name: string;
+  club: string;
+  category: string;
+  bias: boolean;
+};
+
 export interface DivisionFormValues {
   name: string;
   prefix?: string;

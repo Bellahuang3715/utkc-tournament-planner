@@ -1,8 +1,15 @@
 import { createAxios, handleRequestError } from "./adapter";
-import { BracketCreatePayload, BracketWithPlayers } from "../interfaces/bracket";
+import {
+  BracketCreatePayload,
+  BracketWithPlayers,
+  BracketWithTeams,
+  BracketTeamsCreatePayload,
+} from "../interfaces/bracket";
 import { DivisionPlayer } from "../interfaces/division";
+import type { TeamBracketGroup } from "../components/utils/seeding_teams";
 
 type BracketUIPlayer = { id: string; name: string; club?: string | null };
+export type BracketUITeam = { id: string; name: string };
 
 export function toUIPlayers(b: BracketWithPlayers): BracketUIPlayer[] {
   // Ensure array length == num_players and positions line up with bracket_idx
@@ -23,6 +30,26 @@ export function toUIPlayers(b: BracketWithPlayers): BracketUIPlayer[] {
   return arr.map((p, i) => p ?? { id: `—`, name: `TBD`, club: null });
 }
 
+export function toUITeams(b: BracketWithTeams): BracketUITeam[] {
+  const arr: Array<{ id: string; name: string } | null> = Array.from(
+    { length: b.num_players },
+    () => null
+  );
+  for (const slot of b.teams ?? []) {
+    const idx = slot.bracket_idx;
+    if (idx < 0 || idx >= b.num_players) continue;
+    arr[idx] = {
+      id: String(slot.team_id),
+      name: slot.name ?? "",
+    };
+  }
+  return arr.map((p) => p ?? { id: "—", name: "TBD" });
+}
+
+/** Team names in bracket order for tournament-brackets-ui (expects string[], not objects). */
+export function toUITeamNames(b: BracketWithTeams): string[] {
+  return toUITeams(b).map((t) => t.name);
+}
 
 function seededToBracketPayload(
   seeded: Array<{ group: number; size: number; players: DivisionPlayer[] }>,
@@ -59,6 +86,73 @@ export async function postDivisionBrackets(
 export async function fetchDivisionBracketsWithPlayers(division_id: number) {
   const axios = await createAxios();
   return axios.get(`divisions/${division_id}/brackets/with-players`);
+}
+
+export async function fetchDivisionBracketsWithTeams(division_id: number) {
+  const axios = await createAxios();
+  return axios.get(`divisions/${division_id}/brackets/with-teams`);
+}
+
+function seededTeamsToBracketPayload(
+  seeded: TeamBracketGroup[]
+): BracketTeamsCreatePayload[] {
+  return seeded.map((g) => ({
+    index: g.group,
+    num_players: g.size,
+    title: null,
+    teams: g.teams
+      .filter((t) => t.id != null)
+      .map((t, idx) => ({ team_id: t.id!, bracket_idx: idx })),
+  }));
+}
+
+export async function postDivisionBracketsTeams(
+  division_id: number,
+  seeded: TeamBracketGroup[],
+  replace: boolean = true
+) {
+  try {
+    const brackets = seededTeamsToBracketPayload(seeded);
+    const axios = await createAxios();
+    return await axios.post(
+      `divisions/${division_id}/brackets/teams`,
+      { brackets },
+      { params: { replace } }
+    );
+  } catch (err: any) {
+    return handleRequestError(err);
+  }
+}
+
+/** Build payload from current BracketWithTeams[] (e.g. from editor state) and POST to replace. */
+export async function replaceDivisionBracketsTeams(
+  division_id: number,
+  brackets: BracketWithTeams[]
+) {
+  try {
+    const payload = {
+      brackets: brackets
+        .slice()
+        .sort((a, b) => a.index - b.index)
+        .map((b) => ({
+          index: b.index,
+          num_players: b.num_players,
+          title: b.title ?? null,
+          teams: (b.teams ?? [])
+            .slice()
+            .sort((x, y) => x.bracket_idx - y.bracket_idx)
+            .map((t) => ({ team_id: t.team_id, bracket_idx: t.bracket_idx })),
+        })),
+    };
+    const axios = await createAxios();
+    return await axios.post(
+      `divisions/${division_id}/brackets/teams`,
+      payload,
+      { params: { replace: true } }
+    );
+  } catch (err: any) {
+    return handleRequestError(err);
+  }
 }
 
 export async function updateBracketTitle(bracketId: number, title: string | null) {

@@ -2,14 +2,20 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from project.models.db.division import DivisionCreateBody, DivisionUpdateBody, DivisionPlayersAttachBody
+from project.models.db.division import (
+    DivisionCreateBody,
+    DivisionUpdateBody,
+    DivisionPlayersAttachBody,
+    DivisionTeamsAttachBody,
+)
 from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated
 from project.routes.models import (
     DivisionResponse,
     DivisionsResponse,
+    DivisionPlayersResponse,
+    DivisionTeamsResponse,
     SuccessResponse,
-    DivisionPlayersResponse
 )
 from project.sql.divisions import (
     create_division,
@@ -17,7 +23,9 @@ from project.sql.divisions import (
     sql_delete_division,
     sql_update_division,
     sql_attach_players_to_division,
-    sql_get_players_for_division
+    sql_get_players_for_division,
+    sql_attach_teams_to_division,
+    sql_get_teams_for_division,
 )
 from project.utils.id_types import DivisionId, TournamentId
 
@@ -77,4 +85,25 @@ async def attach_players_to_division(
     _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     await sql_attach_players_to_division(division_id, body.player_ids, body.bias_player_ids or [])
+    return SuccessResponse()
+
+
+@router.get("/divisions/{division_id}/teams", response_model=DivisionTeamsResponse)
+async def list_division_teams(
+    division_id: DivisionId,
+    _: UserPublic = Depends(firebase_user_authenticated),
+) -> DivisionTeamsResponse:
+    teams = await sql_get_teams_for_division(division_id)
+    return DivisionTeamsResponse(teams=teams)
+
+
+@router.post("/divisions/{division_id}/teams", response_model=SuccessResponse)
+async def attach_teams_to_division(
+    division_id: DivisionId,
+    body: DivisionTeamsAttachBody,
+    _: UserPublic = Depends(firebase_user_authenticated),
+) -> SuccessResponse:
+    await sql_attach_teams_to_division(
+        division_id, body.team_ids, body.bias_team_ids or []
+    )
     return SuccessResponse()

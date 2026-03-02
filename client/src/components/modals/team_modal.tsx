@@ -83,29 +83,29 @@ export default function TeamModal({
   const pos = ["Senpo", "Jihou", "Chuken", "Fukushou", "Taisho"];
 
   const handleSubmit = form.onSubmit(async (values) => {
-    // if (isEdit) {
-    //   await updateTeam(
-    //     tournament_id,
-    //     team!.id,
-    //     values.name,
-    //     values.active,
-    //     values.player_ids,
-    //     values.club,
-    //     values.category,
-    //     values.specifyPositions ? values.positions : undefined
-    //   );
-    // } else {
-    //   await createTeam(
-    //     tournament_id,
-    //     values.name,
-    //     values.active,
-    //     values.player_ids,
-    //     values.club,
-    //     values.category,
-    //     values.specifyPositions ? values.positions : undefined
-    //   );
-    // }
-    // await swrTeamsResponse.mutate();
+    if (isEdit) {
+      await updateTeam(
+        tournament_id,
+        team!.id,
+        values.name,
+        values.active,
+        values.player_ids,
+        values.club,
+        values.category,
+        values.specifyPositions ? values.positions : undefined
+      );
+    } else {
+      await createTeam(
+        tournament_id,
+        values.name,
+        values.active,
+        values.player_ids,
+        values.club,
+        values.category,
+        values.specifyPositions ? values.positions : undefined
+      );
+    }
+    await swrTeamsResponse.mutate();
     setOpened(false);
   });
 
