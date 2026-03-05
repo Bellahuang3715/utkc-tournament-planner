@@ -24,7 +24,7 @@ import { BracketDownloadModal } from "../../../../components/modals/bracket_down
 import DivisionDetailsModal from "../../../../components/modals/division_details_modal";
 import DivisionPlayersTable from "../../../../components/tables/division_players";
 import DivisionTeamsTable from "../../../../components/tables/division_teams";
-import { getDivisions } from "../../../../services/adapter";
+import { getDivisions, getClubs } from "../../../../services/adapter";
 import RequestErrorAlert from "../../../../components/utils/error_alert";
 import { deleteDivision } from "../../../../services/division";
 import {
@@ -92,11 +92,20 @@ export default function BracketsPage() {
     divisionId: number;
     divisionName: string;
     format: Format;
-    brackets: BracketWithPlayers[];
+    brackets?: BracketWithPlayers[];
+    bracketsTeams?: BracketWithTeams[];
+    clubAbbrevByName?: Map<string, string>;
   } | null>(null);
 
   const swrDivisions = getDivisions(tournamentData.id);
   const groups = swrDivisions.data?.data ?? [];
+  const swrClubs = getClubs();
+  const clubs = swrClubs.data?.data ?? [];
+  const clubAbbrevByName = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of clubs) m.set(c.name, c.abbreviation);
+    return m;
+  }, [clubs]);
 
   useEffect(() => {
     if (!openItem) return;
@@ -161,36 +170,64 @@ export default function BracketsPage() {
     setEditDetailsOf(null);
   };
 
+  /** Wait for the export canvas to mount and render [data-export-page] (needed for teams/heavy trees). */
+  const waitForExportCanvas = (timeoutMs = 3000): Promise<HTMLDivElement | null> => {
+    return new Promise((resolve) => {
+      const start = Date.now();
+      const check = () => {
+        const el = exportRef.current;
+        const pages = el?.querySelectorAll?.("[data-export-page]");
+        if (el && pages && pages.length > 0) {
+          resolve(el);
+          return;
+        }
+        if (Date.now() - start >= timeoutMs) {
+          resolve(null);
+          return;
+        }
+        requestAnimationFrame(check);
+      };
+      requestAnimationFrame(check);
+    });
+  };
+
   const downloadPDF = async (divisionId: number, format: Format) => {
     // Always fetch fresh for the division you’re exporting
-    const res = await fetchDivisionBracketsWithPlayers(divisionId);
-    const divisionBrackets = res.data.data as BracketWithPlayers[];
+    const group = groups.find((g: any) => g.id === divisionId);
+    const divisionName = group?.name ?? `Division ${divisionId}`;
+    const isTeams = group?.division_type === "TEAMS";
 
-    const divisionName =
-      groups.find((g: any) => g.id === divisionId)?.name ??
-      `Division ${divisionId}`;
+    if (isTeams) {
+      const res = await fetchDivisionBracketsWithTeams(divisionId);
+      const divisionBracketsTeams = res.data.data as BracketWithTeams[];
 
-    // 1) mount hidden export canvas
-    setExporting({
-      divisionId,
-      divisionName,
-      format,
-      brackets: divisionBrackets,
-    });
+      setExporting({
+        divisionId,
+        divisionName,
+        format,
+        bracketsTeams: divisionBracketsTeams,
+      });
+    } else {
+      const res = await fetchDivisionBracketsWithPlayers(divisionId);
+      const divisionBrackets = res.data.data as BracketWithPlayers[];
 
-    // 2) wait one paint so React mounts it
-    await new Promise((r) => requestAnimationFrame(() => r(null)));
-    await new Promise((r) => requestAnimationFrame(() => r(null)));
+      setExporting({
+        divisionId,
+        divisionName,
+        format,
+        brackets: divisionBrackets,
+        clubAbbrevByName,
+      });
+    }
 
-    if (!exportRef.current) return;
+    const el = await waitForExportCanvas();
+    if (!el) {
+      setExporting(null);
+      return;
+    }
 
-    // 3) capture + save
-    await exportElementToPdf(
-      exportRef.current,
-      `${divisionName}-${format}.pdf`,
-    );
+    await exportElementToPdf(el, `${divisionName}-${format}.pdf`, format);
 
-    // 4) unmount
     setExporting(null);
   };
 
@@ -438,9 +475,11 @@ export default function BracketsPage() {
         <BracketDownloadModal
           opened={!!dlGroup}
           onClose={() => setDlGroup(null)}
-          onConfirm={(formats) => {
+          onConfirm={async (formats) => {
             if (dlGroup) {
-              formats.forEach((fmt) => downloadPDF(dlGroup.id, fmt));
+              for (const fmt of formats) {
+                await downloadPDF(dlGroup.id, fmt);
+              }
             }
             setDlGroup(null);
           }}
@@ -454,13 +493,15 @@ export default function BracketsPage() {
           onSave={handleSaveGroupDetails}
         />
 
-        {/* Hidden exporter */}
+        {/* Hidden exporter (canvas capture for PDF) */}
         {exporting && (
           <BracketsExportCanvas
             ref={exportRef}
             divisionName={exporting.divisionName}
             format={exporting.format}
             brackets={exporting.brackets}
+            bracketsTeams={exporting.bracketsTeams}
+            clubAbbrevByName={exporting.clubAbbrevByName}
           />
         )}
       </Stack>

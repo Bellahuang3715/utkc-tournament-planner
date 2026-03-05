@@ -27,6 +27,7 @@ import {
   replaceDivisionBrackets,
 } from "../../../services/bracket";
 import { fetchDivisionPlayers } from "../../../services/division";
+import { assignBrackets } from "../seeding";
 import { BracketWithPlayers } from "../../../interfaces/bracket";
 import { DivisionPlayer } from "../../../interfaces/division";
 import { ViewMode } from "../../../interfaces/bracket";
@@ -439,7 +440,7 @@ export default function BracketsEditorIndividuals() {
     }
   };
 
-  const regenerateAll = async () => {
+  const regenerateAll = () => {
     const ok = confirm(
       t(
         "regenerate_confirm",
@@ -447,6 +448,27 @@ export default function BracketsEditorIndividuals() {
       )
     );
     if (!ok) return;
+    if (!players.length) {
+      alert(t("no_players", "No players in this division. Add players first."));
+      return;
+    }
+    const groups = assignBrackets(players);
+    const divId = Number(divisionId);
+    const newBrackets: BracketWithPlayers[] = groups.map((g) => ({
+      id: -g.group,
+      index: g.group,
+      division_id: divId,
+      num_players: g.size,
+      title: null,
+      players: g.players.map((p, idx) => ({
+        player_id: Number(p.id),
+        bracket_idx: idx,
+        name: p.name ?? null,
+        club: p.club ?? null,
+        code: p.code ?? null,
+      })),
+    }));
+    setBrackets(newBrackets);
     setSwapA(null);
     setSwapB(null);
     setDirty(true);

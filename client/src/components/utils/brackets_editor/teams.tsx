@@ -26,6 +26,7 @@ import {
   replaceDivisionBracketsTeams,
 } from "../../../services/bracket";
 import { getDivisionTeams } from "../../../services/adapter";
+import { assignTeamBrackets } from "../seeding_teams";
 import type { BracketWithTeams } from "../../../interfaces/bracket";
 import { ViewMode } from "../../../interfaces/bracket";
 import type { DivisionTeam } from "../../../interfaces/division";
@@ -398,7 +399,7 @@ export default function BracketsEditorTeams() {
     }
   };
 
-  const regenerateAll = async () => {
+  const regenerateAll = () => {
     const ok = confirm(
       t(
         "regenerate_confirm",
@@ -406,6 +407,31 @@ export default function BracketsEditorTeams() {
       )
     );
     if (!ok) return;
+    if (!divisionTeams.length) {
+      alert(t("no_teams", "No teams in this division. Add teams first."));
+      return;
+    }
+    const teamNames = divisionTeams.map((t) => t.name);
+    const teamIds = divisionTeams.map((t) => t.id);
+    const biasTeamIds = divisionTeams.filter((t) => t.bias).map((t) => t.id);
+    const seeded = assignTeamBrackets(teamNames, {
+      teamIds,
+      biasTeamIds: biasTeamIds.length ? biasTeamIds : undefined,
+    });
+    const divId = Number(divisionId);
+    const newBrackets: BracketWithTeams[] = seeded.map((g) => ({
+      id: -g.group,
+      index: g.group,
+      division_id: divId,
+      num_players: g.size,
+      title: null,
+      teams: g.teams.map((t, idx) => ({
+        team_id: t.id ?? 0,
+        bracket_idx: idx,
+        name: t.name ?? null,
+      })),
+    }));
+    setBrackets(newBrackets);
     setSwapA(null);
     setSwapB(null);
     setDirty(true);

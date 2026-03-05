@@ -30,6 +30,17 @@ export function toUIPlayers(b: BracketWithPlayers): BracketUIPlayer[] {
   return arr.map((p, i) => p ?? { id: `—`, name: `TBD`, club: null });
 }
 
+/** Like toUIPlayers but replaces club name with abbreviation when map is provided. */
+export function toUIPlayersWithClubAbbrev(
+  b: BracketWithPlayers,
+  clubAbbrevByName: Map<string, string>
+): BracketUIPlayer[] {
+  return toUIPlayers(b).map((p) => ({
+    ...p,
+    club: p.club ? (clubAbbrevByName.get(p.club) ?? p.club) : p.club,
+  }));
+}
+
 export function toUITeams(b: BracketWithTeams): BracketUITeam[] {
   const arr: Array<{ id: string; name: string } | null> = Array.from(
     { length: b.num_players },

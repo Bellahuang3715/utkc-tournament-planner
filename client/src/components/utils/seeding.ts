@@ -3,6 +3,26 @@ import { DivisionPlayer } from "../../interfaces/division";
 // ---------------- Types ----------------
 export type ClubCode = string;
 
+// ---- Randomness (tie-breaking only; baseline logic unchanged) ----
+function shuffleArray<T>(arr: T[], start = 0, end = arr.length): void {
+  for (let i = end - 1; i > start; i--) {
+    const j = start + Math.floor(Math.random() * (i - start + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+/** Sort by compare, then shuffle within runs of equal comparison (randomize ties). */
+function sortWithRandomTies<T>(arr: T[], compare: (a: T, b: T) => number): void {
+  arr.sort(compare);
+  let i = 0;
+  while (i < arr.length) {
+    let j = i;
+    while (j + 1 < arr.length && compare(arr[j], arr[j + 1]) === 0) j++;
+    if (j > i) shuffleArray(arr, i, j + 1);
+    i = j + 1;
+  }
+}
+
 export interface BracketGroup {
   group: number; // 1-based
   size: number;
@@ -93,7 +113,7 @@ function computeByeQuotaByClub(
   const allocated = entries.reduce((s, e) => s + e.floor, 0);
   const remaining = totalByes - allocated;
 
-  entries.sort((a, b) => b.remainder - a.remainder);
+  sortWithRandomTies(entries, (a, b) => b.remainder - a.remainder);
   for (let i = 0; i < remaining; i++) entries[i].floor += 1;
 
   const quota = new Map<ClubCode, number>();
@@ -118,6 +138,8 @@ function distributeIntoGroups(
 
   const strong = players.filter((p) => p.bias);
   const others = players.filter((p) => !p.bias);
+  shuffleArray(strong);
+  shuffleArray(others);
 
   const strongInGroupClub: Array<Set<ClubCode>> =
     Array.from({ length: bracketCount }, () => new Set<ClubCode>());
@@ -130,10 +152,10 @@ function distributeIntoGroups(
     m.set(club, (m.get(club) ?? 0) + 1);
   };
 
-  // Place strong first
+  // Place strong first (random tie-break when multiple groups have same score)
   for (const p of strong) {
-    let best = -1;
     let bestScore = -Infinity;
+    const tied: number[] = [];
 
     for (let g = 0; g < bracketCount; g++) {
       if (capacityLeft[g] <= 0) continue;
@@ -148,10 +170,14 @@ function distributeIntoGroups(
 
       if (score > bestScore) {
         bestScore = score;
-        best = g;
+        tied.length = 0;
+        tied.push(g);
+      } else if (score === bestScore) {
+        tied.push(g);
       }
     }
 
+    const best = tied.length > 0 ? tied[Math.floor(Math.random() * tied.length)]! : -1;
     if (best !== -1) {
       brackets[best].players.push(p);
       capacityLeft[best]--;
@@ -160,10 +186,10 @@ function distributeIntoGroups(
     }
   }
 
-  // Place others
+  // Place others (random tie-break when multiple groups have same score)
   for (const p of others) {
-    let best = -1;
     let bestScore = -Infinity;
+    const tied: number[] = [];
 
     for (let g = 0; g < bracketCount; g++) {
       if (capacityLeft[g] <= 0) continue;
@@ -173,10 +199,14 @@ function distributeIntoGroups(
 
       if (score > bestScore) {
         bestScore = score;
-        best = g;
+        tied.length = 0;
+        tied.push(g);
+      } else if (score === bestScore) {
+        tied.push(g);
       }
     }
 
+    const best = tied.length > 0 ? tied[Math.floor(Math.random() * tied.length)]! : -1;
     if (best !== -1) {
       brackets[best].players.push(p);
       capacityLeft[best]--;
@@ -215,9 +245,8 @@ function orderBracket(
   const bracketByeClubs = new Set<ClubCode>();
   const byePicks: DivisionPlayer[] = [];
 
-  const strongEligible = strong
-    .filter((p) => canClubTakeMoreByes(p.club))
-    .sort((a, b) => needScore(a.club) - needScore(b.club));
+  const strongEligible = strong.filter((p) => canClubTakeMoreByes(p.club));
+  sortWithRandomTies(strongEligible, (a, b) => needScore(a.club) - needScore(b.club));
 
   for (const s of strongEligible) {
     if (byePicks.length >= byeCount) break;
@@ -229,9 +258,8 @@ function orderBracket(
   }
 
   if (byePicks.length < byeCount) {
-    const strongFallback = strong
-      .filter((p) => !byePicks.includes(p))
-      .sort((a, b) => needScore(a.club) - needScore(b.club));
+    const strongFallback = strong.filter((p) => !byePicks.includes(p));
+    sortWithRandomTies(strongFallback, (a, b) => needScore(a.club) - needScore(b.club));
 
     for (const s of strongFallback) {
       if (byePicks.length >= byeCount) break;
@@ -246,9 +274,8 @@ function orderBracket(
   }
 
   if (byePicks.length < byeCount) {
-    const nonStrongEligible = nonStrong
-      .filter((p) => canClubTakeMoreByes(p.club))
-      .sort((a, b) => needScore(a.club) - needScore(b.club));
+    const nonStrongEligible = nonStrong.filter((p) => canClubTakeMoreByes(p.club));
+    sortWithRandomTies(nonStrongEligible, (a, b) => needScore(a.club) - needScore(b.club));
 
     for (const p of nonStrongEligible) {
       if (byePicks.length >= byeCount) break;
@@ -262,7 +289,7 @@ function orderBracket(
 
   if (byePicks.length < byeCount) {
     const rest = players.filter((p) => !byePicks.includes(p));
-    rest.sort((a, b) => {
+    sortWithRandomTies(rest, (a, b) => {
       const aDup = bracketByeClubs.has(a.club) ? 1 : 0;
       const bDup = bracketByeClubs.has(b.club) ? 1 : 0;
       if (aDup !== bDup) return aDup - bDup;
@@ -300,6 +327,7 @@ function orderBracket(
   })();
 
   const remainingStrong = remaining.filter((p) => p.bias);
+  shuffleArray(remainingStrong);
   let so = 0;
   for (const s of remainingStrong) {
     while (so < spreadOrder.length && slots[spreadOrder[so]]) so++;
@@ -309,6 +337,7 @@ function orderBracket(
   }
 
   const pool = remaining.filter((p) => !p.bias);
+  shuffleArray(pool);
 
   function pickNotClub(club: ClubCode | null): DivisionPlayer | null {
     if (!club) return pool.shift() ?? null;
