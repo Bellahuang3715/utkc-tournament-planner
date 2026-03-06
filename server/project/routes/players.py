@@ -50,6 +50,7 @@ async def create_single_player(
     # existing_players = await get_all_players_in_tournament(tournament_id)
     # check_requirement(existing_players, user, "max_players")
     await insert_player(player_body, tournament_id)
+    return SuccessResponse()
 
 
 @router.delete("/tournaments/{tournament_id}/players/{player_id}", response_model=SuccessResponse)
@@ -113,4 +114,3 @@ async def update_player_by_id(
             )
         )
     )
-    return SuccessResponse()

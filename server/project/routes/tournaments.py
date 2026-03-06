@@ -123,19 +123,9 @@ async def delete_tournament(
 
 @router.post("/tournaments", response_model=SuccessResponse)
 async def create_tournament(
-    tournament_to_insert: TournamentBody, user: UserPublic = Depends(firebase_user_authenticated)
+    tournament_to_insert: TournamentBody,
+    _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
-    existing_tournaments = await sql_get_tournaments((tournament_to_insert.club_id,))
-    check_requirement(existing_tournaments, user, "max_tournaments")
-
-    has_access_to_club = await get_user_access_to_club(tournament_to_insert.club_id, user.id)
-    if not has_access_to_club:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Club ID is invalid",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
     async with database.transaction():
         with check_unique_constraint_violation({UniqueIndex.ix_tournaments_dashboard_endpoint}):
             tournament_id = await sql_create_tournament(tournament_to_insert)

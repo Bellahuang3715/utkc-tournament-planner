@@ -1,24 +1,30 @@
-import { getTournamentEndpointFromRouter } from '../components/utils/util';
-import { createAxios, getTournamentByEndpointName, handleRequestError } from './adapter';
+import { getTournamentEndpointFromRouter } from "../components/utils/util";
+import {
+  createAxios,
+  getTournamentByEndpointName,
+  handleRequestError,
+} from "./adapter";
 
 export async function createTournament(
-  club_id: number,
+  organizer: string,
   name: string,
   location: string,
   description: string,
   start_time: string,
-  end_time: string,
+  dashboard_public: boolean,
+  players_can_be_in_multiple_teams: boolean,
   auto_assign_courts: boolean,
 ) {
   try {
     const axiosInstance = await createAxios();
-    return await axiosInstance.post('tournaments', {
+    return await axiosInstance.post("tournaments", {
+      organizer,
       name,
-      club_id,
       location,
       description,
       start_time,
-      end_time,
+      dashboard_public,
+      players_can_be_in_multiple_teams,
       auto_assign_courts,
     });
   } catch (error: any) {

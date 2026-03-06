@@ -11,6 +11,8 @@ class TournamentInsertable(BaseModelORM):
     organizer: str
     created: datetime_utc
     start_time: datetime_utc
+    location: str | None = None
+    description: str | None = None
     dashboard_public: bool
     dashboard_endpoint: str | None = None
     logo_path: str | None = None
@@ -33,3 +35,5 @@ class TournamentUpdateBody(BaseModelORM):
 
 class TournamentBody(TournamentUpdateBody):
     organizer: str
+    location: str | None = None
+    description: str | None = None

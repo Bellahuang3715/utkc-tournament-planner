@@ -1,4 +1,5 @@
 from typing import Any
+
 from fastapi import HTTPException
 
 from project.database import database
@@ -30,19 +31,18 @@ async def sql_get_tournament_by_endpoint_name(endpoint_name: str) -> Tournament 
     return Tournament.model_validate(result) if result is not None else None
 
 
-async def sql_get_tournaments(
-    endpoint_name: str | None = None
-) -> list[Tournament]:
+async def sql_get_tournaments(endpoint_name: str | None = None) -> list[Tournament]:
     query = """
         SELECT *
         FROM tournaments
         """
+    params: dict[str, Any] = {}
 
     if endpoint_name is not None:
-        query += "AND dashboard_endpoint = :endpoint_name"
-        params = {**params, "endpoint_name": endpoint_name}
+        query += " WHERE dashboard_endpoint = :endpoint_name"
+        params["endpoint_name"] = endpoint_name
 
-    result = await database.fetch_all(query=query)
+    result = await database.fetch_all(query=query, values=params)
     return [Tournament.model_validate(x) for x in result]
 
 
@@ -65,7 +65,7 @@ async def sql_update_tournament(
             dashboard_public = :dashboard_public,
             dashboard_endpoint = :dashboard_endpoint,
             players_can_be_in_multiple_teams = :players_can_be_in_multiple_teams,
-            auto_assign_courts = :auto_assign_courts,
+            auto_assign_courts = :auto_assign_courts
         WHERE tournaments.id = :tournament_id
         """
     await database.execute(
@@ -78,25 +78,42 @@ async def sql_create_tournament(tournament: TournamentBody) -> TournamentId:
     query = """
         INSERT INTO tournaments (
             name,
-            start_time,
             organizer,
+            start_time,
+            location,
+            description,
             dashboard_public,
             dashboard_endpoint,
             logo_path,
             players_can_be_in_multiple_teams,
-            auto_assign_courts,
+            auto_assign_courts
         )
         VALUES (
             :name,
-            :start_time,
             :organizer,
+            :start_time,
+            :location,
+            :description,
             :dashboard_public,
             :dashboard_endpoint,
             :logo_path,
             :players_can_be_in_multiple_teams,
-            :auto_assign_courts,
+            :auto_assign_courts
         )
         RETURNING id
         """
-    new_id = await database.fetch_val(query=query, values=tournament.model_dump())
+    values = {
+        "name": tournament.name,
+        "organizer": tournament.organizer,
+        "start_time": tournament.start_time,
+        "location": tournament.location,
+        "description": tournament.description,
+        "dashboard_public": tournament.dashboard_public,
+        "dashboard_endpoint": tournament.dashboard_endpoint,
+        # logo is always uploaded separately; default to NULL on create
+        "logo_path": None,
+        "players_can_be_in_multiple_teams": tournament.players_can_be_in_multiple_teams,
+        "auto_assign_courts": tournament.auto_assign_courts,
+    }
+    new_id = await database.fetch_val(query=query, values=values)
     return TournamentId(new_id)

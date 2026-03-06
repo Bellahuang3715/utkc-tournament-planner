@@ -156,10 +156,6 @@ export default function PlayersTable({
     return <TableSkeletonSingleColumn />;
   }
 
-  if (players.length === 0) {
-    return <NoContent title={t("no_players_title")} />;
-  }
-
   return (
     <>
       <PlayerCreateModal

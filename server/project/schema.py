@@ -48,6 +48,8 @@ tournaments = Table(
     Column("organizer", String, nullable=False, index=True),
     Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
     Column("start_time", DateTimeTZ, nullable=False),
+    Column("location", String, nullable=True),
+    Column("description", String, nullable=True),
     Column("dashboard_public", Boolean, nullable=False),
     Column("logo_path", String, nullable=True),
     Column("dashboard_endpoint", String, nullable=True, index=True, unique=True),

@@ -19,7 +19,6 @@ export default function DivisionPlayersTable({
 
   const swrPlayerFieldsResponse = getPlayerFields(tournamentId);
   const swrDivisionPlayersResponse = getDivisionPlayers(divisionId);
-  console.log("division players", swrDivisionPlayersResponse);
 
   if (swrPlayerFieldsResponse.error || swrDivisionPlayersResponse.error) {
     return (
@@ -38,8 +37,6 @@ export default function DivisionPlayersTable({
   }
 
   const players: Player[] = swrDivisionPlayersResponse.data?.players ?? [];
-
-  console.log("players", players);
 
   if (players.length === 0) {
     return <NoContent title={t("no_players_title")} />;

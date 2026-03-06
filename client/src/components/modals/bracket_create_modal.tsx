@@ -13,7 +13,6 @@ import {
   Divider,
   ScrollArea,
   Alert,
-  Badge,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from "@mantine/form";
@@ -100,8 +99,9 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
 
   const toggleBias = (id: string | number) => {
     setBiasIds((prev) => {
-      if (prev.includes(id)) return prev.filter((x) => x !== id);
-      if (prev.length >= 6) return prev; // cap at 6
+      if (prev.includes(id)) {
+        return prev.filter((x) => x !== id);
+      }
       return [...prev, id];
     });
   };
@@ -111,8 +111,16 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
   const biasCount = biasIds.length;
   const biasHint =
     biasCount === 0
-      ? t("bias_optional", "Optional: pick 4–6 strong players")
-      : t("bias_selected_count", `Selected ${biasCount} (recommended 4–6)`);
+      ? t(
+          "bias_optional",
+          "Optional: select strong players to bias seeding and byes.",
+        )
+      : t(
+          "bias_selected_count",
+          `Selected ${biasCount} strong player${
+            biasCount === 1 ? "" : "s"
+          } for bias.`,
+        );
 
   // form
   const form = useForm({
@@ -262,24 +270,17 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
           <Stepper.Step label={t("player_bias", "Strong Player Bias")}>
             <Stack gap="sm">
               <Alert variant="light">
-                <Stack gap={4}>
-                  <Text>
-                    {t(
-                      "player_bias_note",
-                      "Pick 4–6 strong players to give a bias to. These players will be placed as far away from each other as possible, and will be given a bye spot if possible.",
-                    )}
+                <Text size="sm">
+                  {t(
+                    "player_bias_note",
+                    "Optionally select strong players to give a bias to. They will be placed as far apart as possible and given bye spots when possible.",
+                  )}
+                </Text>
+                {biasCount > 0 && (
+                  <Text size="xs" mt={4} c="dimmed">
+                    {biasHint}
                   </Text>
-                  <Group gap="xs" align="center">
-                    <Badge variant={biasCount ? "filled" : "light"}>
-                      {biasHint}
-                    </Badge>
-                    {biasCount > 6 && (
-                      <Text c="red" size="sm">
-                        {t("bias_max_six", "Maximum 6 players.")}
-                      </Text>
-                    )}
-                  </Group>
-                </Stack>
+                )}
               </Alert>
 
               <ScrollArea h={260} offsetScrollbars>
@@ -289,13 +290,11 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
                     const label = getPlayerName(p);
                     const club = getPlayerClub(p);
                     const checked = biasIds.includes(id);
-                    const disabled = !checked && biasIds.length >= 6; // hard cap
 
                     return (
                       <Checkbox
                         key={String(id)}
                         checked={checked}
-                        disabled={disabled}
                         onChange={() => toggleBias(id)}
                         label={
                           <Group gap={8}>

@@ -6,7 +6,6 @@ export async function updatePlayerFields(
     fields: FieldInsertable[]
   ) {
     try {
-      console.log("fields", fields);
       const axiosInstance = await createAxios();
       return await axiosInstance.put(
         `tournaments/${tournament_id}/player_fields`,

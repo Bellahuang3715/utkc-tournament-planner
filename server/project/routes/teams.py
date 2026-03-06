@@ -1,7 +1,8 @@
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from heliclockter import datetime_utc
+from starlette import status
 
 from project.database import database
 from project.logic.subscriptions import check_requirement
@@ -159,18 +160,16 @@ async def create_team(
         created=datetime_utc.now(),
         tournament_id=tournament_id,
     )
-    last_record_id = await database.execute(
-        query=teams.insert(),
-        values=insertable.model_dump(exclude={"club"}),
-    )
-
-    team_result = await get_team_by_id(
-        TeamId(last_record_id) if isinstance(last_record_id, int) else last_record_id,
-        tournament_id,
-    )
+    values = insertable.model_dump(exclude={"club"})
+    await database.execute(query=teams.insert(), values=values)
+    # database.execute() may return None on PostgreSQL; always fetch the row we just inserted
+    team_result = await get_latest_team_for_tournament(tournament_id)
     if team_result is None:
-        team_result = await get_latest_team_for_tournament(tournament_id)
-    team_result = assert_some(team_result)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Team was created but could not be read back",
+        )
+    team_result = team_result.model_copy(update={"club": team_to_insert.club})
 
     player_ids_set = set(team_to_insert.player_ids)
     if player_ids_set:
@@ -183,4 +182,9 @@ async def create_team(
             team_result.id, tournament_id, player_ids_set, positions=positions_by_id
         )
 
+    if team_result is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create team",
+        )
     return SingleTeamResponse(data=team_result)

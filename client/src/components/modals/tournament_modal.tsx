@@ -7,7 +7,7 @@ import {
   Select,
   TextInput,
   Textarea,
-  Autocomplete
+  Autocomplete,
 } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
@@ -23,6 +23,7 @@ import { Tournament } from "../../interfaces/tournament";
 import { getBaseApiUrl, getClubs } from "../../services/adapter";
 import { createTournament } from "../../services/tournament";
 import SaveButton from "../buttons/save";
+import ClubModal from "./club_modal";
 
 export function TournamentLogo({
   tournament,
@@ -41,47 +42,56 @@ export function TournamentLogo({
 function GeneralTournamentForm({
   setOpened,
   swrTournamentsResponse,
-  clubs
+  clubs,
+  onAddNewClub,
 }: {
   setOpened: any;
   swrTournamentsResponse: SWRResponse;
   clubs: Club[];
+  onAddNewClub: () => void;
 }) {
   const { t } = useTranslation();
   const form = useForm({
     initialValues: {
       start_time: new Date(),
-      end_time: new Date(),
       name: "",
+      organizer: "",
       location: "",
       description: "",
-      club_id: null,
+      dashboard_public: true,
+      players_can_be_in_multiple_teams: true,
       auto_assign_courts: true,
     },
 
     validate: {
       name: (value) =>
         value.length > 0 ? null : t("too_short_name_validation"),
-      club_id: (value) => (value != null ? null : t("club_choose_title")),
-      location: (value) => (value != null ? null : t("location_choose_title")),
+      organizer: (value) =>
+        value && value.length > 0
+          ? null
+          : t("organizer_choose_title", "Please choose an organizer"),
+      location: (value) =>
+        value && value.length > 0
+          ? null
+          : t("location_choose_title", "Please choose a location"),
       start_time: (value) =>
         value != null ? null : t("start_time_choose_title"),
-      end_time: (value) =>
-        value != null ? null : t("end_time_choose_title"),
     },
   });
+
+  const organizerFieldProps = form.getInputProps("organizer");
 
   return (
     <form
       onSubmit={form.onSubmit(async (values) => {
-        assert(values.club_id != null);
         await createTournament(
-          parseInt(values.club_id, 10),
+          values.organizer,
           values.name,
           values.location,
           values.description,
           values.start_time.toISOString(),
-          values.end_time.toISOString(),
+          values.dashboard_public,
+          values.players_can_be_in_multiple_teams,
           values.auto_assign_courts,
         );
         await swrTournamentsResponse.mutate();
@@ -97,13 +107,29 @@ function GeneralTournamentForm({
 
       <Select
         withAsterisk
-        data={clubs.map((p) => ({ value: `${p.id}`, label: p.name }))}
-        label={t('club_select_label')}
-        placeholder={t('club_select_placeholder')}
+        data={[
+          ...clubs.map((p) => ({ value: p.name, label: p.name })),
+          {
+            value: "__add__",
+            label: `+ ${t("add_new_club", "Add new club…")}`,
+          },
+        ]}
+        label={t("organizer_select_label", "Organizer")}
+        placeholder={t(
+          "organizer_select_placeholder",
+          "Select the organizer for this tournament (or add new if not listed)",
+        )}
         searchable
         limit={20}
         style={{ marginTop: 10 }}
-        {...form.getInputProps('club_id')}
+        {...organizerFieldProps}
+        onChange={(val) => {
+          if (val === "__add__") {
+            onAddNewClub();
+            return;
+          }
+          organizerFieldProps.onChange(val);
+        }}
       />
 
       <TextInput
@@ -130,27 +156,7 @@ function GeneralTournamentForm({
             {...form.getInputProps("start_time")}
           />
         </Grid.Col>
-        <Grid.Col span={{ sm: 6 }}>
-          <DateTimePicker
-            withAsterisk
-            label={t("end_time")}
-            leftSection={<IconCalendar size="1.1rem" stroke={1.5} />}
-            mx="auto"
-            {...form.getInputProps("end_time")}
-          />
-        </Grid.Col>
       </Grid>
-
-      <Checkbox
-        mt="md"
-        label={t("dashboard_public_description")}
-        {...form.getInputProps("dashboard_public", { type: "checkbox" })}
-      />
-      <Checkbox
-        mt="md"
-        label={t("auto_assign_courts_label")}
-        {...form.getInputProps("auto_assign_courts", { type: "checkbox" })}
-      />
 
       <Grid mt={8}>
         <Grid.Col span={6}>
@@ -175,6 +181,7 @@ export default function TournamentModal({
 }) {
   const { t } = useTranslation();
   const [opened, setOpened] = useState(false);
+   const [clubModalOpen, setClubModalOpen] = useState(false);
   const operation_text = t("create_tournament_button");
   const swrClubsResponse: SWRResponse = getClubs();
   const clubs: Club[] =
@@ -182,6 +189,12 @@ export default function TournamentModal({
 
   return (
     <>
+      <ClubModal
+        club={null}
+        swrClubsResponse={swrClubsResponse}
+        opened={clubModalOpen}
+        setOpened={setClubModalOpen}
+      />
       <Modal
         opened={opened}
         onClose={() => setOpened(false)}
@@ -192,6 +205,7 @@ export default function TournamentModal({
           setOpened={setOpened}
           swrTournamentsResponse={swrTournamentsResponse}
           clubs={clubs}
+          onAddNewClub={() => setClubModalOpen(true)}
         />
       </Modal>
       <SaveButton

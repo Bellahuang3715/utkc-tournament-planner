@@ -21,7 +21,7 @@ export default function Players() {
 
   const { tournamentData } = getTournamentIdFromRouter();
   const swrPlayersResponse = getPlayers(tournamentData.id);
-  console.log("players", swrPlayersResponse);
+  // console.log("players", swrPlayersResponse);
 
   const swrPlayerFieldsResponse = getPlayerFields(tournamentData.id);
   const { t } = useTranslation();

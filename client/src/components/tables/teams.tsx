@@ -130,10 +130,6 @@ export default function TeamsTable({
     return <TableSkeletonSingleColumn />;
   }
 
-  if (teams.length === 0) {
-    return <NoContent title={t("no_teams_title")} />;
-  }
-
   return (
     <>
       <TeamModal

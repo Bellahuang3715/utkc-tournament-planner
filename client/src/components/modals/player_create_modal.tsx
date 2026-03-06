@@ -41,8 +41,6 @@ function SinglePlayerTab({
   const { t } = useTranslation();
   const isEdit = Boolean(player);
 
-  console.log("player: ", player);
-
   const swrPlayerFieldsResponse = getPlayerFields(tournament_id);
   const playerFields: FieldInsertable[] =
     swrPlayerFieldsResponse.data?.fields ?? [];
