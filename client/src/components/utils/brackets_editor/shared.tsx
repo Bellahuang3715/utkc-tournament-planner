@@ -36,15 +36,15 @@ export const FONT_CHOICES = [
 ];
 
 export const DEFAULT_BOOKLET: FormatStyles = {
-  playerId: { fontFamily: FONT_CHOICES[0], fontSize: 11, color: "#000000" },
-  playerText: { fontFamily: FONT_CHOICES[0], fontSize: 11, color: "#333333" },
-  bracketTitle: { fontFamily: FONT_CHOICES[0], fontSize: 12, color: "#111111" },
+  playerId: { fontFamily: FONT_CHOICES[1], fontSize: 14, color: "#000000" },
+  playerText: { fontFamily: FONT_CHOICES[1], fontSize: 12, color: "#000000" },
+  bracketTitle: { fontFamily: FONT_CHOICES[1], fontSize: 12, color: "#000000" },
 };
 
 export const DEFAULT_POSTER: FormatStyles = {
-  playerId: { fontFamily: FONT_CHOICES[1], fontSize: 16, color: "#111111" },
-  playerText: { fontFamily: FONT_CHOICES[1], fontSize: 14, color: "#222222" },
-  bracketTitle: { fontFamily: FONT_CHOICES[1], fontSize: 18, color: "#111111" },
+  playerId: { fontFamily: FONT_CHOICES[1], fontSize: 14, color: "#000000" },
+  playerText: { fontFamily: FONT_CHOICES[1], fontSize: 12, color: "#000000" },
+  bracketTitle: { fontFamily: FONT_CHOICES[1], fontSize: 18, color: "#000000" },
 };
 
 export const STYLE_TARGETS: Array<{ label: string; value: StyleTarget }> = [

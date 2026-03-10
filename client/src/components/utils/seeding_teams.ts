@@ -1,7 +1,7 @@
 /**
  * Team bracket seeding: spread same-club / same-tier teams apart.
  * Team names: "ClubId Letter" e.g. "JCC A", "JCC B". A = strongest, then B, C, ...
- * Bracket sizes: 8–16 (excluding 15). A teams get priority for bye spots. Some randomness.
+ * Bracket sizes: 7–16 (excluding 15). A teams get priority for bye spots. Some randomness.
  */
 
 // ---- Types ----
@@ -27,12 +27,13 @@ export interface ParsedTeam {
   bias?: boolean; // strong team: spread + bye priority
 }
 
-// ---- Config (same as player seeding) ----
-const ALLOWED_SIZES = [8, 9, 10, 11, 12, 13, 14, 16] as const;
+// ---- Config (teams: 7–16 excluding 15) ----
+const ALLOWED_SIZES = [7, 8, 9, 10, 11, 12, 13, 14, 16] as const;
 const MIN = ALLOWED_SIZES[0];
 const MAX = ALLOWED_SIZES[ALLOWED_SIZES.length - 1];
 
 export const BRACKET_BYES_TEAMS: Record<number, number> = {
+  7: 1,
   8: 0,
   9: 1,
   10: 6,
@@ -42,6 +43,53 @@ export const BRACKET_BYES_TEAMS: Record<number, number> = {
   14: 2,
   16: 0,
 };
+
+const BALANCE_SPREAD = 3;
+
+function enumerateTuples(
+  k: number,
+  target: number,
+  candidates: number[]
+): number[][] {
+  if (k === 1) return candidates.includes(target) ? [[target]] : [];
+  const result: number[][] = [];
+  for (const c of candidates) {
+    if (c > target) continue;
+    const rest = enumerateTuples(k - 1, target - c, candidates);
+    for (const r of rest) result.push([c, ...r]);
+  }
+  return result;
+}
+
+/**
+ * Returns all valid bracket size combinations for N teams (includes 7-team brackets).
+ * Used by the teams "Generate Brackets" modal for the size dropdown.
+ */
+export function getTeamBracketSizeOptions(N: number): number[][] {
+  const out: number[][] = [];
+  const seen = new Set<string>();
+  for (let k = 1; k <= 16; k *= 2) {
+    if (k * MIN > N || k * MAX < N) continue;
+    const base = N / k;
+    const low = Math.max(MIN, Math.floor(base) - BALANCE_SPREAD);
+    const high = Math.min(MAX, Math.ceil(base) + BALANCE_SPREAD);
+    const candidates = [...ALLOWED_SIZES].filter((s) => s >= low && s <= high);
+    if (candidates.length === 0) continue;
+    const tuples = enumerateTuples(k, N, candidates);
+    for (const t of tuples) {
+      const sorted = [...t].sort((a, b) => a - b);
+      const spread = sorted[sorted.length - 1]! - sorted[0]!;
+      if (spread > BALANCE_SPREAD) continue;
+      const key = sorted.join(",");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(sorted);
+    }
+  }
+  return out.sort(
+    (a, b) => a.length - b.length || (a[0] ?? 0) - (b[0] ?? 0)
+  );
+}
 
 // ---- Parse "JCC A" -> { clubId, tier, tierRank } ----
 const LETTER_TO_RANK: Record<string, number> = {
@@ -281,10 +329,11 @@ function orderTeamBracket(
  * Assign team names into bracket groups. Same-club and same-tier (e.g. "A") teams
  * are spread apart. Bias (strong) teams and A teams get priority for byes.
  * Bracket sizes 8–16 (no 15). Optional seed for reproducible runs.
+ * If options.sizes is provided, use that combination (and order) instead of default.
  */
 export function assignTeamBrackets(
   teamNames: string[],
-  options?: { seed?: number; teamIds?: number[]; biasTeamIds?: number[] }
+  options?: { seed?: number; teamIds?: number[]; biasTeamIds?: number[]; sizes?: number[] }
 ): TeamBracketGroup[] {
   const rng = createRng(options?.seed);
   const ids = options?.teamIds;
@@ -295,7 +344,13 @@ export function assignTeamBrackets(
     bias: ids?.[i] != null && biasSet.has(ids[i]!),
   }));
 
-  const sizes = pickTeamBracketSizes(entries.length);
+  const defaultSizes = pickTeamBracketSizes(entries.length);
+  // Use chosen sizes in the exact order provided; for default, sort ascending so group order
+  // matches the bracket layout dropdown (e.g. 9,9,10,10 not 10,10,9,9).
+  const sizes =
+    options?.sizes != null && options.sizes.length > 0
+      ? options.sizes
+      : [...defaultSizes].sort((a, b) => a - b);
   const parsed = entries.map(toParsedTeam);
   const grouped = distributeTeamsIntoBrackets(parsed, sizes, rng);
 

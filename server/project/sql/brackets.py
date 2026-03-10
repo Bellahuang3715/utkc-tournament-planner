@@ -35,7 +35,8 @@ async def sql_list_division_brackets_with_players(division_id: DivisionId) -> Li
                 'bracket_idx', pxb.bracket_idx,
                 'name', p.name,
                 'club', p.club,
-                'code', p.code
+                'code', p.code,
+                'participant_number', p.data->>'participant_number'
               )
               ORDER BY pxb.bracket_idx
             ) FILTER (WHERE pxb.bracket_id IS NOT NULL),

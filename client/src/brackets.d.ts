@@ -2,7 +2,7 @@ declare module "tournament-brackets-ui" {
   import * as React from "react";
 
   type Entity = "teams" | "individuals";
-  type Size = 8 | 9 | 10 | 11 | 12 | 13 | 14 | 16;
+  type Size = 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16;
 
   type VariantProps = {
     entity?: Entity;

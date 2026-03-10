@@ -42,6 +42,7 @@ class PlayerInDivision(BaseModelORM):
     name: str
     club: str
     code: str | None = None
+    participant_number: str | None = None  # from data.participant_number
     bias: bool = False
 
 

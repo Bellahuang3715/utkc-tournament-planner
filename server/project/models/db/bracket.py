@@ -51,6 +51,7 @@ class PlayerSlot(BaseModelORM):
     name: str | None = None
     club: str | None = None
     code: str | None = None
+    participant_number: str | None = None  # from players.data.participant_number
 
 class BracketWithPlayers(Bracket):
     players: List[PlayerSlot]

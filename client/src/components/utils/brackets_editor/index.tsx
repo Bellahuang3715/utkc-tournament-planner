@@ -48,7 +48,7 @@ export default function BracketsEditor() {
     return <BracketsEditorTeams />;
   }
 
-  return <BracketsEditorIndividuals />;
+  return <BracketsEditorIndividuals division={division} />;
 }
 
 // Re-export section components for divisions index

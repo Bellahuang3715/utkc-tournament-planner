@@ -21,8 +21,8 @@ import { CollapsedLeft, CollapsedRight, Expanded } from "tournament-brackets-ui"
 import TournamentLayout from "../../../pages/tournaments/_tournament_layout";
 import { getTournamentIdFromRouter } from "../util";
 import { getClubs } from "../../../services/adapter";
-import { toUIPlayers } from "../../../services/bracket";
 import {
+  toUIPlayersWithClubAbbrev,
   fetchDivisionBracketsWithPlayers,
   replaceDivisionBrackets,
 } from "../../../services/bracket";
@@ -62,15 +62,7 @@ function findPlayerLoc(
   return null;
 }
 
-function toUIPlayersWithAbbrev(
-  bracket: BracketWithPlayers,
-  clubAbbrevByName: Map<string, string>
-) {
-  return toUIPlayers(bracket).map((p) => ({
-    ...p,
-    club: p.club ? (clubAbbrevByName.get(p.club) ?? p.club) : p.club,
-  }));
-}
+// (No division-specific hardcoding; all player data comes from the API.)
 
 // ---- Section components ----
 function BracketPairCard({
@@ -78,11 +70,15 @@ function BracketPairCard({
   right,
   onSetTitle,
   formatStyles,
+  useCodeOnly,
+  playerIdToDisplayCode,
 }: {
   left: BracketWithPlayers;
   right?: BracketWithPlayers;
   onSetTitle?: (bracketId: number, title: string | null) => void;
   formatStyles?: FormatStyles;
+  useCodeOnly?: boolean;
+  playerIdToDisplayCode?: Record<number, string>;
 }) {
   const clubsQuery = getClubs();
   const clubs = clubsQuery.data?.data ?? [];
@@ -94,13 +90,13 @@ function BracketPairCard({
   }, [clubs]);
 
   const leftPlayers = useMemo(
-    () => toUIPlayersWithAbbrev(left, clubAbbrevByName),
-    [left, clubAbbrevByName]
+    () => toUIPlayersWithClubAbbrev(left, clubAbbrevByName, useCodeOnly, playerIdToDisplayCode),
+    [left, clubAbbrevByName, useCodeOnly, playerIdToDisplayCode]
   );
 
   const rightPlayers = useMemo(
-    () => (right ? toUIPlayersWithAbbrev(right, clubAbbrevByName) : null),
-    [right, clubAbbrevByName]
+    () => (right ? toUIPlayersWithClubAbbrev(right, clubAbbrevByName, useCodeOnly, playerIdToDisplayCode) : null),
+    [right, clubAbbrevByName, useCodeOnly, playerIdToDisplayCode]
   );
 
   const groupChipText = `Groups ${left.index}${right ? ` & ${right.index}` : ""}`;
@@ -132,30 +128,32 @@ function BracketPairCard({
         </Grid>
       )}
 
-      <Group justify="center" align="flex-start" gap="lg" wrap="wrap">
-        <Box style={{ maxWidth: "100%", overflowX: "auto" }}>
-          <CollapsedLeft.Individuals
-            size={left.num_players}
-            players={leftPlayers}
-            textStyles={{
-              playerId: formatStyles ?? defaultTitleStyle,
-              playerText: formatStyles ?? defaultTitleStyle,
-            }}
-          />
-        </Box>
-        {right && rightPlayers && (
-          <Box style={{ maxWidth: "100%", overflowX: "auto" }}>
-            <CollapsedRight.Individuals
-              size={right.num_players}
-              players={rightPlayers}
+      <Box style={{ overflowX: "auto" }}>
+        <Group justify="flex-start" align="center" gap="sm" wrap="nowrap">
+          <Box style={{ flexShrink: 0 }}>
+            <CollapsedLeft.Individuals
+              size={left.num_players}
+              players={leftPlayers}
               textStyles={{
                 playerId: formatStyles ?? defaultTitleStyle,
                 playerText: formatStyles ?? defaultTitleStyle,
               }}
             />
           </Box>
-        )}
-      </Group>
+          {right && rightPlayers && (
+            <Box style={{ flexShrink: 0 }}>
+              <CollapsedRight.Individuals
+                size={right.num_players}
+                players={rightPlayers}
+                textStyles={{
+                  playerId: formatStyles ?? defaultTitleStyle,
+                  playerText: formatStyles ?? defaultTitleStyle,
+                }}
+              />
+            </Box>
+          )}
+        </Group>
+      </Box>
     </Paper>
   );
 }
@@ -165,11 +163,15 @@ export function BracketPairsSection({
   pairs,
   onSetTitle,
   formatStyles,
+  useCodeOnly,
+  playerIdToDisplayCode,
 }: {
   brackets: BracketWithPlayers[] | null;
   pairs: Array<{ left: BracketWithPlayers; right?: BracketWithPlayers }>;
   onSetTitle?: (bracketId: number, title: string | null) => void;
   formatStyles?: FormatStyles;
+  useCodeOnly?: boolean;
+  playerIdToDisplayCode?: Record<number, string>;
 }) {
   return (
     <Stack gap="md">
@@ -195,6 +197,8 @@ export function BracketPairsSection({
               right={right}
               onSetTitle={onSetTitle}
               formatStyles={formatStyles}
+              useCodeOnly={useCodeOnly}
+              playerIdToDisplayCode={playerIdToDisplayCode}
             />
           ))}
         </Stack>
@@ -207,10 +211,14 @@ export function PosterGroupsSection({
   brackets,
   onSetTitle,
   formatStyles,
+  useCodeOnly,
+  playerIdToDisplayCode,
 }: {
   brackets: BracketWithPlayers[] | null;
   onSetTitle?: (bracketId: number, title: string | null) => void;
   formatStyles?: FormatStyles;
+  useCodeOnly?: boolean;
+  playerIdToDisplayCode?: Record<number, string>;
 }) {
   const clubsQuery = getClubs();
   const clubs = clubsQuery.data?.data ?? [];
@@ -268,7 +276,7 @@ export function PosterGroupsSection({
           <Box style={{ maxWidth: "100%", overflowX: "auto" }}>
             <Expanded.Individuals
               size={b.num_players}
-              players={toUIPlayersWithAbbrev(b, clubAbbrevByName)}
+              players={toUIPlayersWithClubAbbrev(b, clubAbbrevByName, useCodeOnly, playerIdToDisplayCode)}
             />
           </Box>
         </Paper>
@@ -278,7 +286,11 @@ export function PosterGroupsSection({
 }
 
 // ---- Full editor ----
-export default function BracketsEditorIndividuals() {
+export default function BracketsEditorIndividuals({
+  division,
+}: {
+  division?: { name?: string; prefix?: string } | null;
+}) {
   const router = useRouter();
   const { id: tournamentId } = getTournamentIdFromRouter();
   const divisionId = router.query.division_id;
@@ -304,15 +316,16 @@ export default function BracketsEditorIndividuals() {
 
   useEffect(() => {
     if (!divisionId) return;
-    fetchDivisionBracketsWithPlayers(Number(divisionId)).then((res) => {
+    const divId = Number(divisionId);
+    fetchDivisionBracketsWithPlayers(divId).then((res) => {
       setBrackets(res.data.data);
     });
-    fetchDivisionPlayers(Number(divisionId))
+    fetchDivisionPlayers(divId)
       .then((res) => {
         setPlayers(res.data.players ?? []);
       })
       .catch(console.error);
-  }, [divisionId]);
+  }, [divisionId, division]);
 
   useEffect(() => {
     const beforeUnload = (e: BeforeUnloadEvent) => {
@@ -342,7 +355,7 @@ export default function BracketsEditorIndividuals() {
     () =>
       players.map((p) => ({
         value: String(p.id),
-        label: `${p.code ?? p.id} — ${p.name ?? ""}`.trim(),
+        label: `${p.participant_number ?? p.code ?? p.id} — ${p.name ?? ""}`.trim(),
       })),
     [players]
   );
@@ -377,13 +390,14 @@ export default function BracketsEditorIndividuals() {
 
     const metaById = new Map<
       number,
-      { name?: string | null; club?: string | null; code?: string | null }
+      { name?: string | null; club?: string | null; code?: string | null; participant_number?: string | null }
     >();
     for (const p of players) {
       metaById.set(Number(p.id), {
         name: p.name ?? null,
         club: p.club ?? null,
         code: p.code ?? null,
+        participant_number: p.participant_number ?? null,
       });
     }
 
@@ -410,14 +424,16 @@ export default function BracketsEditorIndividuals() {
       bSlot.player_id = tmpPlayerId;
 
       const aMeta = metaById.get(aSlot.player_id);
-      aSlot.name = aMeta?.name ?? aSlot.name ?? null;
-      aSlot.club = aMeta?.club ?? aSlot.club ?? null;
-      aSlot.code = aMeta?.code ?? aSlot.code ?? null;
+      aSlot.name = aMeta?.name ?? null;
+      aSlot.club = aMeta?.club ?? null;
+      aSlot.code = aMeta?.code ?? null;
+      aSlot.participant_number = aMeta?.participant_number ?? null;
 
       const bMeta = metaById.get(bSlot.player_id);
-      bSlot.name = bMeta?.name ?? bSlot.name ?? null;
-      bSlot.club = bMeta?.club ?? bSlot.club ?? null;
-      bSlot.code = bMeta?.code ?? bSlot.code ?? null;
+      bSlot.name = bMeta?.name ?? null;
+      bSlot.club = bMeta?.club ?? null;
+      bSlot.code = bMeta?.code ?? null;
+      bSlot.participant_number = bMeta?.participant_number ?? null;
 
       return next;
     });
@@ -452,9 +468,8 @@ export default function BracketsEditorIndividuals() {
       alert(t("no_players", "No players in this division. Add players first."));
       return;
     }
-    const groups = assignBrackets(players);
     const divId = Number(divisionId);
-    const newBrackets: BracketWithPlayers[] = groups.map((g) => ({
+    const newBrackets = assignBrackets(players).map((g) => ({
       id: -g.group,
       index: g.group,
       division_id: divId,
@@ -466,6 +481,7 @@ export default function BracketsEditorIndividuals() {
         name: p.name ?? null,
         club: p.club ?? null,
         code: p.code ?? null,
+        participant_number: p.participant_number ?? null,
       })),
     }));
     setBrackets(newBrackets);

@@ -17,7 +17,7 @@ import { SWRResponse } from "swr";
 import ExcelJS from "exceljs";
 
 import { createPlayer } from "../../services/player";
-// import { updatePlayerFields } from '../../services/player_fields';
+import { updatePlayerFields } from "../../services/player_fields";
 import { getPlayerFields } from "../../services/adapter";
 import {
   FieldInsertable,
@@ -166,11 +166,13 @@ function SinglePlayerTab({
 export default function PlayerCreateModal({
   tournament_id,
   swrPlayersResponse,
+  swrPlayerFieldsResponse,
   opened,
   setOpened,
 }: {
   tournament_id: number;
   swrPlayersResponse: SWRResponse;
+  swrPlayerFieldsResponse?: SWRResponse;
   opened: boolean;
   setOpened: (open: boolean) => void;
 }) {
@@ -189,8 +191,10 @@ export default function PlayerCreateModal({
       headerRow
     );
     console.log("fields", fields);
-    // push schema to players_field
-    // await updatePlayerFields(tournamentData.id, fields);
+    // push schema to players_field from first sheet
+    await updatePlayerFields(tournament_id, fields);
+    // refresh player fields in UI so table columns update immediately
+    if (swrPlayerFieldsResponse) await swrPlayerFieldsResponse.mutate();
 
     // now import every upload
     for (const { file, clubName, sheet } of uploads) {

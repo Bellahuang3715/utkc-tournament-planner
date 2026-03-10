@@ -64,10 +64,12 @@ players = Table(
     Column("tournament_id", BigInteger, ForeignKey("tournaments.id", ondelete="CASCADE"), index=True, nullable=False),
     Column("name", String, nullable=False, index=True),
     Column("club", String, nullable=False, index=True),
-    Column("code", String, nullable=True, unique=True, index=True),
+    Column("code", String, nullable=True, index=True),
     Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
     Column("wins", Integer, nullable=False),
     Column("data", JSONB, nullable=False),
+    # code unique per tournament (same code allowed in different tournaments)
+    UniqueConstraint("tournament_id", "code", name="uq_players_tournament_code"),
     # optional: GIN index for fast JSON queries
     Index("ix_players_data_gin", "data", postgresql_using="gin"),
 )

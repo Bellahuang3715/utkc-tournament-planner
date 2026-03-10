@@ -113,28 +113,30 @@ function BracketPairCardTeams({
         </Grid>
       )}
 
-      <Group justify="center" align="flex-start" gap="lg" wrap="wrap">
-        <Box style={{ maxWidth: "100%", overflowX: "auto" }}>
-          <CollapsedLeft.Teams
-            size={left.num_players as 8 | 9 | 10 | 11 | 12 | 13 | 14 | 16}
-            teams={leftTeamNames}
-            teamIDFontFamily={style.teamIDFontFamily}
-            teamIDColor={style.teamIDColor}
-            teamIDFontSize={style.teamIDFontSize}
-          />
-        </Box>
-        {right && rightTeamNames && (
-          <Box style={{ maxWidth: "100%", overflowX: "auto" }}>
-            <CollapsedRight.Teams
-              size={right.num_players as 8 | 9 | 10 | 11 | 12 | 13 | 14 | 16}
-              teams={rightTeamNames}
+      <Box style={{ overflowX: "auto" }}>
+        <Group justify="flex-start" align="center" gap="sm" wrap="nowrap">
+          <Box style={{ flexShrink: 0 }}>
+            <CollapsedLeft.Teams
+              size={left.num_players as 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 16}
+              teams={leftTeamNames}
               teamIDFontFamily={style.teamIDFontFamily}
               teamIDColor={style.teamIDColor}
               teamIDFontSize={style.teamIDFontSize}
             />
           </Box>
-        )}
-      </Group>
+          {right && rightTeamNames && (
+            <Box style={{ flexShrink: 0 }}>
+              <CollapsedRight.Teams
+                size={right.num_players as 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 16}
+                teams={rightTeamNames}
+                teamIDFontFamily={style.teamIDFontFamily}
+                teamIDColor={style.teamIDColor}
+                teamIDFontSize={style.teamIDFontSize}
+              />
+            </Box>
+          )}
+        </Group>
+      </Box>
     </Paper>
   );
 }
@@ -238,7 +240,7 @@ export function PosterGroupsSectionTeams({
           )}
           <Box style={{ maxWidth: "100%", overflowX: "auto" }}>
             <Expanded.Teams
-              size={b.num_players as 8 | 9 | 10 | 11 | 12 | 13 | 14 | 16}
+              size={b.num_players as 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 16}
               teams={toUITeamNames(b)}
               mode="view"
               fontFamily={style.teamIDFontFamily}

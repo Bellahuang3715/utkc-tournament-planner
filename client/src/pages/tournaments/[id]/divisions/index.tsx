@@ -34,6 +34,10 @@ import {
   PosterGroupsSectionTeams,
 } from "../../../../components/utils/brackets_editor/index";
 import {
+  DEFAULT_BOOKLET,
+  DEFAULT_POSTER,
+} from "../../../../components/utils/brackets_editor/shared";
+import {
   BracketWithPlayers,
   BracketWithTeams,
 } from "../../../../interfaces/bracket";
@@ -95,6 +99,8 @@ export default function BracketsPage() {
     brackets?: BracketWithPlayers[];
     bracketsTeams?: BracketWithTeams[];
     clubAbbrevByName?: Map<string, string>;
+    useCodeOnly?: boolean;
+    playerIdToDisplayCode?: Record<number, string>;
   } | null>(null);
 
   const swrDivisions = getDivisions(tournamentData.id);
@@ -170,19 +176,26 @@ export default function BracketsPage() {
     setEditDetailsOf(null);
   };
 
-  /** Wait for the export canvas to mount and render [data-export-page] (needed for teams/heavy trees). */
-  const waitForExportCanvas = (timeoutMs = 3000): Promise<HTMLDivElement | null> => {
+  /** Wait for the export canvas to mount, render [data-export-page], and for the first bracket to have non-zero size (fixes first page blank in multi-page booklet). */
+  const waitForExportCanvas = (timeoutMs = 5000): Promise<HTMLDivElement | null> => {
     return new Promise((resolve) => {
       const start = Date.now();
       const check = () => {
         const el = exportRef.current;
         const pages = el?.querySelectorAll?.("[data-export-page]");
         if (el && pages && pages.length > 0) {
-          resolve(el);
-          return;
+          const firstBracket = pages[0].querySelector<HTMLElement>("[data-export-bracket]");
+          const ready =
+            firstBracket &&
+            firstBracket.offsetWidth >= 1 &&
+            firstBracket.offsetHeight >= 1;
+          if (ready) {
+            resolve(el);
+            return;
+          }
         }
         if (Date.now() - start >= timeoutMs) {
-          resolve(null);
+          resolve(el && pages && pages.length > 0 ? el : null);
           return;
         }
         requestAnimationFrame(check);
@@ -447,19 +460,29 @@ export default function BracketsPage() {
                               <BracketPairsSectionTeams
                                 brackets={bracketsTeams}
                                 pairs={pairsTeams}
+                                formatStyles={
+                                  viewMode === "booklet"
+                                    ? DEFAULT_BOOKLET
+                                    : DEFAULT_POSTER
+                                }
                               />
                             ) : (
                               <PosterGroupsSectionTeams
                                 brackets={bracketsTeams}
+                                formatStyles={DEFAULT_POSTER}
                               />
                             )
                           ) : viewMode === "booklet" ? (
                             <BracketPairsSection
                               brackets={brackets}
                               pairs={pairs}
+                              formatStyles={DEFAULT_BOOKLET}
                             />
                           ) : (
-                            <PosterGroupsSection brackets={brackets} />
+                            <PosterGroupsSection
+                              brackets={brackets}
+                              formatStyles={DEFAULT_POSTER}
+                            />
                           )}
                         </Stack>
                       </Stack>
@@ -502,6 +525,8 @@ export default function BracketsPage() {
             brackets={exporting.brackets}
             bracketsTeams={exporting.bracketsTeams}
             clubAbbrevByName={exporting.clubAbbrevByName}
+            useCodeOnly={exporting.useCodeOnly}
+            playerIdToDisplayCode={exporting.playerIdToDisplayCode}
           />
         )}
       </Stack>

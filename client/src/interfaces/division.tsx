@@ -16,6 +16,8 @@ export type DivisionPlayer = {
   name: string;
   club: string;
   code: string | null;
+  /** From players table data.participant_number; used as display ID in Division B. */
+  participant_number?: string | null;
   bias: boolean;
 };
 

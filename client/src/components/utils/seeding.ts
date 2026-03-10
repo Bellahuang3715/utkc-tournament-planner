@@ -38,12 +38,66 @@ export const BRACKET_BYES: Record<number, number> = {
   12: 4,
   13: 3,
   14: 2,
+  15: 1,
   16: 0,
 };
 
-const ALLOWED_SIZES = [8, 9, 10, 11, 12, 13, 14, 16] as const;
+const ALLOWED_SIZES = [8, 9, 10, 11, 12, 13, 14, 15, 16] as const;
 const MIN = ALLOWED_SIZES[0];
 const MAX = ALLOWED_SIZES[ALLOWED_SIZES.length - 1];
+
+/** Maximum allowed spread between smallest and largest bracket in a combination (keeps sizes "approximately equal"). */
+const BALANCE_SPREAD = 3;
+
+/**
+ * Enumerate all k-tuples from candidates that sum to target (for internal use).
+ */
+function enumerateTuples(
+  k: number,
+  target: number,
+  candidates: number[]
+): number[][] {
+  if (k === 1) return candidates.includes(target) ? [[target]] : [];
+  const result: number[][] = [];
+  for (const c of candidates) {
+    if (c > target) continue;
+    const rest = enumerateTuples(k - 1, target - c, candidates);
+    for (const r of rest) result.push([c, ...r]);
+  }
+  return result;
+}
+
+/**
+ * Returns all valid bracket size combinations for N players.
+ * Each combination is an array of bracket sizes (from ALLOWED_SIZES) that sum to N,
+ * with sizes kept approximately equal (spread between min and max in a combination <= BALANCE_SPREAD).
+ * Bracket count is restricted to powers of 2 (1, 2, 4, 8, 16).
+ */
+export function getBracketSizeOptions(N: number): number[][] {
+  const out: number[][] = [];
+  const seen = new Set<string>();
+  for (let k = 1; k <= 16; k *= 2) {
+    if (k * MIN > N || k * MAX < N) continue;
+    const base = N / k;
+    const low = Math.max(MIN, Math.floor(base) - BALANCE_SPREAD);
+    const high = Math.min(MAX, Math.ceil(base) + BALANCE_SPREAD);
+    const candidates = [...ALLOWED_SIZES].filter((s) => s >= low && s <= high);
+    if (candidates.length === 0) continue;
+    const tuples = enumerateTuples(k, N, candidates);
+    for (const t of tuples) {
+      const sorted = [...t].sort((a, b) => a - b);
+      const spread = sorted[sorted.length - 1]! - sorted[0]!;
+      if (spread > BALANCE_SPREAD) continue;
+      const key = sorted.join(",");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(sorted);
+    }
+  }
+  return out.sort(
+    (a, b) => a.length - b.length || (a[0] ?? 0) - (b[0] ?? 0)
+  );
+}
 
 // ---- 2) Pick bracket sizes (JS logic) ----
 export function pickBracketSizes(N: number): number[] {
@@ -383,13 +437,23 @@ function orderBracket(
 }
 
 // ---- 7) Main entry ----
-export function assignBrackets(players: ReadonlyArray<DivisionPlayer>): BracketGroup[] {
-  const sizes = pickBracketSizes(players.length);
+/**
+ * Assign players into bracket groups. If `sizes` is provided, use that combination;
+ * otherwise use pickBracketSizes(players.length).
+ */
+export function assignBrackets(
+  players: ReadonlyArray<DivisionPlayer>,
+  sizes?: number[]
+): BracketGroup[] {
+  const resolvedSizes =
+    sizes != null && sizes.length > 0
+      ? sizes
+      : pickBracketSizes(players.length);
 
-  const byeQuotaByClub = computeByeQuotaByClub(players, sizes);
+  const byeQuotaByClub = computeByeQuotaByClub(players, resolvedSizes);
   const byeAssignedPerClub = new Map<ClubCode, number>();
 
-  const grouped = distributeIntoGroups(players, sizes);
+  const grouped = distributeIntoGroups(players, resolvedSizes);
 
   for (const br of grouped) {
     br.players = orderBracket(br.players, br.size, byeAssignedPerClub, byeQuotaByClub);

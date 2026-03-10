@@ -7,6 +7,7 @@ from project.utils.types import EnumAutoStr
 class PlayerFieldTypes(EnumAutoStr):
     TEXT = auto()
     BOOLEAN = auto()
+    CHECKBOX = auto()  # same as BOOLEAN; client/DB use CHECKBOX
     NUMBER = auto()
     DROPDOWN = auto()
 

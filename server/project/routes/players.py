@@ -1,4 +1,8 @@
-from fastapi import APIRouter, Depends
+import logging
+
+import asyncpg  # type: ignore[import-untyped]
+from fastapi import APIRouter, Depends, HTTPException
+from starlette import status
 
 from project.database import database
 from project.logic.subscriptions import check_requirement
@@ -63,29 +67,40 @@ async def delete_player(
     return SuccessResponse()
 
 
-from fastapi import Request
+logger = logging.getLogger(__name__)
+
 
 @router.put("/tournaments/{tournament_id}/players/codes", response_model=SuccessResponse)
 async def update_player_codes(
     tournament_id: TournamentId,
     body: PlayerCodesBody,
-    request: Request,
     _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
-    
-    raw = await request.json()
-    print("RAW BODY:", raw)
-    print("PARSED:", body.model_dump())
-
-    async with database.transaction():
-        for item in body.codes:
-            await database.execute(
-                query=players.update().where(
-                    (players.c.id == item.player_id) &
-                    (players.c.tournament_id == tournament_id)
-                ),
-                values={"code": item.code},
-            )
+    query = """
+        UPDATE players
+        SET code = :code
+        WHERE id = :player_id AND tournament_id = :tournament_id
+    """
+    try:
+        async with database.transaction():
+            for item in body.codes:
+                await database.execute(
+                    query=query,
+                    values={
+                        "code": item.code,
+                        "player_id": item.player_id,
+                        "tournament_id": tournament_id,
+                    },
+                )
+    except asyncpg.exceptions.UniqueViolationError as exc:
+        logger.warning("Player codes update: unique violation %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="One or more player codes are already in use in this tournament (codes must be unique per tournament).",
+        ) from exc
+    except Exception as exc:
+        logger.exception("Player codes update failed: %s", exc)
+        raise
 
     return SuccessResponse()
 

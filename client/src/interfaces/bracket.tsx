@@ -6,6 +6,8 @@ export interface BracketPlayerSlot {
   name?: string | null;
   club?: string | null;
   code?: string | null;
+  /** From players.data.participant_number; used as display ID in Division B. */
+  participant_number?: string | null;
 }
 
 export interface BracketCreatePayload {

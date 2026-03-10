@@ -160,6 +160,7 @@ export default function PlayersTable({
     <>
       <PlayerCreateModal
         swrPlayersResponse={swrPlayersResponse}
+        swrPlayerFieldsResponse={swrPlayerFieldsResponse}
         tournament_id={tournamentData.id}
         opened={createModalOpen}
         setOpened={setCreateModalOpen}

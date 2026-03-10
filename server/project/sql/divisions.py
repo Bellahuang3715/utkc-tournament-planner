@@ -99,6 +99,7 @@ async def sql_get_players_for_division(division_id: DivisionId) -> list[PlayerIn
             p.name,
             p.club,
             p.code,
+            (p.data->>'participant_number') AS participant_number,
             COALESCE(px.bias, FALSE) AS bias
         FROM players p
         JOIN players_x_divisions px ON px.player_id = p.id
