@@ -210,11 +210,8 @@ export const BracketsExportCanvas = forwardRef<
               }}
             >
               <header style={{ ...titleContainerStyle, flexShrink: 0 }}>
-                <Title order={1} style={{ fontSize: 28, marginBottom: 8 }}>
-                  {divisionName}
-                </Title>
-                <Title order={3} style={{ fontSize: 18 }}>
-                  {groupTitleText(b.index, undefined, b.title)}
+                <Title order={1} style={{ fontSize: 28 }}>
+                  {divisionName} - {groupTitleText(b.index, undefined, b.title)}
                 </Title>
               </header>
               <div
@@ -223,7 +220,7 @@ export const BracketsExportCanvas = forwardRef<
                   width: "100%",
                   marginBottom: PAGE_MARGIN,
                   display: "flex",
-                  justifyContent: "center",
+                  justifyContent: "flex-start",
                   alignItems: "center",
                 }}
               >
@@ -328,11 +325,8 @@ export const BracketsExportCanvas = forwardRef<
             }}
           >
             <header style={{ ...titleContainerStyle, flexShrink: 0 }}>
-              <Title order={1} style={{ fontSize: 28, marginBottom: 8 }}>
-                {divisionName}
-              </Title>
-              <Title order={3} style={{ fontSize: 18 }}>
-                {groupTitleText(b.index, undefined, b.title)}
+              <Title order={1} style={{ fontSize: 28 }}>
+                {divisionName} - {groupTitleText(b.index, undefined, b.title)}
               </Title>
             </header>
             <div
@@ -341,7 +335,7 @@ export const BracketsExportCanvas = forwardRef<
                 width: "100%",
                 marginBottom: PAGE_MARGIN,
                 display: "flex",
-                justifyContent: "center",
+                justifyContent: "flex-start",
                 alignItems: "center",
               }}
             >

@@ -17,19 +17,27 @@ const TITLE_MAIN_SIZE = 16;
 const TITLE_GROUP_SIZE = 12;
 const TITLE_BLOCK_HEIGHT = 40;
 
-/** Draw division and group title as PDF text. Division name is bold; both use Helvetica to match bracket player text. */
+/** Draw division and group title as PDF text. Poster: single line "Division A - Group 1"; booklet: division bold, group subtitle. */
 function addTitleToPdf(
   pdf: jsPDF,
   divisionName: string,
   groupTitle: string,
   pageWidth: number,
+  format: "booklet" | "poster",
 ) {
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(TITLE_MAIN_SIZE);
-  pdf.text(divisionName, PDF_MARGIN, TITLE_TOP + TITLE_MAIN_SIZE);
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(TITLE_GROUP_SIZE);
-  pdf.text(groupTitle, PDF_MARGIN, TITLE_TOP + TITLE_MAIN_SIZE + 8 + TITLE_GROUP_SIZE);
+  if (format === "poster") {
+    const singleTitle = groupTitle ? `${divisionName} - ${groupTitle}` : divisionName;
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(TITLE_MAIN_SIZE);
+    pdf.text(singleTitle, PDF_MARGIN, TITLE_TOP + TITLE_MAIN_SIZE);
+  } else {
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(TITLE_MAIN_SIZE);
+    pdf.text(divisionName, PDF_MARGIN, TITLE_TOP + TITLE_MAIN_SIZE);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(TITLE_GROUP_SIZE);
+    pdf.text(groupTitle, PDF_MARGIN, TITLE_TOP + TITLE_MAIN_SIZE + 8 + TITLE_GROUP_SIZE);
+  }
 }
 
 /** Content area below the title block (max space for the bracket image). */
@@ -45,13 +53,14 @@ const DIVISION_G_LEFT_OFFSET = 56;
 const DIVISION_G_TITLE_BLOCK_HEIGHT = 28;
 const DIVISION_G_BOTTOM_MARGIN = 28;
 
-/** Add a bracket image to the PDF below the title block. Scale to max size that fits in the content area; center if smaller. */
+/** Add a bracket image to the PDF below the title block. Scale to max size that fits in the content area. Poster: left-align; booklet: center. */
 function addBracketImageToPdf(
   pdf: jsPDF,
   canvas: HTMLCanvasElement,
   pageWidth: number,
   pageHeight: number,
   divisionName?: string,
+  format: "booklet" | "poster" = "booklet",
 ): boolean {
   const cw = canvas.width;
   const ch = canvas.height;
@@ -75,9 +84,12 @@ function addBracketImageToPdf(
 
   const imgWidth = cw * scale;
   const imgHeight = ch * scale;
-  const x = isDivisionG
-    ? PDF_MARGIN + DIVISION_G_LEFT_OFFSET
-    : PDF_MARGIN + (contentWidth - imgWidth) / 2;
+  const x =
+    isDivisionG
+      ? PDF_MARGIN + DIVISION_G_LEFT_OFFSET
+      : format === "poster"
+        ? PDF_MARGIN
+        : PDF_MARGIN + (contentWidth - imgWidth) / 2;
   const y = contentTop + (contentHeight - imgHeight) / 2;
 
   const imgData = canvas.toDataURL("image/png");
@@ -163,7 +175,7 @@ export async function exportElementToPdf(
 
         const divName = pageEl.getAttribute("data-division-name") ?? "";
         const groupTitle = pageEl.getAttribute("data-group-title") ?? "";
-        addTitleToPdf(pdf, divName, groupTitle, pageWidth);
+        addTitleToPdf(pdf, divName, groupTitle, pageWidth, format);
 
         const bracket = pageEl.querySelector<HTMLElement>("[data-export-bracket]");
         let bracketDrew = false;
@@ -175,6 +187,7 @@ export async function exportElementToPdf(
             pageWidth,
             pageHeight,
             divName,
+            format,
           );
         }
         if (!bracketDrew) {
