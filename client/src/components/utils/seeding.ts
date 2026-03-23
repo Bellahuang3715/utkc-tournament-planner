@@ -124,6 +124,97 @@ export function pickBracketSizes(N: number): number[] {
   return sizes;
 }
 
+/** Generate distinct permutations of a multiset. */
+function distinctPermutations(arr: number[]): number[][] {
+  if (arr.length === 0) return [[]];
+  const seen = new Set<string>();
+  const out: number[][] = [];
+  for (let i = 0; i < arr.length; i++) {
+    const rest = [...arr.slice(0, i), ...arr.slice(i + 1)];
+    for (const p of distinctPermutations(rest)) {
+      const candidate = [arr[i], ...p];
+      const key = candidate.join(",");
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(candidate);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Order a proposed multiset of sizes so that when applied by bracket index we minimize
+ * per-index change, and prefer adding size to the earliest bracket when there's a tie.
+ */
+export function orderSizesToMatchCurrent(
+  currentSizes: number[],
+  proposedSorted: number[],
+): number[] {
+  if (currentSizes.length !== proposedSorted.length) return proposedSorted;
+  const perms = distinctPermutations(proposedSorted);
+  let best = proposedSorted;
+  let bestCost = Infinity;
+  let bestFirstIncrease = Infinity;
+  let bestMatches = -1;
+
+  for (const perm of perms) {
+    const cost = perm.reduce((s, v, i) => s + Math.abs(v - (currentSizes[i] ?? 0)), 0);
+    const firstIncrease =
+      perm.findIndex((v, i) => v > (currentSizes[i] ?? 0)) ?? perm.length;
+    const matches = perm.filter((v, i) => v === currentSizes[i]).length;
+
+    if (
+      cost < bestCost ||
+      (cost === bestCost && firstIncrease < bestFirstIncrease) ||
+      (cost === bestCost &&
+        firstIncrease === bestFirstIncrease &&
+        matches > bestMatches)
+    ) {
+      bestCost = cost;
+      bestFirstIncrease = firstIncrease;
+      bestMatches = matches;
+      best = perm;
+    }
+  }
+  return best;
+}
+
+/** Choose the bracket-size combination for `newTotalPlayers` that is closest to the current layout. */
+export function pickClosestSizes(
+  currentSizes: number[],
+  newTotalPlayers: number,
+): number[] {
+  const options = getBracketSizeOptions(newTotalPlayers);
+  const candidates = options.length > 0 ? options : [pickBracketSizes(newTotalPlayers)];
+
+  const sortedCurrent = [...currentSizes].sort((a, b) => a - b);
+
+  const cost = (candidate: number[]): number => {
+    const a = sortedCurrent;
+    const b = [...candidate].sort((x, y) => x - y);
+    const len = Math.max(a.length, b.length);
+    let c = 0;
+    for (let i = 0; i < len; i++) {
+      const ai = a[i] ?? 0;
+      const bi = b[i] ?? 0;
+      c += Math.abs(ai - bi);
+    }
+    c += Math.abs(candidate.length - currentSizes.length) * 10;
+    if (candidate.length > 0) {
+      const spread = Math.max(...candidate) - Math.min(...candidate);
+      c += spread;
+    }
+    return c;
+  };
+
+  const chosenMultiset = candidates.reduce((best, cand) =>
+    cost(cand) < cost(best) ? cand : best,
+  );
+
+  return orderSizesToMatchCurrent(currentSizes, chosenMultiset);
+}
+
 // ---- 3) Utilities ----
 function byeCountForSize(size: number): number {
   // Because BRACKET_BYES is Record<number, number>, TS still treats indexing as possibly undefined
@@ -167,8 +258,12 @@ function computeByeQuotaByClub(
   const allocated = entries.reduce((s, e) => s + e.floor, 0);
   const remaining = totalByes - allocated;
 
-  sortWithRandomTies(entries, (a, b) => b.remainder - a.remainder);
-  for (let i = 0; i < remaining; i++) entries[i].floor += 1;
+  if (remaining > 0 && entries.length > 0) {
+    sortWithRandomTies(entries, (a, b) => b.remainder - a.remainder);
+    for (let i = 0; i < remaining && i < entries.length; i++) {
+      entries[i].floor += 1;
+    }
+  }
 
   const quota = new Map<ClubCode, number>();
   for (const e of entries) quota.set(e.club, e.floor);

@@ -18,7 +18,7 @@ import ExcelJS from "exceljs";
 
 import { createPlayer } from "../../services/player";
 import { updatePlayerFields } from "../../services/player_fields";
-import { getPlayerFields } from "../../services/adapter";
+import { getClubs, getPlayerFields } from "../../services/adapter";
 import {
   FieldInsertable,
   PlayerFieldTypes,
@@ -26,6 +26,8 @@ import {
 import PlayersImportModal, { PlayersUpload } from "./players_import_modal";
 import { inferFieldsFromSheet } from "../utils/excel";
 import { Player } from "../../interfaces/player";
+import type { Club } from "../../interfaces/club";
+import { resolveClubIdByName } from "../../utils/clubs";
 
 function SinglePlayerTab({
   tournament_id,
@@ -46,9 +48,12 @@ function SinglePlayerTab({
     swrPlayerFieldsResponse.data?.fields ?? [];
 
   // build initial values, pulling from player.data when editing
+  const swrClubs = getClubs();
+  const clubs: Club[] = swrClubs.data?.data ?? [];
+
   const initial: Record<string, any> = {
     name: player?.name ?? "",
-    club: player?.club ?? "",
+    club_id: player?.club_id != null ? String(player.club_id) : "",
   };
   playerFields
     .filter((f) => f.include)
@@ -66,7 +71,8 @@ function SinglePlayerTab({
     initialValues: initial,
     validate: {
       name: (v) => (v.length > 0 ? null : t("too_short_name_validation")),
-      club: (v) => (v.length > 0 ? null : t("too_short_club_validation")),
+      club_id: (v) =>
+        v != null && String(v).trim().length > 0 ? null : t("too_short_club_validation"),
     },
   });
 
@@ -98,11 +104,13 @@ function SinglePlayerTab({
           placeholder={t("player_name_input_placeholder")}
           {...form.getInputProps("name")}
         />
-        <TextInput
+        <Select
           withAsterisk
           label={t("club_label", "Club")}
           placeholder={t("club_name_input_placeholder")}
-          {...form.getInputProps("club")}
+          data={clubs.map((c) => ({ value: String(c.id), label: c.name }))}
+          searchable
+          {...form.getInputProps("club_id")}
         />
 
         {/* dynamic fields */}
@@ -177,10 +185,12 @@ export default function PlayerCreateModal({
   setOpened: (open: boolean) => void;
 }) {
   const { t } = useTranslation();
+  const swrClubsForImport = getClubs();
 
   // import all club sheets
   const handleImportAll = async (uploads: PlayersUpload[]) => {
     if (uploads.length === 0) return;
+    const clubs: Club[] = swrClubsForImport.data?.data ?? [];
     console.log("uploads", uploads);
 
     // infer schema once
@@ -246,7 +256,7 @@ export default function PlayerCreateModal({
 
         const body = {
           name: nameValue,
-          club: clubName,
+          club_id: resolveClubIdByName(clubs, clubName, 2),
           data: rowData,
         };
 

@@ -41,8 +41,8 @@ export function toUIPlayers(
       useCodeOnly && playerIdToDisplayCode
         ? (playerIdToDisplayCode[slot.player_id] ?? "—")
         : useCodeOnly
-          ? (slot.participant_number ?? slot.code ?? "—")
-          : (slot.participant_number ?? slot.code ?? String(slot.player_id));
+          ? (slot.code ?? slot.participant_number ?? "—")
+          : (slot.code ?? slot.participant_number ?? String(slot.player_id));
 
     arr[idx] = {
       id: displayId,
@@ -93,15 +93,21 @@ export function toUITeamNames(b: BracketWithTeams): string[] {
 function seededToBracketPayload(
   seeded: Array<{ group: number; size: number; players: DivisionPlayer[] }>,
 ): BracketCreatePayload[] {
-  return seeded.map((g) => ({
-    index: g.group,
-    num_players: g.size,
-    title: null,
-    players: g.players.map((p, idx) => ({
-      player_id: p.id,
-      bracket_idx: idx,
-    })),
-  }));
+  return seeded.map((g) => {
+    const players = g.players
+      .map((p, idx) => {
+        const id = Number(p.id);
+        if (!Number.isFinite(id)) return null;
+        return { player_id: id, bracket_idx: idx };
+      })
+      .filter((s): s is { player_id: number; bracket_idx: number } => s != null);
+    return {
+      index: Number(g.group),
+      num_players: Number(g.size),
+      title: null,
+      players,
+    };
+  });
 }
 
 export async function postDivisionBrackets(

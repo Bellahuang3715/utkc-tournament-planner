@@ -151,9 +151,11 @@ export function getTeamsLive(tournament_id: number | null): SWRResponse {
   });
 }
 
-export function getDivisions(tournament_id: number): SWRResponse {
+export function getDivisions(tournament_id: number | null): SWRResponse {
   return useSWR(
-    `tournaments/${tournament_id}/divisions`,
+    tournament_id != null && Number.isFinite(tournament_id)
+      ? `tournaments/${tournament_id}/divisions`
+      : null,
     fetcher
   );
 }

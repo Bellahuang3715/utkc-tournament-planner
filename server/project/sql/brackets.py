@@ -34,17 +34,18 @@ async def sql_list_division_brackets_with_players(division_id: DivisionId) -> Li
                 'player_id', p.id,
                 'bracket_idx', pxb.bracket_idx,
                 'name', p.name,
-                'club', p.club,
+                'club', c.name,
                 'code', p.code,
                 'participant_number', p.data->>'participant_number'
               )
               ORDER BY pxb.bracket_idx
-            ) FILTER (WHERE pxb.bracket_id IS NOT NULL),
+            ) FILTER (WHERE pxb.bracket_id IS NOT NULL AND p.id IS NOT NULL),
             '[]'::jsonb
           ) AS players
         FROM brackets b
         LEFT JOIN players_x_brackets pxb ON pxb.bracket_id = b.id
         LEFT JOIN players p ON p.id = pxb.player_id
+        LEFT JOIN clubs c ON c.id = p.club_id
         WHERE b.division_id = :division_id
         GROUP BY b.id
         ORDER BY b."index", b.id

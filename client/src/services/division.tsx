@@ -41,6 +41,20 @@ export async function addPlayersToDivision(division_id: number, player_ids: Arra
   }
 }
 
+export async function removePlayersFromDivision(
+  division_id: number,
+  player_ids: Array<number | string>,
+) {
+  try {
+    const axios = await createAxios();
+    return await axios.delete(`divisions/${division_id}/players`, {
+      data: { player_ids: player_ids.map((x) => Number(x)) },
+    });
+  } catch (err: any) {
+    return handleRequestError(err);
+  }
+}
+
 export async function fetchDivisionPlayers(division_id: number) {
   try {
     const axios = await createAxios();
@@ -63,6 +77,20 @@ export async function addTeamsToDivision(
     return await axios.post(`divisions/${division_id}/teams`, {
       team_ids,
       bias_team_ids: bias_team_ids ?? [],
+    });
+  } catch (err: any) {
+    return handleRequestError(err);
+  }
+}
+
+export async function removeTeamsFromDivision(
+  division_id: number,
+  team_ids: Array<number | string>,
+) {
+  try {
+    const axios = await createAxios();
+    return await axios.delete(`divisions/${division_id}/teams`, {
+      data: { team_ids: team_ids.map((x) => Number(x)) },
     });
   } catch (err: any) {
     return handleRequestError(err);

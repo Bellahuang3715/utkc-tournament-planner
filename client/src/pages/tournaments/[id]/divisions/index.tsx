@@ -82,7 +82,8 @@ export default function BracketsPage() {
   // details modal state
   const [editDetailsOf, setEditDetailsOf] = useState<GroupModel | null>(null);
 
-  const { tournamentData } = getTournamentIdFromRouter();
+  const { id: tournamentId, tournamentData } = getTournamentIdFromRouter();
+  const tournamentIdValid = Number.isFinite(tournamentId);
 
   const [brackets, setBrackets] = useState<BracketWithPlayers[] | null>(null);
   const [bracketsTeams, setBracketsTeams] = useState<BracketWithTeams[] | null>(
@@ -103,7 +104,7 @@ export default function BracketsPage() {
     playerIdToDisplayCode?: Record<number, string>;
   } | null>(null);
 
-  const swrDivisions = getDivisions(tournamentData.id);
+  const swrDivisions = getDivisions(tournamentIdValid ? tournamentData.id : null);
   const groups = swrDivisions.data?.data ?? [];
   const swrClubs = getClubs();
   const clubs = swrClubs.data?.data ?? [];
@@ -163,7 +164,7 @@ export default function BracketsPage() {
   if (swrDivisions.error)
     return <RequestErrorAlert error={swrDivisions.error} />;
 
-  if (!swrDivisions.data) {
+  if (!tournamentIdValid || !swrDivisions.data) {
     return (
       <Center style={{ minHeight: 400 }}>
         <Loader />
@@ -396,12 +397,14 @@ export default function BracketsPage() {
                       <DivisionPlayersTable
                         tournamentId={tournamentData.id}
                         divisionId={group.id}
+                        divisionName={group.name}
+                        divisionPrefix={group.prefix}
                       />
                     </Tabs.Panel>
 
                     {/* TEAMS TAB (Teams only) */}
                     <Tabs.Panel value="teams" pt="md">
-                      <DivisionTeamsTable divisionId={group.id} />
+                      <DivisionTeamsTable tournamentId={tournamentData.id} divisionId={group.id} />
                     </Tabs.Panel>
 
                     {/* TREES TAB */}

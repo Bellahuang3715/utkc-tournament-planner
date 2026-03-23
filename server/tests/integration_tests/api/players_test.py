@@ -16,7 +16,9 @@ async def test_players_endpoint(
         DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id})
     ):
         async with inserted_player(
-            DUMMY_PLAYER1.model_copy(update={"tournament_id": auth_context.tournament.id})
+            DUMMY_PLAYER1.model_copy(
+                update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id}
+            )
         ) as player_inserted:
             assert await send_tournament_request(HTTPMethod.GET, "players", auth_context, {}) == {
                 "data": {
@@ -62,7 +64,9 @@ async def test_delete_player(
         DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id})
     ):
         async with inserted_player(
-            DUMMY_PLAYER1.model_copy(update={"tournament_id": auth_context.tournament.id})
+            DUMMY_PLAYER1.model_copy(
+                update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id}
+            )
         ) as player_inserted:
             assert (
                 await send_tournament_request(
@@ -81,7 +85,9 @@ async def test_update_player(
         DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id})
     ):
         async with inserted_player(
-            DUMMY_PLAYER1.model_copy(update={"tournament_id": auth_context.tournament.id})
+            DUMMY_PLAYER1.model_copy(
+                update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id}
+            )
         ) as player_inserted:
             response = await send_tournament_request(
                 HTTPMethod.PUT, f"players/{player_inserted.id}", auth_context, json=body

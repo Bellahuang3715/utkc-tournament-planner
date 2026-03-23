@@ -5,13 +5,13 @@ from heliclockter import datetime_utc
 from pydantic import Field
 
 from project.models.db.shared import BaseModelORM
-from project.utils.id_types import PlayerId, TournamentId
+from project.utils.id_types import ClubId, PlayerId, TournamentId
 
 
 class PlayerInsertable(BaseModelORM):
     tournament_id: TournamentId
     name: str
-    club: str
+    club_id: ClubId
     code: Optional[str] = None
     created: datetime_utc
     wins: int = 0
@@ -20,6 +20,8 @@ class PlayerInsertable(BaseModelORM):
 
 class Player(PlayerInsertable):
     id: PlayerId
+    # clubs.name via join on reads; omitted when inserting
+    club: Optional[str] = None
 
     def __hash__(self) -> int:
         return self.id
@@ -27,7 +29,7 @@ class Player(PlayerInsertable):
 
 class PlayerBody(BaseModelORM):
     name: str
-    club: str
+    club_id: ClubId
     data: Dict[str, Any]
 
 

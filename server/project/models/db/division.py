@@ -49,6 +49,14 @@ class DivisionPlayersAttachBody(BaseModelORM):
     bias_player_ids: list[int] | None = None
 
 
+class DivisionPlayersDetachBody(BaseModelORM):
+    player_ids: list[int]
+
+
 class DivisionTeamsAttachBody(BaseModelORM):
     team_ids: list[int]
     bias_team_ids: list[int] | None = None
+
+
+class DivisionTeamsDetachBody(BaseModelORM):
+    team_ids: list[int]

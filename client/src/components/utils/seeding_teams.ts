@@ -1,7 +1,7 @@
 /**
  * Team bracket seeding: spread same-club / same-tier teams apart.
  * Team names: "ClubId Letter" e.g. "JCC A", "JCC B". A = strongest, then B, C, ...
- * Bracket sizes: 7–16 (excluding 15). A teams get priority for bye spots. Some randomness.
+ * Bracket sizes: 6–16 (excluding 15). A teams get priority for bye spots. Some randomness.
  */
 
 // ---- Types ----
@@ -27,12 +27,13 @@ export interface ParsedTeam {
   bias?: boolean; // strong team: spread + bye priority
 }
 
-// ---- Config (teams: 7–16 excluding 15) ----
-const ALLOWED_SIZES = [7, 8, 9, 10, 11, 12, 13, 14, 16] as const;
+// ---- Config (teams: 6–16 excluding 15) ----
+const ALLOWED_SIZES = [6, 7, 8, 9, 10, 11, 12, 13, 14, 16] as const;
 const MIN = ALLOWED_SIZES[0];
 const MAX = ALLOWED_SIZES[ALLOWED_SIZES.length - 1];
 
 export const BRACKET_BYES_TEAMS: Record<number, number> = {
+  6: 2,
   7: 1,
   8: 0,
   9: 1,
@@ -62,7 +63,7 @@ function enumerateTuples(
 }
 
 /**
- * Returns all valid bracket size combinations for N teams (includes 7-team brackets).
+ * Returns all valid bracket size combinations for N teams (includes 6- and 7-team brackets).
  * Used by the teams "Generate Brackets" modal for the size dropdown.
  */
 export function getTeamBracketSizeOptions(N: number): number[][] {
@@ -133,6 +134,104 @@ export function pickTeamBracketSizes(N: number): number[] {
     }
   }
   return sizes;
+}
+
+/**
+ * Generate distinct permutations of a multiset (array that may have duplicates).
+ */
+function distinctPermutations(arr: number[]): number[][] {
+  if (arr.length === 0) return [[]];
+  const seen = new Set<string>();
+  const out: number[][] = [];
+  for (let i = 0; i < arr.length; i++) {
+    const rest = [...arr.slice(0, i), ...arr.slice(i + 1)];
+    for (const p of distinctPermutations(rest)) {
+      const candidate = [arr[i], ...p];
+      const key = candidate.join(",");
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(candidate);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Order a proposed multiset of sizes (sorted) so that when applied by bracket index
+ * we minimize per-index change from currentSizes, prefer adding size to the earliest
+ * bracket when there's a tie (e.g. [9,10,9,10] +1 team → [10,10,9,10] not [9,10,10,10]).
+ */
+export function orderSizesToMatchCurrent(
+  currentSizes: number[],
+  proposedSorted: number[],
+): number[] {
+  if (currentSizes.length !== proposedSorted.length) return proposedSorted;
+  const perms = distinctPermutations(proposedSorted);
+  let best = proposedSorted;
+  let bestCost = Infinity;
+  let bestFirstIncrease = Infinity;
+  let bestMatches = -1;
+
+  for (const perm of perms) {
+    const cost = perm.reduce((s, v, i) => s + Math.abs(v - (currentSizes[i] ?? 0)), 0);
+    const firstIncrease =
+      perm.findIndex((v, i) => v > (currentSizes[i] ?? 0)) ?? perm.length;
+    const matches = perm.filter((v, i) => v === currentSizes[i]).length;
+
+    if (
+      cost < bestCost ||
+      (cost === bestCost && firstIncrease < bestFirstIncrease) ||
+      (cost === bestCost &&
+        firstIncrease === bestFirstIncrease &&
+        matches > bestMatches)
+    ) {
+      bestCost = cost;
+      bestFirstIncrease = firstIncrease;
+      bestMatches = matches;
+      best = perm;
+    }
+  }
+  return best;
+}
+
+/**
+ * Choose the bracket-size combination for teams that is closest to the current layout.
+ * Uses team allowed sizes (6–16, no 15). Returns sizes in an order that minimizes
+ * per-bracket change (e.g. [9,10,9,10] +1 → [10,10,9,10] not [9,10,10,10]).
+ */
+export function pickClosestSizesTeams(
+  currentSizes: number[],
+  newTotalTeams: number,
+): number[] {
+  const options = getTeamBracketSizeOptions(newTotalTeams);
+  const candidates = options.length > 0 ? options : [pickTeamBracketSizes(newTotalTeams)];
+
+  const sortedCurrent = [...currentSizes].sort((a, b) => a - b);
+
+  const cost = (candidate: number[]): number => {
+    const a = sortedCurrent;
+    const b = [...candidate].sort((x, y) => x - y);
+    const len = Math.max(a.length, b.length);
+    let c = 0;
+    for (let i = 0; i < len; i++) {
+      const ai = a[i] ?? 0;
+      const bi = b[i] ?? 0;
+      c += Math.abs(ai - bi);
+    }
+    c += Math.abs(candidate.length - currentSizes.length) * 10;
+    if (candidate.length > 0) {
+      const spread = Math.max(...candidate) - Math.min(...candidate);
+      c += spread;
+    }
+    return c;
+  };
+
+  const chosenMultiset = candidates.reduce((best, cand) =>
+    cost(cand) < cost(best) ? cand : best,
+  );
+
+  return orderSizesToMatchCurrent(currentSizes, chosenMultiset);
 }
 
 function byeCountForSize(size: number): number {
@@ -328,7 +427,7 @@ function orderTeamBracket(
 /**
  * Assign team names into bracket groups. Same-club and same-tier (e.g. "A") teams
  * are spread apart. Bias (strong) teams and A teams get priority for byes.
- * Bracket sizes 8–16 (no 15). Optional seed for reproducible runs.
+ * Bracket sizes 6–16 (no 15). Optional seed for reproducible runs.
  * If options.sizes is provided, use that combination (and order) instead of default.
  */
 export function assignTeamBrackets(

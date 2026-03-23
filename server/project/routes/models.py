@@ -27,6 +27,11 @@ class SuccessResponse(BaseModel):
     success: bool = True
 
 
+class CreatePlayerResponse(BaseModel):
+    success: bool = True
+    id: int
+
+
 class DataResponse(BaseModel, Generic[DataT]):
     data: DataT
 

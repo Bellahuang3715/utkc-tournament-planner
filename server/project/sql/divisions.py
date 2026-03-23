@@ -1,5 +1,3 @@
-from typing import Optional
-
 from project.database import database
 from project.models.db.division import (
     Division,
@@ -97,11 +95,12 @@ async def sql_get_players_for_division(division_id: DivisionId) -> list[PlayerIn
         SELECT
             p.id,
             p.name,
-            p.club,
+            c.name AS club,
             p.code,
             (p.data->>'participant_number') AS participant_number,
             COALESCE(px.bias, FALSE) AS bias
         FROM players p
+        JOIN clubs c ON c.id = p.club_id
         JOIN players_x_divisions px ON px.player_id = p.id
         WHERE px.division_id = :division_id
         ORDER BY p.name, p.id
@@ -132,6 +131,23 @@ async def sql_attach_players_to_division(division_id: DivisionId, player_ids: li
             query=update_q,
             values={"division_id": division_id, "bias_player_ids": bias_player_ids},
         )
+
+
+async def sql_detach_players_from_division(
+    division_id: DivisionId,
+    player_ids: list[int],
+) -> None:
+    if not player_ids:
+        return
+    query = """
+        DELETE FROM players_x_divisions
+        WHERE division_id = :division_id
+          AND player_id = ANY(CAST(:player_ids AS BIGINT[]))
+    """
+    await database.execute(
+        query=query,
+        values={"division_id": division_id, "player_ids": player_ids},
+    )
 
 
 async def sql_get_teams_for_division(division_id: DivisionId) -> list[TeamInDivision]:
@@ -177,3 +193,20 @@ async def sql_attach_teams_to_division(
             query=update_q,
             values={"division_id": division_id, "bias_team_ids": bias_team_ids},
         )
+
+
+async def sql_detach_teams_from_division(
+    division_id: DivisionId,
+    team_ids: list[int],
+) -> None:
+    if not team_ids:
+        return
+    query = """
+        DELETE FROM teams_x_divisions
+        WHERE division_id = :division_id
+          AND team_id = ANY(CAST(:team_ids AS BIGINT[]))
+    """
+    await database.execute(
+        query=query,
+        values={"division_id": division_id, "team_ids": team_ids},
+    )

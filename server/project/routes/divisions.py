@@ -1,5 +1,3 @@
-from typing import Optional
-
 from fastapi import APIRouter, Depends, Query
 
 from project.models.db.division import (
@@ -7,6 +5,8 @@ from project.models.db.division import (
     DivisionUpdateBody,
     DivisionPlayersAttachBody,
     DivisionTeamsAttachBody,
+    DivisionPlayersDetachBody,
+    DivisionTeamsDetachBody,
 )
 from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated
@@ -26,6 +26,8 @@ from project.sql.divisions import (
     sql_get_players_for_division,
     sql_attach_teams_to_division,
     sql_get_teams_for_division,
+    sql_detach_players_from_division,
+    sql_detach_teams_from_division,
 )
 from project.utils.id_types import DivisionId, TournamentId
 
@@ -88,6 +90,16 @@ async def attach_players_to_division(
     return SuccessResponse()
 
 
+@router.delete("/divisions/{division_id}/players", response_model=SuccessResponse)
+async def detach_players_from_division(
+    division_id: DivisionId,
+    body: DivisionPlayersDetachBody,
+    _: UserPublic = Depends(firebase_user_authenticated),
+) -> SuccessResponse:
+    await sql_detach_players_from_division(division_id, body.player_ids)
+    return SuccessResponse()
+
+
 @router.get("/divisions/{division_id}/teams", response_model=DivisionTeamsResponse)
 async def list_division_teams(
     division_id: DivisionId,
@@ -106,4 +118,14 @@ async def attach_teams_to_division(
     await sql_attach_teams_to_division(
         division_id, body.team_ids, body.bias_team_ids or []
     )
+    return SuccessResponse()
+
+
+@router.delete("/divisions/{division_id}/teams", response_model=SuccessResponse)
+async def detach_teams_from_division(
+    division_id: DivisionId,
+    body: DivisionTeamsDetachBody,
+    _: UserPublic = Depends(firebase_user_authenticated),
+) -> SuccessResponse:
+    await sql_detach_teams_from_division(division_id, body.team_ids)
     return SuccessResponse()

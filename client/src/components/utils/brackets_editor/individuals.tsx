@@ -27,7 +27,7 @@ import {
   replaceDivisionBrackets,
 } from "../../../services/bracket";
 import { fetchDivisionPlayers } from "../../../services/division";
-import { assignBrackets } from "../seeding";
+import { assignBrackets, pickClosestSizes } from "../seeding";
 import { BracketWithPlayers } from "../../../interfaces/bracket";
 import { DivisionPlayer } from "../../../interfaces/division";
 import { ViewMode } from "../../../interfaces/bracket";
@@ -355,7 +355,7 @@ export default function BracketsEditorIndividuals({
     () =>
       players.map((p) => ({
         value: String(p.id),
-        label: `${p.participant_number ?? p.code ?? p.id} — ${p.name ?? ""}`.trim(),
+        label: `${p.code ?? p.participant_number ?? p.id} — ${p.name ?? ""}`.trim(),
       })),
     [players]
   );
@@ -457,19 +457,40 @@ export default function BracketsEditorIndividuals({
   };
 
   const regenerateAll = () => {
-    const ok = confirm(
-      t(
-        "regenerate_confirm",
-        "Regenerate all seeding? All current seeding will be lost and replaced."
-      )
-    );
-    if (!ok) return;
     if (!players.length) {
       alert(t("no_players", "No players in this division. Add players first."));
       return;
     }
+
+    const currentSizes =
+      (brackets ?? []).map((b) => Number(b.num_players ?? b.players?.length ?? 0));
+
+    const totalNew = players.length;
+    const proposedSizes = pickClosestSizes(currentSizes, totalNew);
+
+    const currentSummary = currentSizes.length
+      ? `${currentSizes.length} ${t("brackets", "brackets")}: [${currentSizes.join(", ")}]`
+      : t("no_existing_brackets", "No existing brackets (fresh seeding).");
+
+    const proposedSummary = `${proposedSizes.length} ${t("brackets", "brackets")}: [${proposedSizes.join(", ")}]`;
+
+    const ok = confirm(
+      t(
+        "regenerate_with_sizes_confirm",
+        "You currently have {{current}}.\nWith {{count}} players, the new layout will be {{proposed}}.\n\nDo you want to apply this new layout and regenerate all seeding? This will overwrite the current groups.",
+        {
+          current: currentSummary,
+          proposed: proposedSummary,
+          count: totalNew,
+        },
+      ),
+    );
+    if (!ok) return;
+
     const divId = Number(divisionId);
-    const newBrackets = assignBrackets(players).map((g) => ({
+    const seeded = assignBrackets(players, proposedSizes);
+
+    const newBrackets = seeded.map((g) => ({
       id: -g.group,
       index: g.group,
       division_id: divId,

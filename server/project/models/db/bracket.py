@@ -25,6 +25,32 @@ class BracketWithPlayersCreate(BaseModelORM):
     title: Optional[str] = None
     players: List[PlayerSlotCreate]
 
+    @field_validator("players", mode="before")
+    @classmethod
+    def ensure_players_list(cls, v):
+        if v is None:
+            return []
+        if isinstance(v, list):
+            # Coerce each item to a dict and drop non-dicts (e.g. null)
+            out = []
+            for i, x in enumerate(v):
+                if isinstance(x, dict):
+                    # Coerce player_id and bracket_idx to int for validation
+                    slot = dict(x)
+                    if "player_id" in slot and slot["player_id"] is not None:
+                        try:
+                            slot["player_id"] = int(slot["player_id"])
+                        except (TypeError, ValueError):
+                            continue
+                    if "bracket_idx" in slot and slot["bracket_idx"] is not None:
+                        try:
+                            slot["bracket_idx"] = int(slot["bracket_idx"])
+                        except (TypeError, ValueError):
+                            slot["bracket_idx"] = i
+                    out.append(slot)
+            return out
+        return v
+
 class DivisionBracketsCreateBody(BaseModelORM):
     brackets: List[BracketWithPlayersCreate]
 
@@ -60,7 +86,10 @@ class BracketWithPlayers(Bracket):
     @classmethod
     def parse_players(cls, v):
         if isinstance(v, str):
-            return json.loads(v)
+            v = json.loads(v)
+        if isinstance(v, list):
+            # Filter out null/invalid slots (e.g. from JSONB_AGG when player was deleted)
+            v = [x for x in v if isinstance(x, dict)]
         return v
 
 class TeamSlot(BaseModelORM):

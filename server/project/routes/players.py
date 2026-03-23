@@ -6,10 +6,11 @@ from starlette import status
 
 from project.database import database
 from project.logic.subscriptions import check_requirement
-from project.models.db.player import Player, PlayerBody, PlayerCodesBody
+from project.models.db.player import PlayerBody, PlayerCodesBody
 from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated
 from project.routes.models import (
+    CreatePlayerResponse,
     PaginatedPlayers,
     PlayersResponse,
     SinglePlayerResponse,
@@ -18,11 +19,11 @@ from project.routes.models import (
 from project.schema import players
 from project.sql.players import (
     get_all_players_in_tournament,
+    get_player_by_id,
     get_player_count,
     insert_player,
     sql_delete_player,
 )
-from project.utils.db import fetch_one_parsed
 from project.utils.id_types import PlayerId, TournamentId
 from project.utils.types import assert_some
 
@@ -45,16 +46,16 @@ async def get_players(
     )
 
 
-@router.post("/tournaments/{tournament_id}/players", response_model=SuccessResponse)
+@router.post("/tournaments/{tournament_id}/players", response_model=CreatePlayerResponse)
 async def create_single_player(
     player_body: PlayerBody,
     tournament_id: TournamentId,
     user: UserPublic = Depends(firebase_user_authenticated),
-) -> SuccessResponse:
+) -> CreatePlayerResponse:
     # existing_players = await get_all_players_in_tournament(tournament_id)
     # check_requirement(existing_players, user, "max_players")
-    await insert_player(player_body, tournament_id)
-    return SuccessResponse()
+    player_id = await insert_player(player_body, tournament_id)
+    return CreatePlayerResponse(id=player_id)
 
 
 @router.delete("/tournaments/{tournament_id}/players/{player_id}", response_model=SuccessResponse)
@@ -118,14 +119,4 @@ async def update_player_by_id(
         ),
         values=player_body.model_dump(),
     )
-    return SinglePlayerResponse(
-        data=assert_some(
-            await fetch_one_parsed(
-                database,
-                Player,
-                players.select().where(
-                    (players.c.id == player_id) & (players.c.tournament_id == tournament_id)
-                ),
-            )
-        )
-    )
+    return SinglePlayerResponse(data=assert_some(await get_player_by_id(player_id, tournament_id)))

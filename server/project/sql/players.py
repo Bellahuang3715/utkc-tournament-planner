@@ -19,18 +19,20 @@ async def get_all_players_in_tournament(
     not_in_team_filter = "AND players.team_id IS NULL" if not_in_team else ""
     query = f"""
         SELECT
-          id,
-          tournament_id,
-          name,
-          club,
-          code,
-          created,
-          wins,
-          data
-        FROM players
-        WHERE players.tournament_id = :tournament_id
+          p.id,
+          p.tournament_id,
+          p.name,
+          p.club_id,
+          c.name AS club,
+          p.code,
+          p.created,
+          p.wins,
+          p.data
+        FROM players p
+        JOIN clubs c ON c.id = p.club_id
+        WHERE p.tournament_id = :tournament_id
         {not_in_team_filter}
-        ORDER BY name
+        ORDER BY p.name
         """
 
     result = await database.fetch_all(
@@ -43,22 +45,36 @@ async def get_all_players_in_tournament(
     )
 
     return [
-        Player.model_validate({ **dict(row), "data": json.loads(row["data"]) })
+        Player.model_validate({**dict(row), "data": json.loads(row["data"])})
         for row in result
     ]
 
 
 async def get_player_by_id(player_id: PlayerId, tournament_id: TournamentId) -> Player | None:
     query = """
-        SELECT *
-        FROM players
-        WHERE id = :player_id
-        AND tournament_id = :tournament_id
+        SELECT
+          p.id,
+          p.tournament_id,
+          p.name,
+          p.club_id,
+          c.name AS club,
+          p.code,
+          p.created,
+          p.wins,
+          p.data
+        FROM players p
+        JOIN clubs c ON c.id = p.club_id
+        WHERE p.id = :player_id
+        AND p.tournament_id = :tournament_id
     """
     result = await database.fetch_one(
         query=query, values={"player_id": player_id, "tournament_id": tournament_id}
     )
-    return Player.model_validate(result) if result is not None else None
+    if result is None:
+        return None
+    row = dict(result)
+    row["data"] = json.loads(row["data"])
+    return Player.model_validate(row)
 
 
 async def get_player_count(
@@ -88,12 +104,28 @@ async def sql_delete_players_of_tournament(tournament_id: TournamentId) -> None:
     await database.fetch_one(query=query, values={"tournament_id": tournament_id})
 
 
-async def insert_player(player_body: PlayerBody, tournament_id: TournamentId) -> None:
-    await database.execute(
-        query=players.insert(),
-        values=PlayerToInsert(
-            **player_body.model_dump(),
-            created=datetime_utc.now(),
-            tournament_id=tournament_id,
-        ).model_dump(),
+async def insert_player(player_body: PlayerBody, tournament_id: TournamentId) -> PlayerId:
+    to_insert = PlayerToInsert(
+        **player_body.model_dump(),
+        created=datetime_utc.now(),
+        tournament_id=tournament_id,
     )
+    query = """
+        INSERT INTO players (tournament_id, name, club_id, code, created, wins, data)
+        VALUES (:tournament_id, :name, :club_id, NULL, :created, :wins, CAST(:data_json AS jsonb))
+        RETURNING id
+    """
+    row = await database.fetch_one(
+        query=query,
+        values={
+            "tournament_id": tournament_id,
+            "name": to_insert.name,
+            "club_id": to_insert.club_id,
+            "created": to_insert.created,
+            "wins": to_insert.wins,
+            "data_json": json.dumps(to_insert.data),
+        },
+    )
+    if row is None:
+        raise ValueError("Could not insert player")
+    return cast(PlayerId, row["id"])
