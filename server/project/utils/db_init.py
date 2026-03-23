@@ -28,6 +28,7 @@ from project.models.db.stage_item_inputs import (
     StageItemInputCreateBodyTentative,
 )
 from project.models.db.team import TeamInsertable
+from project.models.db.team_category import TeamCategoryInsertable
 from project.models.db.tournament import TournamentInsertable
 from project.models.db.user import UserInsertable
 from project.schema import (
@@ -42,6 +43,7 @@ from project.schema import (
     stage_items,
     stages,
     teams,
+    teams_category,
     tournaments,
     users,
 )
@@ -53,6 +55,8 @@ from project.sql.users import create_user, get_user
 from project.utils.alembic import alembic_stamp_head
 from project.utils.db import insert_generic
 from project.utils.dummy_records import (
+    DUMMY_TEAM_CATEGORY_MIXED,
+    DUMMY_TEAM_CATEGORY_WOMENS,
     DUMMY_CLUB,
     DUMMY_COURT1,
     DUMMY_COURT2,
@@ -85,6 +89,7 @@ from project.utils.id_types import (
     PlayerXTeamId,
     RankingId,
     StageId,
+    TeamCategoryId,
     TeamId,
     TournamentId,
     UserId,
@@ -149,6 +154,7 @@ async def sql_create_dev_db() -> UserId:
         UserInsertable: users,
         ClubInsertable: clubs,
         StageInsertable: stages,
+        TeamCategoryInsertable: teams_category,
         TeamInsertable: teams,
         PlayerXTeamInsertable: players_x_teams,
         PlayerInsertable: players,
@@ -180,21 +186,76 @@ async def sql_create_dev_db() -> UserId:
 
     await insert_dummy(DUMMY_RANKING1, RankingId, {"tournament_id": tournament_id_1})
 
-    team_id_1 = await insert_dummy(DUMMY_TEAM1, TeamId, {"tournament_id": tournament_id_1})
-    team_id_2 = await insert_dummy(DUMMY_TEAM2, TeamId, {"tournament_id": tournament_id_1})
-    team_id_3 = await insert_dummy(DUMMY_TEAM3, TeamId, {"tournament_id": tournament_id_1})
-    team_id_4 = await insert_dummy(DUMMY_TEAM4, TeamId, {"tournament_id": tournament_id_1})
+    team_cat_mixed_id = await insert_dummy(
+        DUMMY_TEAM_CATEGORY_MIXED,
+        TeamCategoryId,
+        {"tournament_id": tournament_id_1},
+    )
+    team_cat_womens_id = await insert_dummy(
+        DUMMY_TEAM_CATEGORY_WOMENS,
+        TeamCategoryId,
+        {"tournament_id": tournament_id_1},
+    )
+
+    team_id_1 = await insert_dummy(
+        DUMMY_TEAM1,
+        TeamId,
+        {"tournament_id": tournament_id_1, "club_id": club_id_1, "category_id": team_cat_mixed_id},
+    )
+    team_id_2 = await insert_dummy(
+        DUMMY_TEAM2,
+        TeamId,
+        {"tournament_id": tournament_id_1, "club_id": club_id_1, "category_id": team_cat_mixed_id},
+    )
+    team_id_3 = await insert_dummy(
+        DUMMY_TEAM3,
+        TeamId,
+        {"tournament_id": tournament_id_1, "club_id": club_id_1, "category_id": team_cat_mixed_id},
+    )
+    team_id_4 = await insert_dummy(
+        DUMMY_TEAM4,
+        TeamId,
+        {"tournament_id": tournament_id_1, "club_id": club_id_1, "category_id": team_cat_mixed_id},
+    )
     team_id_5 = await insert_dummy(
-        DUMMY_TEAM4, TeamId, {"name": "Team 5", "code": "UOT B", "category": "Womens", "tournament_id": tournament_id_1}
+        DUMMY_TEAM4,
+        TeamId,
+        {
+            "code": "UOT B",
+            "category_id": team_cat_womens_id,
+            "tournament_id": tournament_id_1,
+            "club_id": club_id_1,
+        },
     )
     team_id_6 = await insert_dummy(
-        DUMMY_TEAM4, TeamId, {"name": "Team 6", "code": "UOT B", "category": "Womens", "tournament_id": tournament_id_1}
+        DUMMY_TEAM4,
+        TeamId,
+        {
+            "code": "UOT B",
+            "category_id": team_cat_womens_id,
+            "tournament_id": tournament_id_1,
+            "club_id": club_id_1,
+        },
     )
     team_id_7 = await insert_dummy(
-        DUMMY_TEAM4, TeamId, {"name": "Team 7", "code": "UOT B", "category": "Womens", "tournament_id": tournament_id_1}
+        DUMMY_TEAM4,
+        TeamId,
+        {
+            "code": "UOT B",
+            "category_id": team_cat_womens_id,
+            "tournament_id": tournament_id_1,
+            "club_id": club_id_1,
+        },
     )
     team_id_8 = await insert_dummy(
-        DUMMY_TEAM4, TeamId, {"name": "Team 8", "code": "UOT B", "category": "Womens", "tournament_id": tournament_id_1}
+        DUMMY_TEAM4,
+        TeamId,
+        {
+            "code": "UOT B",
+            "category_id": team_cat_womens_id,
+            "tournament_id": tournament_id_1,
+            "club_id": club_id_1,
+        },
     )
 
     player_id_1 = await insert_dummy(DUMMY_PLAYER1, PlayerId, {"tournament_id": tournament_id_1, "club_id": club_id_1, "data": DUMMY_PLAYER1.data})

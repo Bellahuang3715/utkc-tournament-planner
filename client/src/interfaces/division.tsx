@@ -23,9 +23,11 @@ export type DivisionPlayer = {
 
 export type DivisionTeam = {
   id: number;
-  name: string;
+  code: string;
+  club_id?: number;
   club: string;
   category: string;
+  category_color?: string | null;
   bias: boolean;
 };
 

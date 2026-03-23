@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 import { useTranslation } from "next-i18next";
-import { Button, Group } from "@mantine/core";
+import { Badge, Button, Group } from "@mantine/core";
 
 import { getDivisionTeams, getTeams } from "../../services/adapter";
 import AddNewTeamModal from "../modals/add_new_team_modal";
@@ -20,6 +20,7 @@ import {
 import type { DivisionTeam } from "../../interfaces/division";
 import type { BracketWithTeams } from "../../interfaces/bracket";
 import { assignTeamBrackets, pickClosestSizesTeams } from "../utils/seeding_teams";
+import { categoryChipBackground, chipTextColor } from "../../utils/chipStyle";
 
 export default function DivisionTeamsTable({
   tournamentId,
@@ -56,8 +57,25 @@ export default function DivisionTeamsTable({
   const availableToAdd = allTeams.filter((team) => !divisionTeamIds.has(team.id));
 
   const columns: MRT_ColumnDef<DivisionTeam>[] = [
-    { accessorKey: "name", header: t("team_name", "Team name") },
-    { accessorKey: "category", header: t("category_table_header", "Category") },
+    { accessorKey: "code", header: t("team_name", "Team name") },
+    {
+      accessorKey: "category",
+      header: t("category_table_header", "Category"),
+      Cell: ({ row }) => {
+        const label = row.original.category;
+        const bg = categoryChipBackground(row.original.category_color, label);
+        return (
+          <Badge
+            style={{
+              backgroundColor: bg,
+              color: chipTextColor(bg),
+            }}
+          >
+            {label}
+          </Badge>
+        );
+      },
+    },
     {
       accessorKey: "bias",
       header: t("bias", "Bias"),
@@ -105,9 +123,9 @@ export default function DivisionTeamsTable({
           .filter((x): x is DivisionTeam => !!x);
       })();
 
-    const teamNames = nextTeams.map((team) => team.name);
+    const teamCodes = nextTeams.map((team) => team.code);
     const biasTeamIds = nextTeams.filter((team) => team.bias).map((team) => team.id);
-    const seeded = assignTeamBrackets(teamNames, {
+    const seeded = assignTeamBrackets(teamCodes, {
       teamIds: nextTeamIds,
       biasTeamIds: biasTeamIds.length ? biasTeamIds : undefined,
       sizes: proposedSizes,
@@ -119,7 +137,13 @@ export default function DivisionTeamsTable({
 
   const handleAddNewTeamSuccess = async (
     newTeamId: number,
-    newTeam: { name: string; category: string; club: string },
+    newTeam: {
+      code: string;
+      category: string;
+      category_color?: string | null;
+      club: string;
+      club_id: number | null;
+    },
   ) => {
     await addTeamsToDivision(divisionId, [newTeamId]);
     const nextIds = [...divisionTeamIds, newTeamId];
@@ -127,9 +151,11 @@ export default function DivisionTeamsTable({
       ...teams,
       {
         id: newTeamId,
-        name: newTeam.name,
+        code: newTeam.code,
+        club_id: newTeam.club_id ?? undefined,
         club: newTeam.club,
         category: newTeam.category,
+        category_color: newTeam.category_color ?? undefined,
         bias: false,
       },
     ];
@@ -147,7 +173,7 @@ export default function DivisionTeamsTable({
       return;
     }
 
-    const names = availableToAdd.map((team) => `${team.name} (${team.category ?? "-"})`).join("\n");
+    const names = availableToAdd.map((team) => `${team.code} (${team.category ?? "-"})`).join("\n");
     const ok = window.confirm(
       t(
         "confirm_add_all_teams_division",

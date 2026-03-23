@@ -63,7 +63,7 @@ async def sql_list_division_brackets_with_teams(division_id: DivisionId) -> List
               JSONB_BUILD_OBJECT(
                 'team_id', t.id,
                 'bracket_idx', txb.bracket_idx,
-                'name', t.name
+                'name', t.code
               )
               ORDER BY txb.bracket_idx
             ) FILTER (WHERE txb.bracket_id IS NOT NULL),

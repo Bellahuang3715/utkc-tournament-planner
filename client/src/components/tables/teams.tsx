@@ -15,6 +15,7 @@ import { mkConfig, generateCsv, download } from "export-to-csv";
 import { TeamInterface } from "../../interfaces/team";
 import { TournamentMinimal } from "../../interfaces/tournament";
 import { deleteTeam } from "../../services/team";
+import { categoryChipBackground, chipTextColor } from "../../utils/chipStyle";
 import { GenerateBracketsButtonTeams } from "../modals/bracket_create_modal";
 import TeamModal from "../modals/team_modal";
 import { NoContent } from "../no_content/empty_table_info";
@@ -44,7 +45,6 @@ export default function TeamsTable({
     const rows = teams.map((team) => ({
       id: team.id,
       code: team.code,
-      name: team.name,
       club: team.club,
       category: team.category,
       created: team.created,
@@ -56,7 +56,12 @@ export default function TeamsTable({
   };
 
   const columns = useMemo<MRT_ColumnDef<TeamInterface>[]>(
-    () => [
+    () => {
+      const categoryFilterOptions = [
+        ...new Set(teams.map((x) => x.category).filter(Boolean)),
+      ].sort() as string[];
+
+      return [
       {
         accessorKey: "active",
         header: t("status"),
@@ -69,12 +74,18 @@ export default function TeamsTable({
           ),
       },
       {
-        accessorKey: "name",
+        accessorKey: "code",
         header: t("name_table_header"),
         filterVariant: "text",
       },
       {
         accessorKey: "club",
+        header: t("club_header"),
+        enableSorting: false,
+        filterVariant: "text",
+      },
+      {
+        accessorKey: "members",
         header: t("members_table_header"),
         enableSorting: false,
         filterVariant: "text",
@@ -84,17 +95,24 @@ export default function TeamsTable({
         header: t("category_table_header"),
         enableSorting: false,
         filterVariant: "multi-select",
-        filterSelectOptions: ["Mixed", "Womens"],
-      },
-      {
-        accessorKey: "created",
-        header: t("created"),
-        enableColumnFilter: false,
-        Cell: ({ cell }) => (
-          <time dateTime={cell.getValue<string>()}>
-            {new Date(cell.getValue<string>()).toLocaleString()}
-          </time>
-        ),
+        filterSelectOptions: categoryFilterOptions,
+        Cell: ({ row }) => {
+          const label = row.original.category;
+          const bg = categoryChipBackground(
+            row.original.category_color,
+            label,
+          );
+          return (
+            <Badge
+              style={{
+                backgroundColor: bg,
+                color: chipTextColor(bg),
+              }}
+            >
+              {label}
+            </Badge>
+          );
+        },
       },
       {
         id: "actions",
@@ -119,8 +137,9 @@ export default function TeamsTable({
           </Box>
         ),
       },
-    ],
-    [t, tournamentData.id, swrTeamsResponse]
+    ];
+    },
+    [t, tournamentData.id, swrTeamsResponse, teams]
   );
 
   if (swrTeamsResponse.error)

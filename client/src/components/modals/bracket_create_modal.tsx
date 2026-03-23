@@ -590,7 +590,7 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
   const selectedTeamNames = useMemo(
     () =>
       selectedRows.map(
-        (r) => String((r.original as RowWithId & { name?: string }).name ?? "")
+        (r) => String((r.original as RowWithId & { code?: string }).code ?? "")
       ),
     [selectedRows],
   );

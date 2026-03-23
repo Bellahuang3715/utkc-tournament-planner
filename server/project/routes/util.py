@@ -6,11 +6,11 @@ from project.models.db.match import Match
 from project.models.db.round import Round
 from project.models.db.team import FullTeamWithPlayers, Team
 from project.models.db.util import RoundWithMatches, StageItemWithRounds, StageWithStageItems
-from project.schema import matches, rounds, teams
+from project.schema import matches, rounds
 from project.sql.rounds import get_round_by_id
 from project.sql.stage_items import get_stage_item
 from project.sql.stages import get_full_tournament_details
-from project.sql.teams import get_teams_with_members
+from project.sql.teams import get_team_by_id, get_teams_with_members
 from project.utils.db import fetch_one_parsed
 from project.utils.id_types import MatchId, RoundId, StageId, StageItemId, TeamId, TournamentId
 
@@ -76,11 +76,7 @@ async def match_dependency(tournament_id: TournamentId, match_id: MatchId) -> Ma
 
 
 async def team_dependency(tournament_id: TournamentId, team_id: TeamId) -> Team:
-    team = await fetch_one_parsed(
-        database,
-        Team,
-        teams.select().where(teams.c.id == team_id and teams.c.tournament_id == tournament_id),
-    )
+    team = await get_team_by_id(team_id, tournament_id)
 
     if team is None:
         raise HTTPException(

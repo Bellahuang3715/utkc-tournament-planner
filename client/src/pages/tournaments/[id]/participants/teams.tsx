@@ -13,17 +13,9 @@ import {
 import { TeamInterface } from "../../../../interfaces/team";
 import { getTeams } from "../../../../services/adapter";
 import TournamentLayout from "../../_tournament_layout";
-import CategoryConfigModal, {
-  Category,
-} from "../../../../components/modals/category_config_modal";
+import CategoryConfigModal from "../../../../components/modals/category_config_modal";
 
 export default function Teams() {
-  // state for modal & uploading
-
-  // --- local category state: an array of { id, name, color }
-  const [categories, setCategories] = useState<Category[]>([]);
-
-  // whether the config modal is open
   const [configOpen, setConfigOpen] = useState(false);
 
   const { t } = useTranslation();
@@ -43,17 +35,13 @@ export default function Teams() {
             variant="outline"
             onClick={() => setConfigOpen(true)}
           >
-            {t("configure_template", "Configure Template")}
+            {t("manage_teams_categories", "Manage Teams Categories")}
           </Button>
-          {/* 1) Define your template once */}
           <CategoryConfigModal
             tournament_id={tournamentData.id}
             opened={configOpen}
             onClose={() => setConfigOpen(false)}
-            onSave={(newCats) => {
-              setCategories(newCats);
-              setConfigOpen(false);
-            }}
+            onSaved={() => swrTeamsResponse.mutate()}
           />
         </Group>
       </Group>

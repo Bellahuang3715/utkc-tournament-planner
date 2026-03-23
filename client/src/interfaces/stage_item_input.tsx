@@ -81,7 +81,7 @@ export function formatStageItemInput(
   stageItemsLookup: any
 ) {
   if (stage_item_input == null) return null;
-  if (stage_item_input?.team != null) return stage_item_input.team.name;
+  if (stage_item_input?.team != null) return stage_item_input.team.code;
   if (stage_item_input?.winner_from_stage_item_id != null) {
     assert(stage_item_input.winner_position != null);
     return formatStageItemInputTentative(stage_item_input, stageItemsLookup);

@@ -154,14 +154,17 @@ async def sql_get_teams_for_division(division_id: DivisionId) -> list[TeamInDivi
     query = """
         SELECT
             t.id,
-            t.name,
-            '' AS club,
-            COALESCE(t.category, '') AS category,
+            t.code,
+            COALESCE(c.name, '') AS club,
+            COALESCE(tc.name, '') AS category,
+            COALESCE(tc.color, '') AS category_color,
             COALESCE(txd.bias, FALSE) AS bias
         FROM teams t
+        LEFT JOIN clubs c ON c.id = t.club_id
+        LEFT JOIN teams_category tc ON tc.id = t.category_id
         JOIN teams_x_divisions txd ON txd.team_id = t.id
         WHERE txd.division_id = :division_id
-        ORDER BY t.name, t.id
+        ORDER BY t.code, t.id
     """
     rows = await database.fetch_all(query, {"division_id": division_id})
     return [TeamInDivision.model_validate(dict(r._mapping)) for r in rows]

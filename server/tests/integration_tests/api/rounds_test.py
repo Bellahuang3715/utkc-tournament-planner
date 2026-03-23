@@ -20,9 +20,9 @@ async def test_create_round(
     startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
 ) -> None:
     async with (
-        inserted_team(DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id})),
+        inserted_team(DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})),
         inserted_stage(
-            DUMMY_STAGE1.model_copy(update={"tournament_id": auth_context.tournament.id})
+            DUMMY_STAGE1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})
         ) as stage_inserted,
         inserted_stage_item(
             DUMMY_STAGE_ITEM1.model_copy(
@@ -50,9 +50,9 @@ async def test_delete_round(
     startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
 ) -> None:
     async with (
-        inserted_team(DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id})),
+        inserted_team(DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})),
         inserted_stage(
-            DUMMY_STAGE1.model_copy(update={"tournament_id": auth_context.tournament.id})
+            DUMMY_STAGE1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})
         ) as stage_inserted,
         inserted_stage_item(
             DUMMY_STAGE_ITEM1.model_copy(
@@ -77,9 +77,9 @@ async def test_update_round(
 ) -> None:
     body = {"name": "Some new name", "is_draft": True}
     async with (
-        inserted_team(DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id})),
+        inserted_team(DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})),
         inserted_stage(
-            DUMMY_STAGE1.model_copy(update={"tournament_id": auth_context.tournament.id})
+            DUMMY_STAGE1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})
         ) as stage_inserted,
         inserted_stage_item(
             DUMMY_STAGE_ITEM1.model_copy(

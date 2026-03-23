@@ -33,16 +33,16 @@ async def test_start_next_round(
 ) -> None:
     async with (
         inserted_court(
-            DUMMY_COURT1.model_copy(update={"tournament_id": auth_context.tournament.id})
+            DUMMY_COURT1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})
         ),
         inserted_stage(
-            DUMMY_STAGE2.model_copy(update={"tournament_id": auth_context.tournament.id})
+            DUMMY_STAGE2.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})
         ) as stage_inserted_1,
         inserted_team(
-            DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id})
+            DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})
         ) as team_inserted_1,
         inserted_team(
-            DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id})
+            DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})
         ) as team_inserted_2,
     ):
         tournament_id = auth_context.tournament.id

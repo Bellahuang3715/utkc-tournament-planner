@@ -16,16 +16,18 @@ import {
   Divider,
 } from "@mantine/core";
 import { IconX, IconUpload } from "@tabler/icons-react";
+import { showNotification } from "@mantine/notifications";
 import { useTranslation } from "next-i18next";
 import ExcelJS from "exceljs";
 
-import { getClubs } from "../../services/adapter";
+import { getClubs, getPlayerFields, getTeamCategories } from "../../services/adapter";
 import ClubModal from "./club_modal";
 import { Club } from "../../interfaces/club";
-import { getPlayerFields } from "../../services/adapter";
+import type { TeamCategoryInterface } from "../../interfaces/team_category";
 import { getTournamentIdFromRouter } from "../utils/util";
 import type { FieldInsertable } from "../../interfaces/player_fields";
 import { createTeam } from "../../services/team";
+import { resolveClubIdByName } from "../../utils/clubs";
 
 export interface PlayersUpload {
   file: File;
@@ -146,6 +148,7 @@ export default function PlayersImportModal({
   const isErrorClubs = !!swrClubs.error;
 
   const { tournamentData } = getTournamentIdFromRouter();
+  const swrCats = getTeamCategories(tournamentData.id);
   const swrPlayerFields = getPlayerFields(tournamentData.id);
   const playerFields: FieldInsertable[] = swrPlayerFields.data?.fields ?? [];
   const hasDefinedFields = playerFields.length > 0;
@@ -613,7 +616,23 @@ export default function PlayersImportModal({
           color="green"
           disabled={uploads.length === 0}
           onClick={async () => {
-            // 1) Create teams (empty player list, club name, default category)
+            const cats = swrCats.data?.data ?? [];
+            const defaultCatId =
+              cats.find(
+                (c: TeamCategoryInterface) =>
+                  c.name.toLowerCase() === "mixed",
+              )?.id ?? cats[0]?.id;
+            if (defaultCatId == null) {
+              showNotification({
+                color: "red",
+                title: t("error", "Error"),
+                message: t(
+                  "team_categories_required",
+                  "Add team categories for this tournament first.",
+                ),
+              });
+              return;
+            }
             for (const u of uploads) {
               const clubName = u.clubName || u.clubAbbrev || "";
               for (let i = 0; i < u.teamCount; i++) {
@@ -623,8 +642,8 @@ export default function PlayersImportModal({
                   name,
                   true,
                   [],
-                  clubName,
-                  "Mixed",
+                  resolveClubIdByName(clubs, clubName, 2),
+                  defaultCatId,
                 );
               }
             }

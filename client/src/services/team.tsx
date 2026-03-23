@@ -6,20 +6,19 @@ import {
 
 export async function createTeam(
   tournament_id: number,
-  name: string,
+  code: string,
   active: boolean,
   player_ids: string[],
-  club: string,
-  category: string,
+  club_id: number | null,
+  category_id: number,
   positions?: Record<string, string>,
 ) {
   try {
     const axiosInstance = await createAxios();
     return await axiosInstance.post(`tournaments/${tournament_id}/teams`, {
-      code: name,
-      name,
-      club,
-      category,
+      code,
+      club_id,
+      category_id,
       active,
       player_ids: player_ids.map((id) => Number(id)),
       ...(positions && Object.keys(positions).length > 0 && { positions }),
@@ -43,19 +42,18 @@ export async function deleteTeam(tournament_id: number, team_id: number) {
 export async function updateTeam(
   tournament_id: number,
   team_id: number,
-  name: string,
+  code: string,
   active: boolean,
   player_ids: string[],
-  club: string,
-  category: string,
+  club_id: number | null,
+  category_id: number,
   positions?: Record<string, string>,
 ) {
   return awaitRequestAndHandleError(async (axios) =>
     axios.put(`tournaments/${tournament_id}/teams/${team_id}`, {
-      code: name,
-      name,
-      club,
-      category,
+      code,
+      club_id,
+      category_id,
       active,
       player_ids: player_ids.map((id) => Number(id)),
       ...(positions && Object.keys(positions).length > 0 && { positions }),

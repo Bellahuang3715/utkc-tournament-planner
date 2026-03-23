@@ -145,6 +145,15 @@ export function getTeams(tournament_id: number | null): SWRResponse {
   );
 }
 
+export function getTeamCategories(tournament_id: number | null): SWRResponse {
+  return useSWR(
+    tournament_id == null
+      ? null
+      : `tournaments/${tournament_id}/team_categories`,
+    fetcher,
+  );
+}
+
 export function getTeamsLive(tournament_id: number | null): SWRResponse {
   return useSWR(tournament_id == null ? null : `tournaments/${tournament_id}/teams`, fetcher, {
     refreshInterval: 5_000,

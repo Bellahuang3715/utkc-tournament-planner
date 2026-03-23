@@ -15,6 +15,7 @@ from project.models.db.stage_item_inputs import (
     StageItemInputOptionTentative,
 )
 from project.models.db.team import FullTeamWithPlayers, Team, TeamInDivision
+from project.models.db.team_category import TeamCategory
 from project.models.db.tournament import Tournament
 from project.models.db.user import UserPublic
 from project.models.db.util import StageWithStageItems
@@ -119,6 +120,14 @@ class TeamsWithPlayersResponse(DataResponse[PaginatedTeams]):
 
 
 class SingleTeamResponse(DataResponse[Team]):
+    pass
+
+
+class TeamCategoriesResponse(DataResponse[list[TeamCategory]]):
+    pass
+
+
+class SingleTeamCategoryResponse(DataResponse[TeamCategory]):
     pass
 
 

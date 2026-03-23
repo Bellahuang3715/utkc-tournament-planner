@@ -14,6 +14,7 @@ from project.models.db.round import RoundInsertable
 from project.models.db.stage import StageInsertable
 from project.models.db.stage_item import StageItemInsertable, StageType
 from project.models.db.team import TeamInsertable
+from project.models.db.team_category import TeamCategoryInsertable
 from project.models.db.tournament import TournamentInsertable
 from project.models.db.user import UserInsertable
 from project.utils.id_types import (
@@ -26,6 +27,7 @@ from project.utils.id_types import (
     StageId,
     StageItemId,
     StageItemInputId,
+    TeamCategoryId,
     TeamId,
     TournamentId,
 )
@@ -148,12 +150,26 @@ DUMMY_USER = UserInsertable(
     account_type=UserAccountType.REGULAR,
 )
 
+DUMMY_TEAM_CATEGORY_MIXED = TeamCategoryInsertable(
+    tournament_id=TournamentId(DB_PLACEHOLDER_ID),
+    name="Mixed",
+    color="#d0ebff",
+    position=0,
+)
+
+DUMMY_TEAM_CATEGORY_WOMENS = TeamCategoryInsertable(
+    tournament_id=TournamentId(DB_PLACEHOLDER_ID),
+    name="Womens",
+    color="#ffdeeb",
+    position=1,
+)
+
 DUMMY_TEAM1 = TeamInsertable(
     created=DUMMY_MOCK_TIME,
     updated=DUMMY_MOCK_TIME,
     code="UOT A",
-    name="University of Toronto",
-    category="Mixed",
+    club_id=ClubId(2),
+    category_id=TeamCategoryId(1),
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     active=True,
 )
@@ -162,8 +178,8 @@ DUMMY_TEAM2 = TeamInsertable(
     created=DUMMY_MOCK_TIME,
     updated=DUMMY_MOCK_TIME,
     code="NOR B",
-    name="Nord Kendo Club",
-    category="Mixed",
+    club_id=ClubId(2),
+    category_id=TeamCategoryId(1),
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     active=True,
 )
@@ -172,8 +188,8 @@ DUMMY_TEAM3 = TeamInsertable(
     created=DUMMY_MOCK_TIME,
     updated=DUMMY_MOCK_TIME,
     code="YOR C",
-    name="York University",
-    category="Mixed",
+    club_id=ClubId(2),
+    category_id=TeamCategoryId(1),
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     active=True,
 )
@@ -182,8 +198,8 @@ DUMMY_TEAM4 = TeamInsertable(
     created=DUMMY_MOCK_TIME,
     updated=DUMMY_MOCK_TIME,
     code="MIX A",
-    name="North York x Renshin",
-    category="Mixed",
+    club_id=ClubId(2),
+    category_id=TeamCategoryId(1),
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
     active=True,
 )

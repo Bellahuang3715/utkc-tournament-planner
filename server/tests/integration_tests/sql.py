@@ -21,6 +21,7 @@ from project.models.db.stage_item_inputs import (
     StageItemInputInsertable,
 )
 from project.models.db.team import Team, TeamInsertable
+from project.models.db.team_category import TeamCategory, TeamCategoryInsertable
 from project.models.db.tournament import Tournament, TournamentInsertable
 from project.models.db.user import UserInDB, UserInsertable
 from project.schema import (
@@ -35,13 +36,14 @@ from project.schema import (
     stage_items,
     stages,
     teams,
+    teams_category,
     tournaments,
     users,
 )
 from project.sql.teams import get_teams_by_id
 from project.utils.db import insert_generic
 from project.utils.dummy_records import DUMMY_CLUB, DUMMY_RANKING1, DUMMY_TOURNAMENT
-from project.utils.id_types import TeamId
+from project.utils.id_types import TeamId, TournamentId
 from project.utils.types import BaseModelT
 from tests.integration_tests.mocks import get_mock_user
 from tests.integration_tests.models import AuthContext
@@ -86,6 +88,27 @@ async def inserted_tournament(tournament: TournamentInsertable) -> AsyncIterator
 async def inserted_team(team: TeamInsertable) -> AsyncIterator[Team]:
     async with inserted_generic(team, teams, Team) as row_inserted:
         yield cast(Team, row_inserted)
+
+
+@asynccontextmanager
+async def inserted_team_category(
+    tournament_id: TournamentId,
+    *,
+    name: str = "Mixed",
+    color: str = "#d0ebff",
+    position: int = 0,
+) -> AsyncIterator[TeamCategory]:
+    async with inserted_generic(
+        TeamCategoryInsertable(
+            tournament_id=tournament_id,
+            name=name,
+            color=color,
+            position=position,
+        ),
+        teams_category,
+        TeamCategory,
+    ) as row_inserted:
+        yield cast(TeamCategory, row_inserted)
 
 
 @asynccontextmanager

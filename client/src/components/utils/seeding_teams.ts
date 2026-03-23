@@ -1,12 +1,12 @@
 /**
  * Team bracket seeding: spread same-club / same-tier teams apart.
- * Team names: "ClubId Letter" e.g. "JCC A", "JCC B". A = strongest, then B, C, ...
+ * Team codes: "ClubId Letter" e.g. "JCC A", "JCC B". A = strongest, then B, C, ...
  * Bracket sizes: 6–16 (excluding 15). A teams get priority for bye spots. Some randomness.
  */
 
 // ---- Types ----
 export interface TeamSeedEntry {
-  name: string;
+  code: string;
   id?: number;
   /** Strong team: spread across brackets and get bye priority (like A teams). */
   bias?: boolean;
@@ -19,7 +19,7 @@ export interface TeamBracketGroup {
 }
 
 export interface ParsedTeam {
-  name: string;
+  code: string;
   id?: number;
   clubId: string;
   tier: string; // "A", "B", "C", ...
@@ -112,8 +112,8 @@ export function parseTeamName(name: string): { clubId: string; tier: string; tie
 }
 
 export function toParsedTeam(entry: TeamSeedEntry): ParsedTeam {
-  const { clubId, tier, tierRank } = parseTeamName(entry.name);
-  return { name: entry.name, id: entry.id, clubId, tier, tierRank, bias: entry.bias };
+  const { clubId, tier, tierRank } = parseTeamName(entry.code);
+  return { code: entry.code, id: entry.id, clubId, tier, tierRank, bias: entry.bias };
 }
 
 // ---- Pick bracket sizes (same logic as players) ----
@@ -333,7 +333,7 @@ function distributeTeamsIntoBrackets(
 
     const g = bestGroup >= 0 ? (candidates.length > 1 ? candidates[Math.floor(rng() * candidates.length)]! : bestGroup) : 0;
     if (capacity[g] > 0) {
-      brackets[g].teams.push({ name: t.name, id: t.id, bias: t.bias });
+      brackets[g].teams.push({ code: t.code, id: t.id, bias: t.bias });
       capacity[g]--;
       incClub(g, t.clubId);
       if (t.tierRank === 0) aTeamCountInGroup[g]++;
@@ -371,7 +371,7 @@ function orderTeamBracket(
   shuffle(biasList, rng);
   for (const t of biasList) {
     if (byePicks.length >= byeCount) break;
-    byePicks.push({ name: t.name, id: t.id, bias: t.bias });
+    byePicks.push({ code: t.code, id: t.id, bias: t.bias });
     used.add(t);
   }
   for (const rank of tierOrder) {
@@ -379,7 +379,7 @@ function orderTeamBracket(
     shuffle(list, rng);
     for (const t of list) {
       if (byePicks.length >= byeCount) break;
-      byePicks.push({ name: t.name, id: t.id, bias: t.bias });
+      byePicks.push({ code: t.code, id: t.id, bias: t.bias });
       used.add(t);
     }
   }
@@ -402,7 +402,7 @@ function orderTeamBracket(
   const clubAtSlot = new Map<number, string>();
   const place = (entry: TeamSeedEntry, idx: number) => {
     slots[idx] = entry;
-    const { clubId } = parseTeamName(entry.name);
+    const { clubId } = parseTeamName(entry.code);
     clubAtSlot.set(idx, clubId);
   };
 
@@ -411,34 +411,34 @@ function orderTeamBracket(
     if (slots[pos] != null) continue;
     if (remIdx >= remaining.length) break;
     const t = remaining[remIdx++]!;
-    place({ name: t.name, id: t.id, bias: t.bias }, pos);
+    place({ code: t.code, id: t.id, bias: t.bias }, pos);
   }
 
   for (let i = 0; i < nonByeCount && remIdx < remaining.length; i++) {
     if (slots[i] != null) continue;
     const t = remaining[remIdx++]!;
-    place({ name: t.name, id: t.id, bias: t.bias }, i);
+    place({ code: t.code, id: t.id, bias: t.bias }, i);
   }
 
-  return slots.map((s) => s ?? { name: "" }) as TeamSeedEntry[];
+  return slots.map((s) => s ?? { code: "" }) as TeamSeedEntry[];
 }
 
 // ---- Main entry ----
 /**
- * Assign team names into bracket groups. Same-club and same-tier (e.g. "A") teams
+ * Assign team codes into bracket groups. Same-club and same-tier (e.g. "A") teams
  * are spread apart. Bias (strong) teams and A teams get priority for byes.
  * Bracket sizes 6–16 (no 15). Optional seed for reproducible runs.
  * If options.sizes is provided, use that combination (and order) instead of default.
  */
 export function assignTeamBrackets(
-  teamNames: string[],
+  teamCodes: string[],
   options?: { seed?: number; teamIds?: number[]; biasTeamIds?: number[]; sizes?: number[] }
 ): TeamBracketGroup[] {
   const rng = createRng(options?.seed);
   const ids = options?.teamIds;
   const biasSet = new Set(options?.biasTeamIds ?? []);
-  const entries: TeamSeedEntry[] = teamNames.map((name, i) => ({
-    name,
+  const entries: TeamSeedEntry[] = teamCodes.map((code, i) => ({
+    code,
     id: ids?.[i],
     bias: ids?.[i] != null && biasSet.has(ids[i]!),
   }));

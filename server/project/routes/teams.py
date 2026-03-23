@@ -1,5 +1,3 @@
-from uuid import uuid4
-
 from fastapi import APIRouter, Depends, HTTPException
 from heliclockter import datetime_utc
 from starlette import status
@@ -30,7 +28,6 @@ from project.sql.teams import (
     sql_delete_team,
 )
 from project.sql.validation import check_foreign_keys_belong_to_tournament
-from project.utils.db import fetch_one_parsed
 from project.utils.errors import ForeignKey, check_foreign_key_violation
 from project.utils.id_types import PlayerId, TeamId, TournamentId
 from project.utils.types import assert_some
@@ -93,12 +90,11 @@ async def update_team_by_id(
 ) -> SingleTeamResponse:
     await check_foreign_keys_belong_to_tournament(team_body, tournament_id)
 
-    # Exclude club from DB write until schema has club column
     await database.execute(
         query=teams.update().where(
             (teams.c.id == team.id) & (teams.c.tournament_id == tournament_id)
         ),
-        values=team_body.model_dump(exclude={"player_ids", "positions", "club"}),
+        values=team_body.model_dump(exclude={"player_ids", "positions"}),
     )
 
     player_ids_set = set(team_body.player_ids)
@@ -113,15 +109,7 @@ async def update_team_by_id(
         )
 
     return SingleTeamResponse(
-        data=assert_some(
-            await fetch_one_parsed(
-                database,
-                Team,
-                teams.select().where(
-                    (teams.c.id == team.id) & (teams.c.tournament_id == tournament_id)
-                ),
-            )
-        )
+        data=assert_some(await get_team_by_id(team.id, tournament_id))
     )
 
 
@@ -154,22 +142,18 @@ async def create_team(
     existing_teams = await get_teams_with_members(tournament_id)
     check_requirement(existing_teams, user, "max_teams")
 
-    # Exclude club from DB write until schema has club column
     insertable = TeamInsertable(
         **team_to_insert.model_dump(exclude={"player_ids", "positions"}),
         created=datetime_utc.now(),
         tournament_id=tournament_id,
     )
-    values = insertable.model_dump(exclude={"club"})
-    await database.execute(query=teams.insert(), values=values)
-    # database.execute() may return None on PostgreSQL; always fetch the row we just inserted
+    await database.execute(query=teams.insert(), values=insertable.model_dump())
     team_result = await get_latest_team_for_tournament(tournament_id)
     if team_result is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Team was created but could not be read back",
         )
-    team_result = team_result.model_copy(update={"club": team_to_insert.club})
 
     player_ids_set = set(team_to_insert.player_ids)
     if player_ids_set:
@@ -182,9 +166,6 @@ async def create_team(
             team_result.id, tournament_id, player_ids_set, positions=positions_by_id
         )
 
-    if team_result is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create team",
-        )
-    return SingleTeamResponse(data=team_result)
+    return SingleTeamResponse(
+        data=assert_some(await get_team_by_id(team_result.id, tournament_id))
+    )

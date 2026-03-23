@@ -285,7 +285,7 @@ export default function PlayerCreateModal({
               {t("single_player_title")}
             </Tabs.Tab>
             <Tabs.Tab value="multi" leftSection={<IconUsers size={16} />}>
-              {t("club_players_title")}
+              {t("club_header")}
             </Tabs.Tab>
           </Tabs.List>
 

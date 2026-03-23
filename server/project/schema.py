@@ -100,21 +100,6 @@ players_field = Table(
     Column("options", JSONB, nullable=False, server_default=text("'[]'::jsonb")),    # only used for dropdowns
 )
 
-teams = Table(
-    "teams",
-    metadata,
-    Column("id", BigInteger, primary_key=True, index=True),
-    Column("code", String, nullable=False, index=True),
-    Column("name", String, nullable=False, index=True),
-    Column("category", String, nullable=False, index=True),
-    Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
-    Column("updated", DateTimeTZ, nullable=False, server_default=func.now()),
-    # try this later: Column("updated", DateTimeTZ, nullable=False, server_default=func.now(), onupdate=func.now()),
-    Column("tournament_id", BigInteger, ForeignKey("tournaments.id", ondelete="CASCADE"), index=True, nullable=False),
-    Column("active", Boolean, nullable=False, index=True, server_default="t"),
-    Column("wins", Integer, nullable=False, server_default="0"),
-)
-
 teams_category = Table(
     "teams_category",
     metadata,
@@ -122,7 +107,35 @@ teams_category = Table(
     Column("tournament_id", BigInteger, ForeignKey("tournaments.id", ondelete="CASCADE"), index=True, nullable=False),
     Column("name", String, nullable=False),
     Column("color", String, nullable=False),
-    # Column("position", Integer, nullable=False, server_default="0"),
+    Column("position", Integer, nullable=False, server_default="0"),
+    UniqueConstraint("tournament_id", "name", name="uq_teams_category_tournament_name"),
+)
+
+teams = Table(
+    "teams",
+    metadata,
+    Column("id", BigInteger, primary_key=True, index=True),
+    Column("code", String, nullable=False, index=True),
+    Column(
+        "club_id",
+        BigInteger,
+        ForeignKey("clubs.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    ),
+    Column(
+        "category_id",
+        BigInteger,
+        ForeignKey("teams_category.id", ondelete="RESTRICT"),
+        nullable=False,
+    ),
+    Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
+    Column("updated", DateTimeTZ, nullable=False, server_default=func.now()),
+    # try this later: Column("updated", DateTimeTZ, nullable=False, server_default=func.now(), onupdate=func.now()),
+    Column("tournament_id", BigInteger, ForeignKey("tournaments.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column("active", Boolean, nullable=False, index=True, server_default="t"),
+    Column("wins", Integer, nullable=False, server_default="0"),
+    Index("ix_teams_team_category_id", "category_id"),
 )
 
 players_x_teams = Table(

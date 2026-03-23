@@ -110,7 +110,7 @@ export default function ClubsTable({
                 }}
                 leftSection={<BiEditAlt size={20} />}
               >
-                {t("edit_club_title")}
+                {t("edit_club_header")}
               </Button>
             </Tooltip>
           </Box>

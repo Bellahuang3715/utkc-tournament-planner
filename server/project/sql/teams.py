@@ -12,13 +12,27 @@ async def get_teams_by_id(team_ids: set[TeamId], tournament_id: TournamentId) ->
         return []
 
     query = """
-        SELECT *
-        FROM teams
-        WHERE id = any(:team_ids)
-        AND tournament_id = :tournament_id
+        SELECT
+            t.id,
+            t.code,
+            t.club_id,
+            t.category_id,
+            tc.name AS category,
+            tc.color AS category_color,
+            t.created,
+            t.updated,
+            t.tournament_id,
+            t.active,
+            t.wins,
+            c.name AS club
+        FROM teams t
+        LEFT JOIN clubs c ON c.id = t.club_id
+        LEFT JOIN teams_category tc ON tc.id = t.category_id
+        WHERE t.id = ANY(:team_ids)
+        AND t.tournament_id = :tournament_id
     """
     result = await database.fetch_all(
-        query=query, values={"team_ids": team_ids, "tournament_id": tournament_id}
+        query=query, values={"team_ids": list(team_ids), "tournament_id": tournament_id}
     )
     return [Team.model_validate(team) for team in result]
 
@@ -31,9 +45,24 @@ async def get_team_by_id(team_id: TeamId, tournament_id: TournamentId) -> Team |
 async def get_latest_team_for_tournament(tournament_id: TournamentId) -> Team | None:
     """Return the most recently inserted team (by id) for the tournament."""
     query = """
-        SELECT * FROM teams
-        WHERE tournament_id = :tournament_id
-        ORDER BY id DESC
+        SELECT
+            t.id,
+            t.code,
+            t.club_id,
+            t.category_id,
+            tc.name AS category,
+            tc.color AS category_color,
+            t.created,
+            t.updated,
+            t.tournament_id,
+            t.active,
+            t.wins,
+            c.name AS club
+        FROM teams t
+        LEFT JOIN clubs c ON c.id = t.club_id
+        LEFT JOIN teams_category tc ON tc.id = t.category_id
+        WHERE t.tournament_id = :tournament_id
+        ORDER BY t.id DESC
         LIMIT 1
     """
     row = await database.fetch_one(query=query, values={"tournament_id": tournament_id})
@@ -50,9 +79,22 @@ async def get_teams_with_members(
     team_id_filter = "AND teams.id = :team_id" if team_id is not None else ""
     query = f"""
         SELECT
-            teams.*,
+            teams.id,
+            teams.code,
+            teams.club_id,
+            teams.category_id,
+            MAX(tc.name) AS category,
+            MAX(tc.color) AS category_color,
+            teams.created,
+            teams.updated,
+            teams.tournament_id,
+            teams.active,
+            teams.wins,
+            MAX(c.name) AS club,
             to_json(array_agg(p.*)) AS players
         FROM teams
+        LEFT JOIN clubs c ON c.id = teams.club_id
+        LEFT JOIN teams_category tc ON tc.id = teams.category_id
         LEFT JOIN players_x_teams pt on pt.team_id = teams.id
         LEFT JOIN players p on pt.player_id = p.id
         WHERE teams.tournament_id = :tournament_id

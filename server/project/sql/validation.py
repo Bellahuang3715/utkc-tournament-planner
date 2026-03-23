@@ -9,6 +9,7 @@ from project.models.db.util import StageWithStageItems
 from project.sql.courts import get_all_courts_in_tournament
 from project.sql.players import get_all_players_in_tournament, get_player_by_id
 from project.sql.stages import get_full_tournament_details
+from project.database import database
 from project.sql.teams import get_team_by_id
 from project.utils.id_types import (
     CourtId,
@@ -18,6 +19,7 @@ from project.utils.id_types import (
     StageId,
     StageItemId,
     StageItemInputId,
+    TeamCategoryId,
     TeamId,
     TournamentId,
 )
@@ -99,6 +101,19 @@ async def check_court_belongs_to_tournament(
     return any(court_id == court.id for court in await get_all_courts_in_tournament(tournament_id))
 
 
+async def check_team_category_belongs_to_tournament(
+    category_id: TeamCategoryId, _: list[StageWithStageItems], tournament_id: TournamentId
+) -> bool:
+    row = await database.fetch_one(
+        """
+        SELECT 1 FROM teams_category
+        WHERE id = :id AND tournament_id = :tid
+        """,
+        {"id": category_id, "tid": tournament_id},
+    )
+    return row is not None
+
+
 def raise_exception(field_type: Any, field_value: Any) -> NoReturn:
     field_name = field_type.__name__ if field_type is not None else "Unknown type"
     msg = f"Could not find {field_name.replace('Id', '')}(s) with ID {field_value}"
@@ -118,6 +133,7 @@ async def check_foreign_keys_belong_to_tournament(
     check_lookup: dict[type[Any], CheckCallableT] = {
         StageId: check_stage_belongs_to_tournament,
         TeamId: check_team_belongs_to_tournament,
+        TeamCategoryId: check_team_category_belongs_to_tournament,
         StageItemId: check_stage_item_belongs_to_tournament,
         StageItemInputId: check_stage_item_input_belongs_to_tournament,
         RoundId: check_round_belongs_to_tournament,

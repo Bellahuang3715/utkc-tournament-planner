@@ -20,7 +20,7 @@ async def test_rankings_endpoint(
     startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
 ) -> None:
     async with inserted_team(
-        DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id})
+        DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})
     ):
         assert await send_tournament_request(HTTPMethod.GET, "rankings", auth_context, {}) == {
             "data": [
@@ -54,10 +54,10 @@ async def test_delete_ranking(
     startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
 ) -> None:
     async with inserted_team(
-        DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id})
+        DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})
     ):
         async with inserted_ranking(
-            DUMMY_RANKING1.model_copy(update={"tournament_id": auth_context.tournament.id})
+            DUMMY_RANKING1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})
         ) as ranking_inserted:
             assert (
                 await send_tournament_request(
@@ -78,10 +78,10 @@ async def test_update_ranking(
         "position": 42,
     }
     async with inserted_team(
-        DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id})
+        DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})
     ):
         async with inserted_ranking(
-            DUMMY_RANKING1.model_copy(update={"tournament_id": auth_context.tournament.id})
+            DUMMY_RANKING1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})
         ) as ranking_inserted:
             response = await send_tournament_request(
                 HTTPMethod.PUT, f"rankings/{ranking_inserted.id}", auth_context, json=body

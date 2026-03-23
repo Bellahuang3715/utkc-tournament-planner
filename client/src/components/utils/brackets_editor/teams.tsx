@@ -319,7 +319,7 @@ export default function BracketsEditorTeams() {
     () =>
       divisionTeams.map((team) => ({
         value: String(team.id),
-        label: team.name,
+        label: team.code,
       })),
     [divisionTeams]
   );
@@ -351,7 +351,7 @@ export default function BracketsEditorTeams() {
     const bId = Number(swapB);
     if (!Number.isFinite(aId) || !Number.isFinite(bId)) return;
 
-    const nameById = new Map(divisionTeams.map((t) => [t.id, t.name]));
+    const nameById = new Map(divisionTeams.map((t) => [t.id, t.code]));
 
     setBrackets((prev) => {
       if (!prev) return prev;
@@ -413,10 +413,10 @@ export default function BracketsEditorTeams() {
       alert(t("no_teams", "No teams in this division. Add teams first."));
       return;
     }
-    const teamNames = divisionTeams.map((t) => t.name);
+    const teamCodes = divisionTeams.map((t) => t.code);
     const teamIds = divisionTeams.map((t) => t.id);
     const biasTeamIds = divisionTeams.filter((t) => t.bias).map((t) => t.id);
-    const seeded = assignTeamBrackets(teamNames, {
+    const seeded = assignTeamBrackets(teamCodes, {
       teamIds,
       biasTeamIds: biasTeamIds.length ? biasTeamIds : undefined,
     });
@@ -430,7 +430,7 @@ export default function BracketsEditorTeams() {
       teams: g.teams.map((t, idx) => ({
         team_id: t.id ?? 0,
         bracket_idx: idx,
-        name: t.name ?? null,
+        name: t.code ?? null,
       })),
     }));
     setBrackets(newBrackets);

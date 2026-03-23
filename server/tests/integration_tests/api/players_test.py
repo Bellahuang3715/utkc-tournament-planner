@@ -13,7 +13,7 @@ async def test_players_endpoint(
     startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
 ) -> None:
     async with inserted_team(
-        DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id})
+        DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})
     ):
         async with inserted_player(
             DUMMY_PLAYER1.model_copy(
@@ -61,7 +61,7 @@ async def test_delete_player(
     startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
 ) -> None:
     async with inserted_team(
-        DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id})
+        DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})
     ):
         async with inserted_player(
             DUMMY_PLAYER1.model_copy(
@@ -82,7 +82,7 @@ async def test_update_player(
 ) -> None:
     body = {"name": "Some new name", "active": True}
     async with inserted_team(
-        DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id})
+        DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})
     ):
         async with inserted_player(
             DUMMY_PLAYER1.model_copy(
