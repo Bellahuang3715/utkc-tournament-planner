@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "3c9f7e07929fc06443156b15e74a753b4bab67e615484b8a17356d0e5f133986"
+            "sha256": "37fdb594cdeafdadb726448b9b9cac1595d4ec2925698f7f8e5bc46abbe1a4ff"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -18,12 +18,12 @@
     "default": {
         "aiofiles": {
             "hashes": [
-                "sha256:22a075c9e5a3810f0c2e48f3008c94d68c65d763b9b03857924c99e57355166c",
-                "sha256:b4ec55f4195e3eb5d7abd1bf7e061763e864dd4954231fb8539a0ef8bb8260e5"
+                "sha256:a8d728f0a29de45dc521f18f07297428d56992a742f0cd2701ba86e44d23d5b2",
+                "sha256:abe311e527c862958650f9438e859c1fa7568a141b22abcd015e120e86a85695"
             ],
             "index": "pypi",
-            "markers": "python_version >= '3.8'",
-            "version": "==24.1.0"
+            "markers": "python_version >= '3.9'",
+            "version": "==25.1.0"
         },
         "aiohappyeyeballs": {
             "hashes": [
