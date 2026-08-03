@@ -41,7 +41,7 @@
     "jspdf": "^4.2.0",
     "material-react-table": "^3.2.1",
     "next": "^15.1.2",
-    "next-i18next": "^15.4.1",
+    "next-i18next": "^16.0.8",
     "papaparse": "^5.5.4",
     "pg": "^8.12.0",
     "postcss-loader": "^8.2.1",
