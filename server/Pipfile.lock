@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "79661b94d1da6abbf786d7b7d63f83b9933bdfb165fdbd016f7f80cf2226df0a"
+            "sha256": "08ea24a65ab7fedbcf68337b0903d0dd6e7ed9f60afc496fa3d14d8067c5c7ec"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -333,12 +333,12 @@
         },
         "fastapi-sso": {
             "hashes": [
-                "sha256:5acadc7e46d7a9bd7974c7046c472048dc93fb2bf7b2d496550c012fc98d0f0f",
-                "sha256:fa0e46a2a935999ea98874669c1925f4ef02d023d95ed703c8b126419275c627"
+                "sha256:c6f730b075caf537efa7c0f531095cf2d963a6fa27d059b3300e5eb19b282adb",
+                "sha256:d73216ffc29a18a6e7b47260f249d593537b777bec1026d0596d0ec374a042ff"
             ],
             "index": "pypi",
-            "markers": "python_version >= '3.8' and python_version < '4.0'",
-            "version": "==0.17.0"
+            "markers": "python_version >= '3.10' and python_version < '4.0'",
+            "version": "==0.21.1"
         },
         "frozenlist": {
             "hashes": [
@@ -528,11 +528,11 @@
         },
         "h11": {
             "hashes": [
-                "sha256:8f19fbbe99e72420ff35c00b27a34cb9937e902a8b810e2c88300c6f0a3b699d",
-                "sha256:e3fe4ac4b851c468cc8363d500db52c2ead036020723024a109d37346efaa761"
+                "sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1",
+                "sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86"
             ],
-            "markers": "python_version >= '3.7'",
-            "version": "==0.14.0"
+            "markers": "python_version >= '3.8'",
+            "version": "==0.16.0"
         },
         "heliclockter": {
             "hashes": [
@@ -545,11 +545,11 @@
         },
         "httpcore": {
             "hashes": [
-                "sha256:8551cb62a169ec7162ac7be8d4817d561f60e08eaa485234898414bb5a8a0b4c",
-                "sha256:a3fff8f43dc260d5bd363d9f9cf1830fa3a458b332856f34282de498ed420edd"
+                "sha256:2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55",
+                "sha256:6e34463af53fd2ab5d807f399a9b45ea31c3dfa2276f15a2c3f00afff6e176e8"
             ],
             "markers": "python_version >= '3.8'",
-            "version": "==1.0.7"
+            "version": "==1.0.9"
         },
         "httpx": {
             "hashes": [
@@ -788,11 +788,11 @@
         },
         "oauthlib": {
             "hashes": [
-                "sha256:8139f29aac13e25d502680e9e19963e83f16838d48a0d71c287fe40e7067fbca",
-                "sha256:9859c40929662bec5d64f34d01c99e093149682a3f38915dc0655d5a633dd918"
+                "sha256:0f0f8aa759826a193cf66c12ea1af1637f87b9b4622d46e866952bb022e538c9",
+                "sha256:88119c938d2b8fb88561af5f6ee0eec8cc8d552b7bb1f712743136eb7523b7a1"
             ],
-            "markers": "python_version >= '3.6'",
-            "version": "==3.2.2"
+            "markers": "python_version >= '3.8'",
+            "version": "==3.3.1"
         },
         "packaging": {
             "hashes": [
