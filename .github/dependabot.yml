@@ -1,40 +1,52 @@
+# Weekly dependency updates + monthly Actions bumps.
+# Security updates are enabled separately in the repo Security settings.
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/client"
+  - package-ecosystem: npm
+    directory: /client
     schedule:
-      interval: "weekly"
+      interval: weekly
+      day: monday
     open-pull-requests-limit: 10
-    rebase-strategy: auto
-    labels:
-      - "dependencies"
-      - "javascript"
+    # Keep majors as individual PRs for review; group quieter bumps.
+    groups:
+      production-patch-minor:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+      development-patch-minor:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
 
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: npm
+    directory: /
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
-    rebase-strategy: auto
-    labels:
-      - "dependencies"
-      - "javascript"
-
-  - package-ecosystem: "pip"
-    directory: "/server"
-    schedule:
-      interval: "weekly"
+      interval: weekly
+      day: monday
     open-pull-requests-limit: 10
-    rebase-strategy: auto
-    labels:
-      - "dependencies"
-      - "python"
+    groups:
+      production-patch-minor:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+      development-patch-minor:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: pip
+    directory: /server
     schedule:
-      interval: "weekly"
-    rebase-strategy: auto
-    labels:
-      - "dependencies"
-      - "github-actions"
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

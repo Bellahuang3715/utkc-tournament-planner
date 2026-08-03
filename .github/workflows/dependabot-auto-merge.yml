@@ -1,10 +1,8 @@
-# Auto-approve and enable auto-merge for Dependabot patch/minor PRs.
-# Majors are left for manual review.
-#
-# Repo setup required once:
-# 1. Settings → General → Pull Requests → enable "Allow auto-merge"
-# 2. Settings → Code security → Dependabot → enable version + security updates
-# 3. Prefer branch protection with required status checks so merges wait for CI
+# Auto-merge Dependabot patch/minor PRs once required checks (if any) pass.
+# Repo settings required:
+#   1. Settings → General → Pull Requests → Allow auto-merge
+#   2. Settings → Actions → General → Workflow permissions
+#        → Allow GitHub Actions to create and approve pull requests
 name: Dependabot auto-merge
 
 on:
@@ -19,26 +17,20 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.pull_request.user.login == 'dependabot[bot]'
     steps:
-      - name: Dependabot metadata
+      - name: Fetch Dependabot metadata
         id: metadata
-        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        uses: dependabot/fetch-metadata@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Approve patch and minor updates
-        if: >-
+      - name: Approve and enable auto-merge for patch/minor updates
+        if: |
           steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
           steps.metadata.outputs.update-type == 'version-update:semver-minor'
-        run: gh pr review --approve "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Enable auto-merge for patch and minor updates
-        if: >-
-          steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
-          steps.metadata.outputs.update-type == 'version-update:semver-minor'
-        run: gh pr merge --auto --squash "$PR_URL"
+        run: |
+          # Approve may fail if Actions isn't allowed to approve PRs; still enable auto-merge.
+          gh pr review --approve "$PR_URL" || echo "Approve skipped/failed; continuing with auto-merge"
+          gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
