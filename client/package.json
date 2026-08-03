@@ -89,11 +89,11 @@
     "@types/react-dom": "^19.0.2",
     "@types/uuid": "^10.0.0",
     "ajv": "^7.2.4",
-    "postcss": "^8.4.32",
+    "postcss": "^8.5.25",
     "postcss-preset-mantine": "^1.18.0",
     "postcss-simple-vars": "^7.0.1",
     "style-loader": "^4.0.0",
     "typescript": "^5.7.2",
-    "webpack": "^5.97.1"
+    "webpack": "^5.109.2"
   }
 }
