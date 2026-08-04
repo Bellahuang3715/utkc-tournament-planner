@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-aiofiles = ">=23.2.1"
+aiofiles = ">=25.1.0"
 types-aiofiles = ">=23.2.0.0"
 aiohttp = ">=3.14.3"
 aiopg = ">=1.4.0"
