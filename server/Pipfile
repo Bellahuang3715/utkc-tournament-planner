@@ -29,7 +29,7 @@ sqlalchemy = "<2.0"
 sqlalchemy-stubs = ">=0.4"
 starlette = ">=0.22.0"
 types-passlib = "*"
-types-simplejson = ">=3.18.0"
+types-simplejson = ">=4.1.0.20260724"
 uvicorn = ">=0.52.0"
 
 [dev-packages]
