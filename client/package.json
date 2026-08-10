@@ -88,7 +88,7 @@
     "@types/react-beautiful-dnd": "^13.1.8",
     "@types/react-dom": "^19.2.4",
     "@types/uuid": "^10.0.0",
-    "ajv": "^7.2.4",
+    "ajv": "^8.20.0",
     "postcss": "^8.5.26",
     "postcss-preset-mantine": "^1.18.0",
     "postcss-simple-vars": "^7.0.1",
