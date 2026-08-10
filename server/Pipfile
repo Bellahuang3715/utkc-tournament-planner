@@ -8,7 +8,7 @@ aiofiles = ">=25.1.0"
 types-aiofiles = ">=25.1.0.20260518"
 aiohttp = ">=3.14.3"
 aiopg = ">=1.4.0"
-alembic = ">=1.18.5"
+alembic = ">=1.19.0"
 bcrypt = "5.0.0"
 click = ">=8.4.2"
 databases = {extras = ["asyncpg"], version = "<=0.8.0"}
