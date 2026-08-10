@@ -30,7 +30,7 @@ sqlalchemy-stubs = ">=0.4"
 starlette = ">=0.22.0"
 types-passlib = "*"
 types-simplejson = ">=4.1.0.20260724"
-uvicorn = ">=0.52.0"
+uvicorn = ">=0.52.1"
 
 [dev-packages]
 aioresponses = ">=0.7.9"
