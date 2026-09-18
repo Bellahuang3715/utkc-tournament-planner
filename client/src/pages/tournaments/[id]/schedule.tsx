@@ -6,13 +6,14 @@ import {
   Card,
   Group,
   Menu,
+  Modal,
   NumberInput,
   Stack,
   Text,
   TextInput,
   Title,
 } from '@mantine/core';
-import { IconDots, IconTrash } from '@tabler/icons-react';
+import { IconDots, IconPencil, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -24,66 +25,37 @@ import { getTournamentIdFromRouter, responseIsValid } from '../../../components/
 import { Court } from '../../../interfaces/court';
 import type {
   ScheduleBlock,
+  ScheduleCustomBlock,
   SchedulePlacement,
   TimetableConfig,
 } from '../../../interfaces/schedule_timetable';
-import { getCourts, getTournamentById } from '../../../services/adapter';
-import { deleteCourt } from '../../../services/court';
+import { getCourts, getScheduleTimetable, getTournamentById } from '../../../services/adapter';
+import { deleteCourt, updateCourt } from '../../../services/court';
 import { fetchScheduleBlocks } from '../../../services/division';
 import { stringToColour } from '../../../services/lookups';
+import { saveScheduleTimetable } from '../../../services/schedule_timetable';
 import {
-  buildTimeSlots,
+  buildSnapGridSlots,
+  formatTimeLabelForAxis,
   getTimetableConfigKey,
-  getTimetableStorageKey,
   getSlotIndexForTime,
+  mergeLeftColumnBoundaries,
   placementSpanSlots,
+  SNAP_GRID_MINS,
+  snapToNearestMinutes,
 } from '../../../utils/schedule_timetable';
 import TournamentLayout from '../_tournament_layout';
 
 const DEFAULT_CONFIG: TimetableConfig = {
   startTime: '09:00',
   endTime: '17:00',
-  intervalMins: 15,
+  intervalMins: 5,
 };
 
-const ROW_HEIGHT_PX = 48;
-const TIME_COL_WIDTH = 72;
-
-type CustomBlock = { id: string; label: string; durationMins: number };
-
-function loadPlacements(tournamentId: number): SchedulePlacement[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(getTimetableStorageKey(tournamentId));
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as any[];
-    if (!Array.isArray(parsed)) return [];
-    // Back-compat: older placements stored division fields directly
-    return parsed
-      .map((p) => {
-        if (!p) return null;
-        if (p.kind && p.label && p.durationMins != null) return p as SchedulePlacement;
-        const divisionName = p.divisionName ?? p.division_name;
-        const bracketName = p.bracketName ?? p.bracket_name;
-        const label = divisionName && bracketName ? `${divisionName} – ${bracketName}` : 'Block';
-        return {
-          id: String(p.id ?? uuidv4()),
-          courtId: Number(p.courtId ?? p.court_id),
-          startTime: String(p.startTime ?? p.start_time),
-          kind: 'division',
-          divisionId: p.divisionId ?? p.division_id,
-          bracketId: p.bracketId ?? p.bracket_id,
-          divisionName,
-          bracketName,
-          label,
-          durationMins: Number(p.durationMins ?? 0),
-        } satisfies SchedulePlacement;
-      })
-      .filter(Boolean) as SchedulePlacement[];
-  } catch {
-    return [];
-  }
-}
+/** Vertical scale: px per minute (~14px per 10‑min row; full 8h ≈ 670px tall). */
+const PX_PER_MIN = 1.4;
+const SLOT_HEIGHT_PX = PX_PER_MIN * SNAP_GRID_MINS;
+const TIME_COL_WIDTH = 56;
 
 function loadConfig(tournamentId: number): TimetableConfig {
   if (typeof window === 'undefined') return DEFAULT_CONFIG;
@@ -101,52 +73,27 @@ function loadConfig(tournamentId: number): TimetableConfig {
   }
 }
 
-function savePlacements(tournamentId: number, placements: SchedulePlacement[]) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(getTimetableStorageKey(tournamentId), JSON.stringify(placements));
-}
-
 function saveConfig(tournamentId: number, config: TimetableConfig) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(getTimetableConfigKey(tournamentId), JSON.stringify(config));
 }
 
-function getCustomBlocksKey(tournamentId: number) {
-  return `${getTimetableStorageKey(tournamentId)}_custom_blocks`;
-}
-
-function loadCustomBlocks(tournamentId: number): CustomBlock[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(getCustomBlocksKey(tournamentId));
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as CustomBlock[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveCustomBlocks(tournamentId: number, blocks: CustomBlock[]) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(getCustomBlocksKey(tournamentId), JSON.stringify(blocks));
-}
 
 /** Which placement (if any) starts at this court+slot */
 function getPlacementAt(
   placements: SchedulePlacement[],
   courtId: number,
   slotIndex: number,
-  slots: Array<{ index: number; startTime: Date }>,
-  intervalMins: number
+  slots: Array<{ index: number; startTime: Date }>
 ): SchedulePlacement | null {
   for (const p of placements) {
     if (p.courtId !== courtId) continue;
     const startSlot = getSlotIndexForTime(
       slots.map((s) => ({ startTime: s.startTime })),
-      p.startTime
+      p.startTime,
+      SNAP_GRID_MINS
     );
-    const span = placementSpanSlots(p.durationMins, intervalMins);
+    const span = placementSpanSlots(p.durationMins, SNAP_GRID_MINS);
     if (startSlot <= slotIndex && slotIndex < startSlot + span) {
       return slotIndex === startSlot ? p : null; // only return at start
     }
@@ -159,16 +106,16 @@ function isSlotCovered(
   placements: SchedulePlacement[],
   courtId: number,
   slotIndex: number,
-  slots: { index: number; startTime: Date }[],
-  intervalMins: number
+  slots: { index: number; startTime: Date }[]
 ): boolean {
   for (const p of placements) {
     if (p.courtId !== courtId) continue;
     const startSlot = getSlotIndexForTime(
       slots.map((s) => ({ startTime: s.startTime })),
-      p.startTime
+      p.startTime,
+      SNAP_GRID_MINS
     );
-    const span = placementSpanSlots(p.durationMins, intervalMins);
+    const span = placementSpanSlots(p.durationMins, SNAP_GRID_MINS);
     if (slotIndex >= startSlot && slotIndex < startSlot + span) return true;
   }
   return false;
@@ -222,16 +169,11 @@ function TimetableConfigForm({
   tournamentId,
   config,
   setConfig,
-  scheduleDate,
-  setScheduleDate,
 }: {
   tournamentId: number;
   config: TimetableConfig;
   setConfig: (c: TimetableConfig) => void;
-  scheduleDate: Date;
-  setScheduleDate: (d: Date) => void;
 }) {
-  const { t } = useTranslation();
   const update = useCallback(
     (updates: Partial<TimetableConfig>) => {
       const next = { ...config, ...updates };
@@ -240,13 +182,6 @@ function TimetableConfigForm({
     },
     [config, tournamentId, setConfig]
   );
-
-  const dateStr =
-    scheduleDate.getFullYear() +
-    '-' +
-    String(scheduleDate.getMonth() + 1).padStart(2, '0') +
-    '-' +
-    String(scheduleDate.getDate()).padStart(2, '0');
 
   return (
     <Card withBorder p="sm" mb="md">
@@ -295,26 +230,6 @@ function TimetableConfigForm({
           }}
           w={80}
         />
-        <NumberInput
-          label="Interval (mins)"
-          min={5}
-          max={60}
-          step={5}
-          value={config.intervalMins}
-          onChange={(v) => update({ intervalMins: Number(v) ?? 15 })}
-          w={100}
-        />
-        <Box>
-          <Text size="sm" fw={500} mb={4}>
-            Date
-          </Text>
-          <input
-            type="date"
-            value={dateStr}
-            onChange={(e) => setScheduleDate(new Date(e.target.value + 'T12:00:00'))}
-            style={{ padding: '6px 8px', borderRadius: 4, border: '1px solid #ced4da' }}
-          />
-        </Box>
       </Group>
     </Card>
   );
@@ -374,7 +289,7 @@ function PlacedBlockCard({
         backgroundColor: `var(--mantine-color-${color}-1)`,
         borderColor: `var(--mantine-color-${color}-3)`,
         height: '100%',
-        minHeight: 40,
+        minHeight: 28,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -419,11 +334,13 @@ export default function SchedulePage() {
   const { tournamentData } = getTournamentIdFromRouter();
   const swrCourts = getCourts(tournamentData.id);
   const swrTournament = getTournamentById(tournamentData.id);
+  const swrSchedule = getScheduleTimetable(tournamentData.id);
 
   const courts: Court[] = responseIsValid(swrCourts) ? swrCourts.data?.data ?? [] : [];
   const tournamentStartTime = responseIsValid(swrTournament)
     ? swrTournament.data?.data?.start_time
     : null;
+  /** Day anchor for the timetable grid (tournament start day, or today). */
   const scheduleDate = useMemo(() => {
     if (tournamentStartTime) {
       const d = new Date(tournamentStartTime);
@@ -435,17 +352,15 @@ export default function SchedulePage() {
   const [config, setConfigState] = useState<TimetableConfig>(() =>
     loadConfig(tournamentData.id)
   );
-  const [placements, setPlacements] = useState<SchedulePlacement[]>(() =>
-    loadPlacements(tournamentData.id)
-  );
+  const [placements, setPlacements] = useState<SchedulePlacement[]>([]);
   const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
-  const [customBlocks, setCustomBlocks] = useState<CustomBlock[]>(() =>
-    loadCustomBlocks(tournamentData.id)
-  );
+  const [customBlocks, setCustomBlocks] = useState<ScheduleCustomBlock[]>([]);
   const [customLabel, setCustomLabel] = useState('Break / Buffer');
   const [customDuration, setCustomDuration] = useState<number>(30);
-  const [scheduleDateState, setScheduleDateState] = useState<Date>(scheduleDate);
   const [configLoaded, setConfigLoaded] = useState(false);
+  const [scheduleLoaded, setScheduleLoaded] = useState(false);
+  const [courtToRename, setCourtToRename] = useState<Court | null>(null);
+  const [renameCourtName, setRenameCourtName] = useState('');
   const [resizing, setResizing] = useState<{
     placementId: string;
     startY: number;
@@ -454,10 +369,34 @@ export default function SchedulePage() {
 
   useEffect(() => {
     setConfigState(loadConfig(tournamentData.id));
-    setPlacements(loadPlacements(tournamentData.id));
-    setCustomBlocks(loadCustomBlocks(tournamentData.id));
     setConfigLoaded(true);
+    setScheduleLoaded(false);
   }, [tournamentData.id]);
+
+  useEffect(() => {
+    if (!responseIsValid(swrSchedule)) return;
+    const data = swrSchedule.data?.data;
+    const nextPlacements: SchedulePlacement[] = (data?.placements ?? []).map((p: any) => ({
+      id: String(p.id ?? uuidv4()),
+      courtId: Number(p.court_id ?? p.courtId),
+      startTime: String(p.start_time ?? p.startTime),
+      kind: p.kind === 'custom' ? 'custom' : 'division',
+      divisionId: p.division_id ?? p.divisionId,
+      bracketId: p.bracket_id ?? p.bracketId,
+      label: String(p.label ?? 'Block'),
+      durationMins: Number(p.duration_mins ?? p.durationMins ?? 0),
+    }));
+    const nextCustomBlocks: ScheduleCustomBlock[] = (data?.custom_blocks ?? data?.customBlocks ?? []).map(
+      (b: any) => ({
+        id: String(b.id ?? uuidv4()),
+        label: String(b.label ?? 'Custom'),
+        durationMins: Number(b.duration_mins ?? b.durationMins ?? 30),
+      })
+    );
+    setPlacements(nextPlacements);
+    setCustomBlocks(nextCustomBlocks);
+    setScheduleLoaded(true);
+  }, [swrSchedule.data, swrSchedule.isValidating]);
 
   useEffect(() => {
     if (!tournamentData.id) return;
@@ -474,21 +413,29 @@ export default function SchedulePage() {
     [tournamentData.id, configLoaded]
   );
 
-  const setPlacementsAndSave = useCallback(
-    (next: SchedulePlacement[] | ((prev: SchedulePlacement[]) => SchedulePlacement[])) => {
-      setPlacements((prev) => {
-        const list = typeof next === 'function' ? next(prev) : next;
-        savePlacements(tournamentData.id, list);
-        return list;
+  useEffect(() => {
+    if (!scheduleLoaded) return;
+    const timer = window.setTimeout(() => {
+      void saveScheduleTimetable(tournamentData.id, {
+        placements,
+        customBlocks,
       });
-    },
-    [tournamentData.id]
-  );
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [scheduleLoaded, tournamentData.id, placements, customBlocks]);
 
   const slots = useMemo(
-    () => buildTimeSlots(config, scheduleDateState),
-    [config.startTime, config.endTime, config.intervalMins, scheduleDateState.getTime()]
+    () => buildSnapGridSlots(config, scheduleDate),
+    [config.startTime, config.endTime, scheduleDate.getTime()]
   );
+
+  const mergedLeftTimes = useMemo(
+    () => mergeLeftColumnBoundaries(scheduleDate, config, placements, SNAP_GRID_MINS),
+    [scheduleDate, config.startTime, config.endTime, placements]
+  );
+
+  const scheduleStartTime = slots[0]?.startTime;
+  const courtColumnHeight = slots.length * SLOT_HEIGHT_PX;
 
   useEffect(() => {
     if (!resizing) return;
@@ -496,11 +443,8 @@ export default function SchedulePage() {
       const placement = placements.find((p) => p.id === resizing.placementId);
       if (!placement) return;
       const deltaY = e.clientY - resizing.startY;
-      const deltaSlots = Math.round(deltaY / ROW_HEIGHT_PX);
-      const baseSlots = placementSpanSlots(resizing.baseDuration, config.intervalMins);
-      const nextSlots = Math.max(1, baseSlots + deltaSlots);
-
-      const endOfDay = getConfigEndTime(config, scheduleDateState);
+      const deltaMins = Math.round(deltaY / PX_PER_MIN);
+      const endOfDay = getConfigEndTime(config, scheduleDate);
       const startTime = new Date(placement.startTime);
       const maxAllowed = maxDurationMinsAllowed({
         placements,
@@ -509,8 +453,11 @@ export default function SchedulePage() {
         startTime,
         endOfDay,
       });
-      const nextDuration = Math.min(nextSlots * config.intervalMins, maxAllowed);
-      setPlacementsAndSave((prev) =>
+      const nextDuration = Math.min(
+        Math.max(1, resizing.baseDuration + deltaMins),
+        maxAllowed
+      );
+      setPlacements((prev) =>
         prev.map((p) => (p.id === placement.id ? { ...p, durationMins: nextDuration } : p))
       );
     };
@@ -521,7 +468,7 @@ export default function SchedulePage() {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
-  }, [resizing, placements, config.intervalMins, scheduleDateState, setPlacementsAndSave, config]);
+  }, [resizing, placements, scheduleDate, config]);
 
   const handleDragEnd = useCallback(
     (result: { destination: { droppableId: string; index: number } | null; source: { droppableId: string; index: number }; draggableId: string }) => {
@@ -532,8 +479,9 @@ export default function SchedulePage() {
       if (!destMatch) return;
       const courtId = Number(destMatch[1]);
       const slotIndex = Number(destMatch[2]);
-      const slotStartTime = slots[slotIndex]?.startTime;
-      if (!slotStartTime) return;
+      const rawSlot = slots[slotIndex]?.startTime;
+      if (!rawSlot) return;
+      const slotStartTime = snapToNearestMinutes(new Date(rawSlot), SNAP_GRID_MINS);
 
       const isFromSidebar = draggableId.startsWith('block-');
       const isFromCustomSidebar = draggableId.startsWith('custom-');
@@ -546,11 +494,11 @@ export default function SchedulePage() {
         const bracketId = Number(bracketIdStr);
         const block = blocks.find((b) => b.divisionId === divisionId && b.bracketId === bracketId);
         if (!block) return;
-        if (wouldOverlap(placements, courtId, slotStartTime, block.estimatedMins, config.intervalMins)) {
+        if (wouldOverlap(placements, courtId, slotStartTime, block.estimatedMins, SNAP_GRID_MINS)) {
           return;
         }
         const startTimeIso = slotStartTime.toISOString();
-        setPlacementsAndSave((prev) => [
+        setPlacements((prev) => [
           ...prev,
           {
             id: uuidv4(),
@@ -572,10 +520,10 @@ export default function SchedulePage() {
         const customId = draggableId.replace('custom-', '');
         const block = customBlocks.find((b) => b.id === customId);
         if (!block) return;
-        if (wouldOverlap(placements, courtId, slotStartTime, block.durationMins, config.intervalMins)) {
+        if (wouldOverlap(placements, courtId, slotStartTime, block.durationMins, SNAP_GRID_MINS)) {
           return;
         }
-        setPlacementsAndSave((prev) => [
+        setPlacements((prev) => [
           ...prev,
           {
             id: uuidv4(),
@@ -593,10 +541,10 @@ export default function SchedulePage() {
         const placementId = draggableId.replace('placement-', '');
         const placement = placements.find((p) => p.id === placementId);
         if (!placement) return;
-        if (wouldOverlap(placements, courtId, slotStartTime, placement.durationMins, config.intervalMins, placement.id)) {
+        if (wouldOverlap(placements, courtId, slotStartTime, placement.durationMins, SNAP_GRID_MINS, placement.id)) {
           return;
         }
-        setPlacementsAndSave((prev) =>
+        setPlacements((prev) =>
           prev.map((p) =>
             p.id === placementId
               ? { ...p, courtId, startTime: slotStartTime.toISOString() }
@@ -605,14 +553,14 @@ export default function SchedulePage() {
         );
       }
     },
-    [blocks, customBlocks, config.intervalMins, placements, setPlacementsAndSave, slots]
+    [blocks, customBlocks, placements, slots]
   );
 
   const removePlacement = useCallback(
     (id: string) => {
-      setPlacementsAndSave((prev) => prev.filter((p) => p.id !== id));
+      setPlacements((prev) => prev.filter((p) => p.id !== id));
     },
-    [setPlacementsAndSave]
+    []
   );
 
   if (!responseIsValid(swrCourts)) return null;
@@ -620,6 +568,7 @@ export default function SchedulePage() {
   const slotRows = slots as { index: number; label: string; startTime: Date }[];
 
   const hasCourts = courts.length > 0;
+  const startMs = scheduleStartTime?.getTime() ?? 0;
 
   return (
     <TournamentLayout tournament_id={tournamentData.id}>
@@ -629,9 +578,40 @@ export default function SchedulePage() {
           tournamentId={tournamentData.id}
           config={config}
           setConfig={setConfig}
-          scheduleDate={scheduleDateState}
-          setScheduleDate={setScheduleDateState}
         />
+
+        <Modal
+          opened={courtToRename != null}
+          onClose={() => {
+            setCourtToRename(null);
+            setRenameCourtName('');
+          }}
+          title={t('rename_court')}
+        >
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!courtToRename) return;
+              const name = renameCourtName.trim();
+              if (!name) return;
+              await updateCourt(tournamentData.id, courtToRename.id, name);
+              await swrCourts.mutate();
+              setCourtToRename(null);
+              setRenameCourtName('');
+            }}
+          >
+            <TextInput
+              label={t('name_input_label')}
+              placeholder={t('court_name_input_placeholder')}
+              value={renameCourtName}
+              onChange={(ev) => setRenameCourtName(ev.currentTarget.value)}
+              autoFocus
+            />
+            <Button type="submit" fullWidth mt="md" color="green">
+              {t('save_button')}
+            </Button>
+          </form>
+        </Modal>
 
         <DragDropContext onDragEnd={handleDragEnd}>
         <Group align="flex-start" wrap="nowrap" style={{ alignItems: 'stretch' }}>
@@ -653,206 +633,256 @@ export default function SchedulePage() {
             <>
             <Box
               style={{
-                display: 'grid',
-                gridTemplateColumns: `${TIME_COL_WIDTH}px repeat(${courts.length}, minmax(140px, 1fr))`,
-                gridAutoRows: ROW_HEIGHT_PX,
-                gap: 0,
                 border: '1px solid var(--mantine-color-default-border)',
                 borderRadius: 8,
                 overflow: 'hidden',
               }}
             >
-              {/* Header row */}
               <Box
                 style={{
-                  gridColumn: 1,
-                  gridRow: 1,
-                  padding: '8px',
-                  borderRight: '1px solid var(--mantine-color-default-border)',
+                  display: 'grid',
+                  gridTemplateColumns: `${TIME_COL_WIDTH}px repeat(${courts.length}, minmax(140px, 1fr))`,
+                  gap: 0,
                   borderBottom: '1px solid var(--mantine-color-default-border)',
-                  background: 'var(--mantine-color-default-hover)',
-                  fontWeight: 600,
-                  fontSize: 12,
                 }}
               >
-                Time
-              </Box>
-              {courts.map((court, cIdx) => (
                 <Box
-                  key={court.id}
                   style={{
-                    gridColumn: cIdx + 2,
-                    gridRow: 1,
-                    padding: '8px',
+                    padding: '6px 8px',
                     borderRight: '1px solid var(--mantine-color-default-border)',
-                    borderBottom: '1px solid var(--mantine-color-default-border)',
                     background: 'var(--mantine-color-default-hover)',
                     fontWeight: 600,
                     fontSize: 12,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
                   }}
                 >
-                  <span>{court.name}</span>
-                  <Menu withinPortal position="bottom-end" shadow="sm">
-                    <Menu.Target>
-                      <ActionIcon variant="transparent" size="sm" color="gray">
-                        <IconDots size={14} />
-                      </ActionIcon>
-                    </Menu.Target>
-                    <Menu.Dropdown>
-                      <Menu.Item
-                        leftSection={<IconTrash size={14} />}
-                        color="red"
-                        onClick={async () => {
-                          await deleteCourt(tournamentData.id, court.id);
-                          await swrCourts.mutate();
-                        }}
-                      >
-                        {t('delete_court_button')}
-                      </Menu.Item>
-                    </Menu.Dropdown>
-                  </Menu>
+                  Time
                 </Box>
-              ))}
-
-              {/* Time + cells */}
-              {slots.map((slot, rowIdx) => (
-                <React.Fragment key={slot.index}>
+                {courts.map((court) => (
                   <Box
+                    key={court.id}
                     style={{
-                      gridColumn: 1,
-                      gridRow: rowIdx + 2,
-                      padding: '4px 8px',
+                      padding: '6px 8px',
                       borderRight: '1px solid var(--mantine-color-default-border)',
-                      borderBottom: '1px solid var(--mantine-color-default-border)',
-                      fontSize: 11,
-                      color: 'var(--mantine-color-dimmed)',
+                      background: 'var(--mantine-color-default-hover)',
+                      fontWeight: 600,
+                      fontSize: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
                     }}
                   >
-                    {slot.label}
-                  </Box>
-                  {courts.map((court, cIdx) => {
-                    const covered = isSlotCovered(
-                      placements,
-                      court.id,
-                      slot.index,
-                      slotRows,
-                      config.intervalMins
-                    );
-                    const placementHere = getPlacementAt(
-                      placements,
-                      court.id,
-                      slot.index,
-                      slotRows,
-                      config.intervalMins
-                    );
-                    const span =
-                      placementHere
-                        ? placementSpanSlots(placementHere.durationMins, config.intervalMins)
-                        : 1;
-                    const visualHeightPx =
-                      placementHere != null
-                        ? (placementHere.durationMins / config.intervalMins) * ROW_HEIGHT_PX
-                        : ROW_HEIGHT_PX;
-
-                    if (placementHere) {
-                      return (
-                        <Box
-                          key={`${court.id}-${slot.index}`}
-                          style={{
-                            gridColumn: cIdx + 2,
-                            gridRow: `${rowIdx + 2} / span ${span}`,
-                            borderRight: '1px solid var(--mantine-color-default-border)',
-                            borderBottom: '1px solid var(--mantine-color-default-border)',
-                            padding: 2,
-                            height: visualHeightPx - 4,
+                    <span>{court.name}</span>
+                    <Menu withinPortal position="bottom-end" shadow="sm">
+                      <Menu.Target>
+                        <ActionIcon variant="transparent" size="sm" color="gray">
+                          <IconDots size={14} />
+                        </ActionIcon>
+                      </Menu.Target>
+                      <Menu.Dropdown>
+                        <Menu.Item
+                          leftSection={<IconPencil size={14} />}
+                          onClick={() => {
+                            setCourtToRename(court);
+                            setRenameCourtName(court.name);
                           }}
                         >
-                          <Droppable droppableId={`cell-${court.id}-${slot.index}`}>
-                            {(provided) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.droppableProps}
-                                style={{ height: '100%' }}
-                              >
-                                <Draggable
-                                  draggableId={`placement-${placementHere.id}`}
-                                  index={0}
-                                >
-                                  {(p, snapshot) => (
-                                    <div
-                                      ref={p.innerRef}
-                                      {...p.draggableProps}
-                                      {...p.dragHandleProps}
-                                      style={{ height: '100%', ...p.draggableProps.style }}
-                                    >
-                                      <PlacedBlockCard
-                                        placement={placementHere}
-                                        onRemove={() => removePlacement(placementHere.id)}
-                                        onResizeStart={(e) => {
-                                          e.stopPropagation();
-                                          setResizing({
-                                            placementId: placementHere.id,
-                                            startY: e.clientY,
-                                            baseDuration: placementHere.durationMins,
-                                          });
-                                        }}
-                                        isDragging={snapshot.isDragging}
-                                      />
-                                    </div>
-                                  )}
-                                </Draggable>
-                                {provided.placeholder}
-                              </div>
-                            )}
-                          </Droppable>
-                        </Box>
-                      );
-                    }
-
-                    if (covered) {
-                      return (
-                        <Box
-                          key={`${court.id}-${slot.index}`}
-                          style={{
-                            gridColumn: cIdx + 2,
-                            gridRow: rowIdx + 2,
-                            borderRight: '1px solid var(--mantine-color-default-border)',
-                            borderBottom: '1px solid var(--mantine-color-default-border)',
-                            background: 'var(--mantine-color-default-hover)',
+                          {t('rename_court')}
+                        </Menu.Item>
+                        <Menu.Item
+                          leftSection={<IconTrash size={14} />}
+                          color="red"
+                          onClick={async () => {
+                            await deleteCourt(tournamentData.id, court.id);
+                            await swrCourts.mutate();
                           }}
-                        />
-                      );
-                    }
+                        >
+                          {t('delete_court_button')}
+                        </Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
+                  </Box>
+                ))}
+              </Box>
 
-                    return (
-                      <Droppable
-                        key={`${court.id}-${slot.index}`}
-                        droppableId={`cell-${court.id}-${slot.index}`}
-                      >
-                        {(provided) => (
+              <Box style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch' }}>
+                <Box
+                  style={{
+                    width: TIME_COL_WIDTH,
+                    flexShrink: 0,
+                    position: 'relative',
+                    height: courtColumnHeight,
+                    borderRight: '1px solid var(--mantine-color-default-border)',
+                    background: 'var(--mantine-color-body)',
+                    paddingTop: 1,
+                  }}
+                >
+                  {scheduleStartTime &&
+                    mergedLeftTimes.map((t) => {
+                      const topPx = ((t.getTime() - startMs) / 60000) * PX_PER_MIN;
+                      return (
+                        <Text
+                          key={t.getTime()}
+                          size="xs"
+                          c="dimmed"
+                          style={{
+                            position: 'absolute',
+                            left: 4,
+                            top: topPx,
+                            lineHeight: 1,
+                            fontSize: 10,
+                            whiteSpace: 'nowrap',
+                            pointerEvents: 'none',
+                          }}
+                        >
+                          {formatTimeLabelForAxis(t)}
+                        </Text>
+                      );
+                    })}
+                </Box>
+
+                {courts.map((court, cIdx) => (
+                  <Box
+                    key={court.id}
+                    style={{
+                      flex: '1 1 140px',
+                      minWidth: 140,
+                      position: 'relative',
+                      height: courtColumnHeight,
+                      borderRight:
+                        cIdx < courts.length - 1
+                          ? '1px solid var(--mantine-color-default-border)'
+                          : undefined,
+                      backgroundColor: 'var(--mantine-color-body)',
+                      backgroundImage: `repeating-linear-gradient(
+                        to bottom,
+                        var(--mantine-color-default-border) 0,
+                        var(--mantine-color-default-border) 1px,
+                        transparent 1px,
+                        transparent ${SLOT_HEIGHT_PX}px
+                      )`,
+                    }}
+                  >
+                    {slots.map((slot, rowIdx) => {
+                      const covered = isSlotCovered(
+                        placements,
+                        court.id,
+                        slot.index,
+                        slotRows
+                      );
+                      const placementHere = getPlacementAt(
+                        placements,
+                        court.id,
+                        slot.index,
+                        slotRows
+                      );
+                      const visualHeightPx = placementHere
+                        ? placementHere.durationMins * PX_PER_MIN
+                        : SLOT_HEIGHT_PX;
+
+                      if (placementHere) {
+                        return (
                           <Box
-                            ref={provided.innerRef}
-                            {...provided.droppableProps}
+                            key={`${court.id}-${slot.index}`}
                             style={{
-                              gridColumn: cIdx + 2,
-                              gridRow: rowIdx + 2,
-                              borderRight: '1px solid var(--mantine-color-default-border)',
-                              borderBottom: '1px solid var(--mantine-color-default-border)',
-                              minHeight: ROW_HEIGHT_PX - 2,
-                              padding: 2,
+                              position: 'absolute',
+                              left: 0,
+                              right: 0,
+                              top: rowIdx * SLOT_HEIGHT_PX,
+                              height: visualHeightPx,
+                              padding: 1,
+                              zIndex: 2,
+                              boxSizing: 'border-box',
                             }}
                           >
-                            {provided.placeholder}
+                            <Droppable droppableId={`cell-${court.id}-${slot.index}`}>
+                              {(provided) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.droppableProps}
+                                  style={{ height: '100%' }}
+                                >
+                                  <Draggable
+                                    draggableId={`placement-${placementHere.id}`}
+                                    index={0}
+                                  >
+                                    {(p, snapshot) => (
+                                      <div
+                                        ref={p.innerRef}
+                                        {...p.draggableProps}
+                                        {...p.dragHandleProps}
+                                        style={{ height: '100%', ...p.draggableProps.style }}
+                                      >
+                                        <PlacedBlockCard
+                                          placement={placementHere}
+                                          onRemove={() => removePlacement(placementHere.id)}
+                                          onResizeStart={(e) => {
+                                            e.stopPropagation();
+                                            setResizing({
+                                              placementId: placementHere.id,
+                                              startY: e.clientY,
+                                              baseDuration: placementHere.durationMins,
+                                            });
+                                          }}
+                                          isDragging={snapshot.isDragging}
+                                        />
+                                      </div>
+                                    )}
+                                  </Draggable>
+                                  {provided.placeholder}
+                                </div>
+                              )}
+                            </Droppable>
                           </Box>
-                        )}
-                      </Droppable>
-                    );
-                  })}
-                </React.Fragment>
-              ))}
+                        );
+                      }
+
+                      if (covered) {
+                        return (
+                          <Box
+                            key={`${court.id}-${slot.index}`}
+                            style={{
+                              position: 'absolute',
+                              left: 0,
+                              right: 0,
+                              top: rowIdx * SLOT_HEIGHT_PX,
+                              height: SLOT_HEIGHT_PX,
+                              background: 'var(--mantine-color-default-hover)',
+                              zIndex: 0,
+                            }}
+                          />
+                        );
+                      }
+
+                      return (
+                        <Droppable
+                          key={`${court.id}-${slot.index}`}
+                          droppableId={`cell-${court.id}-${slot.index}`}
+                        >
+                          {(provided) => (
+                            <Box
+                              ref={provided.innerRef}
+                              {...provided.droppableProps}
+                              style={{
+                                position: 'absolute',
+                                left: 0,
+                                right: 0,
+                                top: rowIdx * SLOT_HEIGHT_PX,
+                                height: SLOT_HEIGHT_PX,
+                                minHeight: Math.max(4, SLOT_HEIGHT_PX - 1),
+                                padding: 0,
+                                zIndex: 1,
+                                boxSizing: 'border-box',
+                              }}
+                            >
+                              {provided.placeholder}
+                            </Box>
+                          )}
+                        </Droppable>
+                      );
+                    })}
+                  </Box>
+                ))}
+              </Box>
             </Box>
 
             <Group mt="sm">
@@ -911,16 +941,12 @@ export default function SchedulePage() {
                       size="xs"
                       fullWidth
                       onClick={() => {
-                        const b: CustomBlock = {
+                        const b: ScheduleCustomBlock = {
                           id: uuidv4(),
                           label: customLabel.trim() ? customLabel.trim() : 'Custom',
                           durationMins: Math.max(5, customDuration || 30),
                         };
-                        setCustomBlocks((prev) => {
-                          const next = [b, ...prev];
-                          saveCustomBlocks(tournamentData.id, next);
-                          return next;
-                        });
+                        setCustomBlocks((prev) => [b, ...prev]);
                       }}
                     >
                       Add custom block

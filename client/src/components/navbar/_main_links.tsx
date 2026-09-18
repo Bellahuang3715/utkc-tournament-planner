@@ -124,11 +124,11 @@ export function TournamentLinks({ tournament_id }: any) {
       label: capitalize(t('divisions_title')),
       link: `${tm_prefix}/divisions`,
     },
-    {
-      icon: IconCalendar,
-      label: capitalize(t('schedule_title')),
-      link: `${tm_prefix}/schedule`,
-    },
+    // {
+    //   icon: IconCalendar,
+    //   label: capitalize(t('schedule_title')),
+    //   link: `${tm_prefix}/schedule`,
+    // },
     {
       icon: IconScoreboard,
       label: capitalize(t('scores_title')),

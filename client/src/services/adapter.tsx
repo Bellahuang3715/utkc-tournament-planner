@@ -234,6 +234,10 @@ export function getCourtsLive(tournament_id: number): SWRResponse {
   });
 }
 
+export function getScheduleTimetable(tournament_id: number): SWRResponse {
+  return useSWR(`tournaments/${tournament_id}/schedule_timetable`, fetcher);
+}
+
 export function getUpcomingMatches(
   tournament_id: number,
   stage_item_id: number,

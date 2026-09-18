@@ -358,6 +358,47 @@ courts = Table(
     Column("tournament_id", BigInteger, ForeignKey("tournaments.id"), nullable=False, index=True),
 )
 
+schedule_timeblocks = Table(
+    "schedule_timeblocks",
+    metadata,
+    Column("id", BigInteger, primary_key=True, index=True, autoincrement=True),
+    Column(
+        "tournament_id",
+        BigInteger,
+        ForeignKey("tournaments.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    ),
+    Column(
+        "court_id",
+        BigInteger,
+        ForeignKey("courts.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    ),
+    Column("start_time", DateTimeTZ, nullable=False),
+    Column("duration_mins", Integer, nullable=False),
+    Column("kind", String, nullable=False),
+    Column("label", Text, nullable=False),
+    Column("division_id", BigInteger, ForeignKey("divisions.id", ondelete="SET NULL"), nullable=True),
+    Column("bracket_id", BigInteger, ForeignKey("brackets.id", ondelete="SET NULL"), nullable=True),
+)
+
+schedule_custom_blocks = Table(
+    "schedule_custom_blocks",
+    metadata,
+    Column("id", BigInteger, primary_key=True, index=True, autoincrement=True),
+    Column(
+        "tournament_id",
+        BigInteger,
+        ForeignKey("tournaments.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    ),
+    Column("label", Text, nullable=False),
+    Column("duration_mins", Integer, nullable=False),
+)
+
 rankings = Table(
     "rankings",
     metadata,

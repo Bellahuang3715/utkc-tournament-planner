@@ -19,6 +19,7 @@ from project.models.db.team_category import TeamCategory
 from project.models.db.tournament import Tournament
 from project.models.db.user import UserPublic
 from project.models.db.util import StageWithStageItems
+from project.models.db.schedule_timetable import TournamentScheduleBody
 from project.utils.id_types import StageId, StageItemId
 
 DataT = TypeVar("DataT")
@@ -140,6 +141,10 @@ class CourtsResponse(DataResponse[list[Court]]):
 
 
 class SingleCourtResponse(DataResponse[Court]):
+    pass
+
+
+class TournamentScheduleResponse(DataResponse[TournamentScheduleBody]):
     pass
 
 

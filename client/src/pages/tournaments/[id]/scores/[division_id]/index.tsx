@@ -3,21 +3,19 @@ import {
   Box,
   Divider,
   Center,
-  Grid,
   Group,
   Loader,
-  Card,
   Paper,
-  SimpleGrid,
   Stack,
   Title,
   Text,
   Badge,
+  Tabs,
 } from "@mantine/core";
 import { useRouter } from "next/router";
 import { useTranslation } from "next-i18next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
-import { Expanded } from "tournament-brackets-ui";
+import { Expanded, EXPANDED_SIZES_INDIVIDUALS, EXPANDED_SIZES_TEAMS } from "tournament-brackets-ui";
 
 import TournamentLayout from "../../../_tournament_layout";
 import RequestErrorAlert from "../../../../../components/utils/error_alert";
@@ -31,6 +29,73 @@ import {
 } from "../../../../../services/bracket";
 import { DEFAULT_BOOKLET } from "../../../../../components/utils/brackets_editor/shared";
 import type { BracketWithPlayers, BracketWithTeams } from "../../../../../interfaces/bracket";
+
+type ExpandedSize = (typeof EXPANDED_SIZES_INDIVIDUALS)[number];
+
+type PlayoffStage = {
+  /** Tab value, e.g. `playoff-4`. */
+  key: string;
+  size: ExpandedSize;
+  labelKey: string;
+  labelDefault: string;
+};
+
+const PLAYOFF_STAGE_LABELS: Record<number, { key: string; default: string }> = {
+  2: { key: "finals", default: "Finals" },
+  4: { key: "semifinals", default: "Semifinals" },
+  8: { key: "quarterfinals", default: "Quarterfinals" },
+  16: { key: "round_of_16", default: "Round of 16" },
+};
+
+const EXPANDED_SIZE_SET = new Set<number>([
+  ...EXPANDED_SIZES_TEAMS,
+  ...EXPANDED_SIZES_INDIVIDUALS,
+]);
+
+/** Knockout tabs from group count: e.g. 8 → QF (8) + SF (4) + F (2). */
+function getPlayoffStages(numGroups: number): PlayoffStage[] {
+  if (numGroups < 2) return [];
+
+  const stages: PlayoffStage[] = [];
+  let size = numGroups;
+
+  while (size >= 2) {
+    if (EXPANDED_SIZE_SET.has(size)) {
+      const named = PLAYOFF_STAGE_LABELS[size];
+      stages.push({
+        key: `playoff-${size}`,
+        size: size as ExpandedSize,
+        labelKey: named?.key ?? "round_of_n",
+        labelDefault: named?.default ?? "Round of {{n}}",
+      });
+    }
+    if (size === 2) break;
+    size = Math.ceil(size / 2);
+  }
+
+  return stages;
+}
+
+function emptyPlayoffPlayers(size: number) {
+  return Array.from({ length: size }, () => ({
+    id: "",
+    name: "",
+    club: null as string | null,
+    score: "",
+  }));
+}
+
+function emptyPlayoffTeams(size: number) {
+  return Array.from({ length: size }, () => "");
+}
+
+function groupTabValue(bracketId: number) {
+  return `group-${bracketId}`;
+}
+
+function isPlayoffTab(tab: string) {
+  return tab.startsWith("playoff-");
+}
 
 export default function DivisionScoresEditorPage() {
   const router = useRouter();
@@ -71,16 +136,14 @@ export default function DivisionScoresEditorPage() {
   const [loadingBrackets, setLoadingBrackets] = useState(false);
   const [bracketsLoaded, setBracketsLoaded] = useState(false);
 
-  // Future multi-user support: when we add persistence + conflict handling,
-  // we should persist changes per `bracket.id` (group) so concurrent editors
-  // touching different groups don't block each other.
-  const [activeBracketId, setActiveBracketId] = useState<number | null>(null);
+  /** `group-{id}` for a pool bracket, or `playoff-{size}` for knockout stages. */
+  const [activeTab, setActiveTab] = useState<string | null>(null);
 
   useEffect(() => {
     if (!divisionId || !selectedDivision) return;
     setLoadingBrackets(true);
     setBracketsLoaded(false);
-    setActiveBracketId(null);
+    setActiveTab(null);
 
     const run = async () => {
       try {
@@ -111,26 +174,53 @@ export default function DivisionScoresEditorPage() {
     [bracketsTeams],
   );
 
+  const groupsForCards = useMemo(() => {
+    if (!selectedDivision) return [] as Array<BracketWithPlayers | BracketWithTeams>;
+    return selectedDivision.division_type === "TEAMS"
+      ? (sortedTeams as Array<BracketWithPlayers | BracketWithTeams>)
+      : (sortedPlayers as Array<BracketWithPlayers | BracketWithTeams>);
+  }, [selectedDivision, sortedTeams, sortedPlayers]);
+
+  const playoffStages = useMemo(
+    () => getPlayoffStages(groupsForCards.length),
+    [groupsForCards.length],
+  );
+  const playoffKeys = useMemo(
+    () => new Set(playoffStages.map((s) => s.key)),
+    [playoffStages],
+  );
+
   // Keep active selection stable when data changes.
   useEffect(() => {
-    if (activeBracketId != null) return;
+    if (activeTab != null) return;
     if (selectedDivision?.division_type === "TEAMS") {
-      if (sortedTeams.length > 0) setActiveBracketId(sortedTeams[0].id);
+      if (sortedTeams.length > 0) setActiveTab(groupTabValue(sortedTeams[0].id));
     } else {
-      if (sortedPlayers.length > 0) setActiveBracketId(sortedPlayers[0].id);
+      if (sortedPlayers.length > 0) setActiveTab(groupTabValue(sortedPlayers[0].id));
     }
-  }, [activeBracketId, selectedDivision, sortedPlayers, sortedTeams]);
+  }, [activeTab, selectedDivision, sortedPlayers, sortedTeams]);
 
   useEffect(() => {
-    if (activeBracketId == null) return;
-    if (selectedDivision?.division_type === "TEAMS") {
-      const stillExists = sortedTeams.some((b) => b.id === activeBracketId);
-      if (!stillExists) setActiveBracketId(sortedTeams[0]?.id ?? null);
-    } else {
-      const stillExists = sortedPlayers.some((b) => b.id === activeBracketId);
-      if (!stillExists) setActiveBracketId(sortedPlayers[0]?.id ?? null);
+    if (activeTab == null) return;
+    if (isPlayoffTab(activeTab)) {
+      if (!playoffKeys.has(activeTab)) {
+        const first =
+          selectedDivision?.division_type === "TEAMS" ? sortedTeams[0] : sortedPlayers[0];
+        if (first) setActiveTab(groupTabValue(first.id));
+      }
+      return;
     }
-  }, [activeBracketId, selectedDivision, sortedPlayers, sortedTeams]);
+    if (!activeTab.startsWith("group-")) return;
+    const id = Number(activeTab.slice("group-".length));
+    if (!Number.isFinite(id)) return;
+    if (selectedDivision?.division_type === "TEAMS") {
+      const stillExists = sortedTeams.some((b) => b.id === id);
+      if (!stillExists) setActiveTab(sortedTeams[0] ? groupTabValue(sortedTeams[0].id) : null);
+    } else {
+      const stillExists = sortedPlayers.some((b) => b.id === id);
+      if (!stillExists) setActiveTab(sortedPlayers[0] ? groupTabValue(sortedPlayers[0].id) : null);
+    }
+  }, [activeTab, playoffKeys, selectedDivision, sortedPlayers, sortedTeams]);
 
   if (swrDivisions.error) return <RequestErrorAlert error={swrDivisions.error} />;
   if (!tournamentIdValid || !swrDivisions.data) {
@@ -163,109 +253,71 @@ export default function DivisionScoresEditorPage() {
     );
   }
 
-  const groupsForCards = useMemo(() => {
-    return selectedDivision.division_type === "TEAMS"
-      ? (sortedTeams as Array<BracketWithPlayers | BracketWithTeams>)
-      : (sortedPlayers as Array<BracketWithPlayers | BracketWithTeams>);
-  }, [selectedDivision.division_type, sortedTeams, sortedPlayers]);
-
-  const activeTeams = useMemo(() => {
-    if (activeBracketId == null) return null;
-    return sortedTeams.find((b) => b.id === activeBracketId) ?? null;
-  }, [activeBracketId, sortedTeams]);
-
-  const activePlayers = useMemo(() => {
-    if (activeBracketId == null) return null;
-    return sortedPlayers.find((b) => b.id === activeBracketId) ?? null;
-  }, [activeBracketId, sortedPlayers]);
-
   return (
     <TournamentLayout tournament_id={tournamentData.id}>
       <Stack gap="md" p="md">
-        <Stack gap={2}>
-          <Title order={2}>{t("scores_editor_title", "Score Editor")}</Title>
-          <Text c="dimmed">
-            {selectedDivision.name}
-            {selectedDivision.prefix ? ` (${selectedDivision.prefix})` : ""}
-          </Text>
-          <Text size="sm" c="dimmed">
-            Click a group card to edit its fillable scores.
-          </Text>
-        </Stack>
-
-        <Grid gutter="md" align="start">
-          <Grid.Col span={{ base: 12, md: 4 }}>
-            <Paper withBorder radius="md" p="md">
-              <Group position="apart" mb="sm">
-                <Text weight={600}>{t("groups", "Groups")}</Text>
-                <Badge variant="light" color="blue">
-                  {selectedDivision.division_type === "TEAMS"
-                    ? t("teams", "Teams")
-                    : t("individuals", "Individuals")}
-                </Badge>
-              </Group>
-
-              {loadingBrackets && !bracketsLoaded ? (
-                <Center style={{ minHeight: 120 }}>
-                  <Loader />
-                </Center>
-              ) : groupsForCards.length === 0 && bracketsLoaded ? (
-                <Text c="dimmed">{t("no_groups", "No groups found.")}</Text>
-              ) : (
-                <SimpleGrid cols={1} spacing="sm">
-                  {groupsForCards.map((b) => {
-                    const isActive = activeBracketId === b.id;
-                    return (
-                      <Card
-                        key={b.id}
-                        withBorder
-                        radius="md"
-                        p="sm"
-                        onClick={() => setActiveBracketId(b.id)}
-                        style={{
-                          cursor: "pointer",
-                          background: isActive ? "var(--mantine-color-blue-0)" : undefined,
-                          borderColor: isActive ? "var(--mantine-color-blue-5)" : undefined,
-                        }}
-                      >
-                        <Group position="apart">
-                          <Text weight={600}>{`Group ${b.index}`}</Text>
-                          <Badge variant="light">{b.num_players}x</Badge>
-                        </Group>
-                        {b.title ? (
-                          <Text size="xs" c="dimmed" mt={2}>
-                            {b.title}
-                          </Text>
-                        ) : null}
-                      </Card>
-                    );
-                  })}
-                </SimpleGrid>
+        <Group justify="space-between" align="flex-start" wrap="wrap">
+          <Stack gap={2}>
+            <Title order={2}>{t("scores_editor_title", "Score Editor")}</Title>
+            <Text c="dimmed">
+              {selectedDivision.name}
+              {selectedDivision.prefix ? ` (${selectedDivision.prefix})` : ""}
+            </Text>
+            <Text size="sm" c="dimmed">
+              {t(
+                "scores_editor_tabs_hint",
+                "Use the tabs above to switch groups and edit fillable scores.",
               )}
-            </Paper>
-          </Grid.Col>
+            </Text>
+          </Stack>
+          <Badge variant="light" color="blue" size="lg">
+            {selectedDivision.division_type === "TEAMS"
+              ? t("teams", "Teams")
+              : t("individuals", "Individuals")}
+          </Badge>
+        </Group>
 
-          <Grid.Col span={{ base: 12, md: 8 }}>
-            {loadingBrackets && !bracketsLoaded ? (
-              <Center style={{ minHeight: 260 }}>
-                <Loader />
-              </Center>
-            ) : (
-              <>
-                {selectedDivision.division_type === "TEAMS" && activeTeams && (
+        {loadingBrackets && !bracketsLoaded ? (
+          <Center style={{ minHeight: 260 }}>
+            <Loader />
+          </Center>
+        ) : groupsForCards.length === 0 && bracketsLoaded ? (
+          <Text c="dimmed">{t("no_groups", "No groups found.")}</Text>
+        ) : (
+          <Tabs
+            value={activeTab ?? undefined}
+            onChange={(v) => v && setActiveTab(v)}
+            variant="outline"
+            radius="md"
+          >
+            <Tabs.List style={{ flexWrap: "nowrap", overflowX: "auto" }}>
+              {groupsForCards.map((b) => (
+                <Tabs.Tab key={b.id} value={groupTabValue(b.id)}>
+                  {t("bracket_group_label", "Group {{n}}", { n: b.index })}
+                </Tabs.Tab>
+              ))}
+              {playoffStages.map((stage) => (
+                <Tabs.Tab key={stage.key} value={stage.key}>
+                  {t(stage.labelKey, stage.labelDefault, { n: stage.size })}
+                </Tabs.Tab>
+              ))}
+            </Tabs.List>
+
+            {groupsForCards.map((b) => (
+              <Tabs.Panel key={b.id} value={groupTabValue(b.id)} pt="md">
+                {selectedDivision.division_type === "TEAMS" ? (
                   <Paper withBorder radius="md" p="md">
-                    <Group position="apart" mb="sm">
-                      <Badge variant="light">{`Editing: Group ${activeTeams.index}`}</Badge>
-                      {/* Placeholder for future persistence */}
+                    <Group justify="space-between" mb="sm">
+                      <Badge variant="light">{`Editing: Group ${b.index}`}</Badge>
                       <Text size="sm" c="dimmed">
                         Local editing (saving UI coming soon)
                       </Text>
                     </Group>
                     <Box style={{ maxWidth: "100%", overflowX: "auto", marginTop: 8 }}>
                       <Expanded.Teams
-                        key={`teams-${activeTeams.id}`}
-                        size={activeTeams.num_players as 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 16}
-                        teams={toUITeamNames(activeTeams)}
+                        key={`teams-${b.id}`}
+                        size={b.num_players as ExpandedSize}
+                        teams={toUITeamNames(b as BracketWithTeams)}
                         mode="fillable"
                         teamIDFontFamily={DEFAULT_BOOKLET.playerId.fontFamily}
                         teamIDColor={DEFAULT_BOOKLET.playerId.color}
@@ -273,29 +325,28 @@ export default function DivisionScoresEditorPage() {
                       />
                     </Box>
                   </Paper>
-                )}
-
-                {selectedDivision.division_type !== "TEAMS" && activePlayers && (
+                ) : (
                   <Paper withBorder radius="md" p="md">
-                    <Group position="apart" mb="sm">
-                      <Badge variant="light">{`Editing: Group ${activePlayers.index}`}</Badge>
-                      {/* Placeholder for future persistence */}
+                    <Group justify="space-between" mb="sm">
+                      <Badge variant="light">{`Editing: Group ${b.index}`}</Badge>
                       <Text size="sm" c="dimmed">
                         Local editing (saving UI coming soon)
                       </Text>
                     </Group>
                     <Box style={{ maxWidth: "100%", overflowX: "auto", marginTop: 8 }}>
                       {(() => {
-                        const players = toUIPlayersWithClubAbbrev(activePlayers, clubAbbrevByName);
-                        // tournament-brackets-ui fillable mode expects `player.score` to exist.
+                        const players = toUIPlayersWithClubAbbrev(
+                          b as BracketWithPlayers,
+                          clubAbbrevByName,
+                        );
                         const playersFillable = players.map((p) => ({
                           ...p,
                           score: (p as any).score ?? "",
                         }));
                         return (
                           <Expanded.Individuals
-                            key={`individuals-${activePlayers.id}`}
-                            size={activePlayers.num_players}
+                            key={`individuals-${b.id}`}
+                            size={b.num_players}
                             players={playersFillable as any}
                             mode="fillable"
                             textStyles={{
@@ -308,10 +359,49 @@ export default function DivisionScoresEditorPage() {
                     </Box>
                   </Paper>
                 )}
-              </>
-            )}
-          </Grid.Col>
-        </Grid>
+              </Tabs.Panel>
+            ))}
+
+            {playoffStages.map((stage) => (
+              <Tabs.Panel key={stage.key} value={stage.key} pt="md">
+                <Paper withBorder radius="md" p="md">
+                  <Group justify="space-between" mb="sm">
+                    <Badge variant="light" color="grape">
+                      {t(stage.labelKey, stage.labelDefault, { n: stage.size })}
+                    </Badge>
+                    <Text size="sm" c="dimmed">
+                      Local editing (saving UI coming soon)
+                    </Text>
+                  </Group>
+                  <Box style={{ maxWidth: "100%", overflowX: "auto", marginTop: 8 }}>
+                    {selectedDivision.division_type === "TEAMS" ? (
+                      <Expanded.Teams
+                        key={`playoff-teams-${stage.size}`}
+                        size={stage.size}
+                        teams={emptyPlayoffTeams(stage.size)}
+                        mode="fillable"
+                        teamIDFontFamily={DEFAULT_BOOKLET.playerId.fontFamily}
+                        teamIDColor={DEFAULT_BOOKLET.playerId.color}
+                        teamIDFontSize={DEFAULT_BOOKLET.playerId.fontSize}
+                      />
+                    ) : (
+                      <Expanded.Individuals
+                        key={`playoff-individuals-${stage.size}`}
+                        size={stage.size}
+                        players={emptyPlayoffPlayers(stage.size) as any}
+                        mode="fillable"
+                        textStyles={{
+                          playerId: DEFAULT_BOOKLET.playerId,
+                          playerText: DEFAULT_BOOKLET.playerText,
+                        }}
+                      />
+                    )}
+                  </Box>
+                </Paper>
+              </Tabs.Panel>
+            ))}
+          </Tabs>
+        )}
         <Divider />
       </Stack>
     </TournamentLayout>
@@ -323,4 +413,3 @@ export const getServerSideProps = async ({ locale }: { locale: string }) => ({
     ...(await serverSideTranslations(locale ?? "en", ["common"])),
   },
 });
-

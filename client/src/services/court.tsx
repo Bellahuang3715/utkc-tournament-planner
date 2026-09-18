@@ -9,6 +9,15 @@ export async function createCourt(tournament_id: number, name: string) {
   }
 }
 
+export async function updateCourt(tournament_id: number, court_id: number, name: string) {
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.put(`tournaments/${tournament_id}/courts/${court_id}`, { name });
+  } catch (error: any) {
+    handleRequestError(error);
+  }
+}
+
 export async function deleteCourt(tournament_id: number, court_id: number) {
   try {
     const axiosInstance = await createAxios();

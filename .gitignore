@@ -31,3 +31,4 @@ node_modules
 /client/.next
 /server/logfile
 commands.txt
+notes.txt

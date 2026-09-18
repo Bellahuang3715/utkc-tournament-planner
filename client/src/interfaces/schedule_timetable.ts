@@ -31,6 +31,17 @@ export interface SchedulePlacement {
   durationMins: number; // rendered height; for division placement equals estimatedMins
 }
 
+export interface ScheduleCustomBlock {
+  id: string;
+  label: string;
+  durationMins: number;
+}
+
+export interface TournamentSchedulePayload {
+  placements: SchedulePlacement[];
+  customBlocks: ScheduleCustomBlock[];
+}
+
 export interface TimeSlot {
   index: number;
   label: string;
