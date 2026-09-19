@@ -36,6 +36,10 @@ import {
 } from "../../../../../services/bracket";
 import { DEFAULT_BOOKLET } from "../../../../../components/utils/brackets_editor/shared";
 import type { BracketWithPlayers, BracketWithTeams } from "../../../../../interfaces/bracket";
+import {
+  circledScoreDisplay,
+  tournamentMkdtScoreInput,
+} from "../../../../../utils/score_notation";
 
 type PageMode = "view" | "edit";
 type BracketUiMode = "view" | "fillable";
@@ -47,6 +51,8 @@ const SCORE_LEGEND: Array<{ code: string; labelKey: string; labelDefault: string
   { code: "D", labelKey: "score_legend_do", labelDefault: "Do" },
   { code: "T", labelKey: "score_legend_tsuki", labelDefault: "Tsuki" },
   { code: "H", labelKey: "score_legend_hansoku", labelDefault: "Hansoku" },
+  { code: "I", labelKey: "score_legend_ippon", labelDefault: "Ippon (= 2 Hansokus)" },
+  { code: "-", labelKey: "score_legend_no_show", labelDefault: "No Show" },
 ];
 
 type PlayoffStage = {
@@ -159,16 +165,60 @@ export default function DivisionScoresEditorPage() {
 
   const bracketUiMode: BracketUiMode = pageMode === "edit" ? "fillable" : "view";
 
+  const confirmDiscardEdits = () =>
+    window.confirm(
+      t(
+        "scores_unsaved_leave_prompt",
+        "Are you sure you want to leave? You will lose all unsaved progress.",
+      ),
+    );
+
   const enterEdit = () => setPageMode("edit");
   const cancelEdit = () => {
     setBracketRevision((n) => n + 1);
     setPageMode("view");
+  };
+  const tryExitEdit = (): boolean => {
+    if (pageMode !== "edit") return true;
+    if (!confirmDiscardEdits()) return false;
+    cancelEdit();
+    return true;
   };
   const saveEdit = () => {
     // Local commit for now — bracket components keep in-memory edits when
     // switching fillable → view without remounting. Persist API TBD.
     setPageMode("view");
   };
+
+  useEffect(() => {
+    if (pageMode !== "edit") return;
+
+    const leaveMessage = t(
+      "scores_unsaved_leave_prompt",
+      "Are you sure you want to leave? You will lose all unsaved progress.",
+    );
+
+    const beforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    const onRouteStart = (url: string) => {
+      if (url === router.asPath) return;
+      const ok = window.confirm(leaveMessage);
+      if (!ok) {
+        router.events.emit("routeChangeError");
+        // Next.js pages router expects a throw to abort navigation.
+        throw "Route change aborted.";
+      }
+    };
+
+    window.addEventListener("beforeunload", beforeUnload);
+    router.events.on("routeChangeStart", onRouteStart);
+    return () => {
+      window.removeEventListener("beforeunload", beforeUnload);
+      router.events.off("routeChangeStart", onRouteStart);
+    };
+  }, [pageMode, router, t]);
 
   useEffect(() => {
     if (!divisionId || !selectedDivision) return;
@@ -328,7 +378,7 @@ export default function DivisionScoresEditorPage() {
                   <Text size="xs" c="dimmed">
                     {t(
                       "score_legend_hint",
-                      "Enter these letters in the score box:",
+                      "Enter letters in the score box:",
                     )}
                   </Text>
                   <Stack gap={6}>
@@ -353,8 +403,7 @@ export default function DivisionScoresEditorPage() {
               value={pageMode}
               onChange={(v) => {
                 if (v === "edit") enterEdit();
-                else if (pageMode === "edit") cancelEdit();
-                else setPageMode("view");
+                else tryExitEdit();
               }}
               data={[
                 { label: t("view", "View"), value: "view" },
@@ -415,6 +464,8 @@ export default function DivisionScoresEditorPage() {
                         theme={bracketTheme}
                         teamIDFontFamily={DEFAULT_BOOKLET.playerId.fontFamily}
                         teamIDFontSize={DEFAULT_BOOKLET.playerId.fontSize}
+                        scoreInputTransform={tournamentMkdtScoreInput}
+                        formatScoreDisplay={circledScoreDisplay}
                       />
                     </Box>
                   </Paper>
@@ -450,6 +501,8 @@ export default function DivisionScoresEditorPage() {
                             mode={bracketUiMode}
                             theme={bracketTheme}
                             textStyles={bracketTextStyles}
+                            scoreInputTransform={tournamentMkdtScoreInput}
+                            formatScoreDisplay={circledScoreDisplay}
                           />
                         );
                       })()}
@@ -503,7 +556,7 @@ export default function DivisionScoresEditorPage() {
         )}
         {pageMode === "edit" && (
           <Group justify="flex-end" gap="xs">
-            <Button variant="default" onClick={cancelEdit}>
+            <Button variant="default" onClick={() => tryExitEdit()}>
               {t("cancel", "Cancel")}
             </Button>
             <Button onClick={saveEdit}>{t("save", "Save")}</Button>
