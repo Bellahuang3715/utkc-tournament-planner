@@ -3215,7 +3215,7 @@ for-each@^0.3.5:
   dependencies:
     is-callable "^1.2.7"
 
-form-data@^4.0.4, form-data@^4.0.6:
+form-data@^4.0.6:
   version "4.0.6"
   resolved "https://registry.npmjs.org/form-data/-/form-data-4.0.6.tgz"
   integrity sha512-vKatAh4SlVfgbv+YtmhiRjhEMJsYpsG1Y2rMQtR+SVSbytsSD1YGzDIcrAJmdFec88u/+VoGmxnl+80gL1tRCQ==
@@ -3880,6 +3880,11 @@ lodash.uniq@^4.5.0:
   version "4.5.0"
   resolved "https://registry.npmjs.org/lodash.uniq/-/lodash.uniq-4.5.0.tgz"
   integrity sha512-xfBaXQd9ryd9dlSDvnvI0lvxfLJlYAZzXomUYzLKtUeOQvOP5piqAWuGtrhWeqaXK9hhoM/iyJc5AV+XfsX3HQ==
+
+lodash@^4.18.0:
+  version "4.18.1"
+  resolved "https://registry.npmjs.org/lodash/-/lodash-4.18.1.tgz"
+  integrity sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==
 
 long@^5.0.0, long@^5.3.2:
   version "5.3.2"
@@ -5489,12 +5494,13 @@ totalist@^3.0.0:
   resolved "https://registry.npmjs.org/totalist/-/totalist-3.0.1.tgz"
   integrity sha512-sf4i37nQ2LBx4m3wB74y+ubopq6W/dIzXg0FDGjsYnZHVa1Da8FH853wlL2gtUhg+xJXjfk3kUZS3BRoQeoQBQ==
 
-tournament-brackets-ui@^0.1.16:
-  version "0.1.16"
-  resolved "https://registry.npmjs.org/tournament-brackets-ui/-/tournament-brackets-ui-0.1.16.tgz"
-  integrity sha512-kj2yE1gY7/OY+JwSzT+1B8llYBg4mmmF3mnL1KBUCan/hLoZoJeniFprHM/YWUH7zjtELtO7C/F6wmtW8nCDkA==
+tournament-brackets-ui@^0.1.17:
+  version "0.1.17"
+  resolved "https://registry.npmjs.org/tournament-brackets-ui/-/tournament-brackets-ui-0.1.17.tgz"
+  integrity sha512-azkxmsQmGkCoGEdW5WbvUpgvFkNqbeBREGofcJ8ektNi1b9BI21VE+SW/6m1R7BcG8IKN7LuwE8tqAOTeNMTsA==
   dependencies:
-    form-data "^4.0.4"
+    form-data "^4.0.6"
+    lodash "^4.18.0"
 
 "traverse@>=0.3.0 <0.4":
   version "0.3.9"

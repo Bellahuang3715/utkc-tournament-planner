@@ -1,17 +1,24 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  ActionIcon,
   Box,
+  Button,
+  Code,
   Divider,
   Center,
   Group,
   Loader,
   Paper,
+  Popover,
+  SegmentedControl,
   Stack,
   Title,
   Text,
   Badge,
   Tabs,
+  useComputedColorScheme,
 } from "@mantine/core";
+import { IconQuestionMark } from "@tabler/icons-react";
 import { useRouter } from "next/router";
 import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
@@ -30,21 +37,24 @@ import {
 import { DEFAULT_BOOKLET } from "../../../../../components/utils/brackets_editor/shared";
 import type { BracketWithPlayers, BracketWithTeams } from "../../../../../interfaces/bracket";
 
+type PageMode = "view" | "edit";
+type BracketUiMode = "view" | "fillable";
 type ExpandedSize = (typeof EXPANDED_SIZES_INDIVIDUALS)[number];
 
+const SCORE_LEGEND: Array<{ code: string; labelKey: string; labelDefault: string }> = [
+  { code: "M", labelKey: "score_legend_men", labelDefault: "Men" },
+  { code: "K", labelKey: "score_legend_kote", labelDefault: "Kote" },
+  { code: "D", labelKey: "score_legend_do", labelDefault: "Do" },
+  { code: "T", labelKey: "score_legend_tsuki", labelDefault: "Tsuki" },
+  { code: "H", labelKey: "score_legend_hansoku", labelDefault: "Hansoku" },
+];
+
 type PlayoffStage = {
-  /** Tab value, e.g. `playoff-4`. */
+  /** Tab value, e.g. `playoff-finals`. */
   key: string;
   size: ExpandedSize;
   labelKey: string;
   labelDefault: string;
-};
-
-const PLAYOFF_STAGE_LABELS: Record<number, { key: string; default: string }> = {
-  2: { key: "finals", default: "Finals" },
-  4: { key: "semifinals", default: "Semifinals" },
-  8: { key: "quarterfinals", default: "Quarterfinals" },
-  16: { key: "round_of_16", default: "Round of 16" },
 };
 
 const EXPANDED_SIZE_SET = new Set<number>([
@@ -52,28 +62,15 @@ const EXPANDED_SIZE_SET = new Set<number>([
   ...EXPANDED_SIZES_INDIVIDUALS,
 ]);
 
-/** Knockout tabs from group count: e.g. 8 → QF (8) + SF (4) + F (2). */
-function getPlayoffStages(numGroups: number): PlayoffStage[] {
-  if (numGroups < 2) return [];
-
-  const stages: PlayoffStage[] = [];
-  let size = numGroups;
-
-  while (size >= 2) {
-    if (EXPANDED_SIZE_SET.has(size)) {
-      const named = PLAYOFF_STAGE_LABELS[size];
-      stages.push({
-        key: `playoff-${size}`,
-        size: size as ExpandedSize,
-        labelKey: named?.key ?? "round_of_n",
-        labelDefault: named?.default ?? "Round of {{n}}",
-      });
-    }
-    if (size === 2) break;
-    size = Math.ceil(size / 2);
-  }
-
-  return stages;
+/** Single Finals tab; slot count = number of groups (when that size is supported). */
+function getFinalsStage(numGroups: number): PlayoffStage | null {
+  if (numGroups < 2 || !EXPANDED_SIZE_SET.has(numGroups)) return null;
+  return {
+    key: "playoff-finals",
+    size: numGroups as ExpandedSize,
+    labelKey: "finals",
+    labelDefault: "Finals",
+  };
 }
 
 function emptyPlayoffPlayers(size: number) {
@@ -100,6 +97,24 @@ function isPlayoffTab(tab: string) {
 export default function DivisionScoresEditorPage() {
   const router = useRouter();
   const { t } = useTranslation();
+  const colorScheme = useComputedColorScheme("light", {
+    getInitialValueInEffect: true,
+  });
+  const bracketTheme = colorScheme === "dark" ? "dark" : "light";
+  /** Fonts only — omit color so dark/light ink comes from the library theme. */
+  const bracketTextStyles = useMemo(
+    () => ({
+      playerId: {
+        fontFamily: DEFAULT_BOOKLET.playerId.fontFamily,
+        fontSize: DEFAULT_BOOKLET.playerId.fontSize,
+      },
+      playerText: {
+        fontFamily: DEFAULT_BOOKLET.playerText.fontFamily,
+        fontSize: DEFAULT_BOOKLET.playerText.fontSize,
+      },
+    }),
+    [],
+  );
 
   const { id: tournamentId, tournamentData } = getTournamentIdFromRouter();
   const tournamentIdValid = Number.isFinite(tournamentId);
@@ -138,12 +153,30 @@ export default function DivisionScoresEditorPage() {
 
   /** `group-{id}` for a pool bracket, or `playoff-{size}` for knockout stages. */
   const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [pageMode, setPageMode] = useState<PageMode>("view");
+  /** Bumped on Cancel so fillable brackets remount from saved props. */
+  const [bracketRevision, setBracketRevision] = useState(0);
+
+  const bracketUiMode: BracketUiMode = pageMode === "edit" ? "fillable" : "view";
+
+  const enterEdit = () => setPageMode("edit");
+  const cancelEdit = () => {
+    setBracketRevision((n) => n + 1);
+    setPageMode("view");
+  };
+  const saveEdit = () => {
+    // Local commit for now — bracket components keep in-memory edits when
+    // switching fillable → view without remounting. Persist API TBD.
+    setPageMode("view");
+  };
 
   useEffect(() => {
     if (!divisionId || !selectedDivision) return;
     setLoadingBrackets(true);
     setBracketsLoaded(false);
     setActiveTab(null);
+    setPageMode("view");
+    setBracketRevision(0);
 
     const run = async () => {
       try {
@@ -181,10 +214,10 @@ export default function DivisionScoresEditorPage() {
       : (sortedPlayers as Array<BracketWithPlayers | BracketWithTeams>);
   }, [selectedDivision, sortedTeams, sortedPlayers]);
 
-  const playoffStages = useMemo(
-    () => getPlayoffStages(groupsForCards.length),
-    [groupsForCards.length],
-  );
+  const playoffStages = useMemo(() => {
+    const finals = getFinalsStage(groupsForCards.length);
+    return finals ? [finals] : [];
+  }, [groupsForCards.length]);
   const playoffKeys = useMemo(
     () => new Set(playoffStages.map((s) => s.key)),
     [playoffStages],
@@ -264,17 +297,71 @@ export default function DivisionScoresEditorPage() {
               {selectedDivision.prefix ? ` (${selectedDivision.prefix})` : ""}
             </Text>
             <Text size="sm" c="dimmed">
-              {t(
-                "scores_editor_tabs_hint",
-                "Use the tabs above to switch groups and edit fillable scores.",
-              )}
+              {pageMode === "edit"
+                ? t(
+                    "scores_editor_edit_hint",
+                    "Edit scores below, then Save or Cancel.",
+                  )
+                : t(
+                    "scores_editor_view_hint",
+                    "Viewing scores. Switch to Edit to make changes.",
+                  )}
             </Text>
           </Stack>
-          <Badge variant="light" color="blue" size="lg">
-            {selectedDivision.division_type === "TEAMS"
-              ? t("teams", "Teams")
-              : t("individuals", "Individuals")}
-          </Badge>
+          <Group gap="sm" align="center" wrap="wrap">
+            <Popover width={220} position="bottom-end" withArrow shadow="md">
+              <Popover.Target>
+                <ActionIcon
+                  variant="default"
+                  radius="xl"
+                  size="md"
+                  aria-label={t("score_legend_aria", "Score legend")}
+                >
+                  <IconQuestionMark size={16} />
+                </ActionIcon>
+              </Popover.Target>
+              <Popover.Dropdown>
+                <Stack gap="xs">
+                  <Text size="sm" fw={600}>
+                    {t("score_legend_title", "Score legend")}
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    {t(
+                      "score_legend_hint",
+                      "Enter these letters in the score box:",
+                    )}
+                  </Text>
+                  <Stack gap={6}>
+                    {SCORE_LEGEND.map((item) => (
+                      <Group key={item.code} gap="sm" wrap="nowrap">
+                        <Code w={28} ta="center" fw={700}>
+                          {item.code}
+                        </Code>
+                        <Text size="sm">{t(item.labelKey, item.labelDefault)}</Text>
+                      </Group>
+                    ))}
+                  </Stack>
+                </Stack>
+              </Popover.Dropdown>
+            </Popover>
+            <Badge variant="light" color="blue" size="lg">
+              {selectedDivision.division_type === "TEAMS"
+                ? t("teams", "Teams")
+                : t("individuals", "Individuals")}
+            </Badge>
+            <SegmentedControl
+              value={pageMode}
+              onChange={(v) => {
+                if (v === "edit") enterEdit();
+                else if (pageMode === "edit") cancelEdit();
+                else setPageMode("view");
+              }}
+              data={[
+                { label: t("view", "View"), value: "view" },
+                { label: t("edit", "Edit"), value: "edit" },
+              ]}
+            />
+          </Group>
         </Group>
 
         {loadingBrackets && !bracketsLoaded ? (
@@ -308,19 +395,25 @@ export default function DivisionScoresEditorPage() {
                 {selectedDivision.division_type === "TEAMS" ? (
                   <Paper withBorder radius="md" p="md">
                     <Group justify="space-between" mb="sm">
-                      <Badge variant="light">{`Editing: Group ${b.index}`}</Badge>
-                      <Text size="sm" c="dimmed">
-                        Local editing (saving UI coming soon)
-                      </Text>
+                      <Badge variant="light">
+                        {pageMode === "edit"
+                          ? t("editing_group", "Editing: Group {{n}}", { n: b.index })
+                          : t("viewing_group", "Viewing: Group {{n}}", { n: b.index })}
+                      </Badge>
+                      {pageMode === "edit" && (
+                        <Text size="sm" c="dimmed">
+                          {t("scores_local_edit_hint", "Local editing (saving to server coming soon)")}
+                        </Text>
+                      )}
                     </Group>
                     <Box style={{ maxWidth: "100%", overflowX: "auto", marginTop: 8 }}>
                       <Expanded.Teams
-                        key={`teams-${b.id}`}
+                        key={`teams-${b.id}-${bracketRevision}-${bracketTheme}`}
                         size={b.num_players as ExpandedSize}
                         teams={toUITeamNames(b as BracketWithTeams)}
-                        mode="fillable"
+                        mode={bracketUiMode}
+                        theme={bracketTheme}
                         teamIDFontFamily={DEFAULT_BOOKLET.playerId.fontFamily}
-                        teamIDColor={DEFAULT_BOOKLET.playerId.color}
                         teamIDFontSize={DEFAULT_BOOKLET.playerId.fontSize}
                       />
                     </Box>
@@ -328,10 +421,16 @@ export default function DivisionScoresEditorPage() {
                 ) : (
                   <Paper withBorder radius="md" p="md">
                     <Group justify="space-between" mb="sm">
-                      <Badge variant="light">{`Editing: Group ${b.index}`}</Badge>
-                      <Text size="sm" c="dimmed">
-                        Local editing (saving UI coming soon)
-                      </Text>
+                      <Badge variant="light">
+                        {pageMode === "edit"
+                          ? t("editing_group", "Editing: Group {{n}}", { n: b.index })
+                          : t("viewing_group", "Viewing: Group {{n}}", { n: b.index })}
+                      </Badge>
+                      {pageMode === "edit" && (
+                        <Text size="sm" c="dimmed">
+                          {t("scores_local_edit_hint", "Local editing (saving to server coming soon)")}
+                        </Text>
+                      )}
                     </Group>
                     <Box style={{ maxWidth: "100%", overflowX: "auto", marginTop: 8 }}>
                       {(() => {
@@ -345,14 +444,12 @@ export default function DivisionScoresEditorPage() {
                         }));
                         return (
                           <Expanded.Individuals
-                            key={`individuals-${b.id}`}
+                            key={`individuals-${b.id}-${bracketRevision}-${bracketTheme}`}
                             size={b.num_players}
                             players={playersFillable as any}
-                            mode="fillable"
-                            textStyles={{
-                              playerId: DEFAULT_BOOKLET.playerId,
-                              playerText: DEFAULT_BOOKLET.playerText,
-                            }}
+                            mode={bracketUiMode}
+                            theme={bracketTheme}
+                            textStyles={bracketTextStyles}
                           />
                         );
                       })()}
@@ -367,33 +464,35 @@ export default function DivisionScoresEditorPage() {
                 <Paper withBorder radius="md" p="md">
                   <Group justify="space-between" mb="sm">
                     <Badge variant="light" color="grape">
-                      {t(stage.labelKey, stage.labelDefault, { n: stage.size })}
+                      {pageMode === "edit"
+                        ? `${t("edit", "Edit")}: ${t(stage.labelKey, stage.labelDefault, { n: stage.size })}`
+                        : `${t("view", "View")}: ${t(stage.labelKey, stage.labelDefault, { n: stage.size })}`}
                     </Badge>
-                    <Text size="sm" c="dimmed">
-                      Local editing (saving UI coming soon)
-                    </Text>
+                    {pageMode === "edit" && (
+                      <Text size="sm" c="dimmed">
+                        {t("scores_local_edit_hint", "Local editing (saving to server coming soon)")}
+                      </Text>
+                    )}
                   </Group>
                   <Box style={{ maxWidth: "100%", overflowX: "auto", marginTop: 8 }}>
                     {selectedDivision.division_type === "TEAMS" ? (
                       <Expanded.Teams
-                        key={`playoff-teams-${stage.size}`}
+                        key={`playoff-teams-${stage.size}-${bracketRevision}-${bracketTheme}`}
                         size={stage.size}
                         teams={emptyPlayoffTeams(stage.size)}
-                        mode="fillable"
+                        mode={bracketUiMode}
+                        theme={bracketTheme}
                         teamIDFontFamily={DEFAULT_BOOKLET.playerId.fontFamily}
-                        teamIDColor={DEFAULT_BOOKLET.playerId.color}
                         teamIDFontSize={DEFAULT_BOOKLET.playerId.fontSize}
                       />
                     ) : (
                       <Expanded.Individuals
-                        key={`playoff-individuals-${stage.size}`}
+                        key={`playoff-individuals-${stage.size}-${bracketRevision}-${bracketTheme}`}
                         size={stage.size}
                         players={emptyPlayoffPlayers(stage.size) as any}
-                        mode="fillable"
-                        textStyles={{
-                          playerId: DEFAULT_BOOKLET.playerId,
-                          playerText: DEFAULT_BOOKLET.playerText,
-                        }}
+                        mode={bracketUiMode}
+                        theme={bracketTheme}
+                        textStyles={bracketTextStyles}
                       />
                     )}
                   </Box>
@@ -401,6 +500,14 @@ export default function DivisionScoresEditorPage() {
               </Tabs.Panel>
             ))}
           </Tabs>
+        )}
+        {pageMode === "edit" && (
+          <Group justify="flex-end" gap="xs">
+            <Button variant="default" onClick={cancelEdit}>
+              {t("cancel", "Cancel")}
+            </Button>
+            <Button onClick={saveEdit}>{t("save", "Save")}</Button>
+          </Group>
         )}
         <Divider />
       </Stack>
