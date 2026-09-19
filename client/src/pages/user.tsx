@@ -1,6 +1,6 @@
 import { Group, Stack, Title } from '@mantine/core';
-import { useTranslation } from 'next-i18next';
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { useTranslation } from 'next-i18next/pages';
+import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
 import React, { useEffect, useState } from "react";
 
 import UserForm from '../components/forms/user';

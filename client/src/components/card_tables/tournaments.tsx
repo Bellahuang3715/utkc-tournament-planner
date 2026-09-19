@@ -1,5 +1,5 @@
 import { Button, Card, Group, Image, Text, UnstyledButton, Badge } from '@mantine/core';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import Link from 'next/link';
 import React from 'react';
 import { SWRResponse } from 'swr';

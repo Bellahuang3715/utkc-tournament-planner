@@ -1,6 +1,6 @@
 import { Button, Center, Checkbox, Divider, Grid, Modal, NumberInput, Text } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import React, { useState } from 'react';
 import { SWRResponse } from 'swr';
 

@@ -17,7 +17,7 @@ import {
 } from "@mantine/core";
 import { IconX, IconUpload } from "@tabler/icons-react";
 import { showNotification } from "@mantine/notifications";
-import { useTranslation } from "next-i18next";
+import { useTranslation } from "next-i18next/pages";
 import ExcelJS from "exceljs";
 
 import { getClubs, getPlayerFields, getTeamCategories } from "../../services/adapter";

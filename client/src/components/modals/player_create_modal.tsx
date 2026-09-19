@@ -12,7 +12,7 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconUser, IconUsers } from "@tabler/icons-react";
-import { useTranslation } from "next-i18next";
+import { useTranslation } from "next-i18next/pages";
 import { SWRResponse } from "swr";
 import ExcelJS from "exceljs";
 

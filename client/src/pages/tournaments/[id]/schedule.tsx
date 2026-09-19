@@ -14,8 +14,8 @@ import {
   Title,
 } from '@mantine/core';
 import { IconDots, IconPencil, IconTrash } from '@tabler/icons-react';
-import { useTranslation } from 'next-i18next';
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { useTranslation } from 'next-i18next/pages';
+import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SWRResponse } from 'swr';
 import { v4 as uuidv4 } from 'uuid';

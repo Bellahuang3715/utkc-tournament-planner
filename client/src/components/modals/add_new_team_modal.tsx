@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button, Modal, Stack, TextInput, Select } from "@mantine/core";
-import { useTranslation } from "next-i18next";
+import { useTranslation } from "next-i18next/pages";
 
 import { getClubs, getTeamCategories } from "../../services/adapter";
 import type { Club } from "../../interfaces/club";

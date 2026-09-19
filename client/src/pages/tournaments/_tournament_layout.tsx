@@ -3,7 +3,7 @@ import React from "react";
 import { useRouter } from "next/router";
 import { Box, Tabs, useMantineTheme } from "@mantine/core";
 import { IconUser, IconUsers } from "@tabler/icons-react";
-import { useTranslation } from "next-i18next";
+import { useTranslation } from "next-i18next/pages";
 
 import { TournamentLinks } from "../../components/navbar/_main_links";
 import { responseIsValid } from "../../components/utils/util";

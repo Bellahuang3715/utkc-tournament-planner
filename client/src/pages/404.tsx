@@ -1,7 +1,7 @@
 import { Button, Container, Group, Text, Title } from '@mantine/core';
 import { GetStaticProps } from 'next';
-import { SSRConfig, i18n as globali18n, useTranslation } from 'next-i18next';
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { SSRConfig, i18n as globali18n, useTranslation } from 'next-i18next/pages';
+import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 

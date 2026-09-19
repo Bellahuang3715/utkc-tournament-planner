@@ -7,7 +7,7 @@ import {
   TextInput,
   NumberInput,
 } from "@mantine/core";
-import { useTranslation } from "next-i18next";
+import { useTranslation } from "next-i18next/pages";
 
 interface BracketData {
   id: string;

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useTranslation } from "next-i18next";
+import { useTranslation } from "next-i18next/pages";
 import { SWRResponse } from "swr";
 import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";

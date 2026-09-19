@@ -2,7 +2,7 @@ import { Group, Text } from "@mantine/core";
 import { Dropzone, MIME_TYPES } from "@mantine/dropzone";
 import { IconCloudUpload, IconDownload, IconX } from "@tabler/icons-react";
 import { AxiosError } from "axios";
-import { useTranslation } from "next-i18next";
+import { useTranslation } from "next-i18next/pages";
 import { useMemo, useRef } from "react";
 import { SWRResponse } from "swr";
 

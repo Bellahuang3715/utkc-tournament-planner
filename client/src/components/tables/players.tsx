@@ -1,4 +1,4 @@
-import { useTranslation } from "next-i18next";
+import { useTranslation } from "next-i18next/pages";
 import React, { useState, useMemo } from "react";
 import { SWRResponse } from "swr";
 import {

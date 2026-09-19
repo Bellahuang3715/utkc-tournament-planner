@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
-import { useTranslation } from "next-i18next";
+import { useTranslation } from "next-i18next/pages";
 import { Badge, Button, Group } from "@mantine/core";
 
 import { getDivisionTeams, getTeams } from "../../services/adapter";

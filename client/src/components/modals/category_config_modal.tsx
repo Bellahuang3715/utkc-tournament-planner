@@ -10,7 +10,7 @@ import {
   Loader,
 } from "@mantine/core";
 import { IconPlus, IconTrash } from "@tabler/icons-react";
-import { useTranslation } from "next-i18next";
+import { useTranslation } from "next-i18next/pages";
 
 import { getTeamCategories, requestSucceeded } from "../../services/adapter";
 import type { TeamCategoryInterface } from "../../interfaces/team_category";

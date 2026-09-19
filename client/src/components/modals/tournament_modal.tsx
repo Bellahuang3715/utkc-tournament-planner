@@ -14,7 +14,7 @@ import { useForm } from "@mantine/form";
 import { GoPlus } from 'react-icons/go';
 import { IconCalendar } from "@tabler/icons-react";
 import assert from "assert";
-import { useTranslation } from "next-i18next";
+import { useTranslation } from "next-i18next/pages";
 import React, { useState } from "react";
 import { SWRResponse } from "swr";
 

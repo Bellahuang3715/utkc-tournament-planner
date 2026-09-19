@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button, Group } from "@mantine/core";
-import { useTranslation } from "next-i18next";
-import { serverSideTranslations } from "next-i18next/serverSideTranslations";
+import { useTranslation } from "next-i18next/pages";
+import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import { IconEdit } from "@tabler/icons-react";
 
 import PlayersTable from "../../../../components/tables/players";

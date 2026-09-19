@@ -10,7 +10,7 @@ import {
   Stack,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useTranslation } from "next-i18next";
+import { useTranslation } from "next-i18next/pages";
 import { SWRResponse } from "swr";
 
 import { Player } from "../../interfaces/player";

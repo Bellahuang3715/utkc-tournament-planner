@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useForm } from '@mantine/form';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { Button, Modal, TextInput } from '@mantine/core';
 import { SWRResponse } from 'swr';
 

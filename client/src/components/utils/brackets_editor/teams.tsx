@@ -15,7 +15,7 @@ import {
   Badge,
 } from "@mantine/core";
 import { useRouter } from "next/router";
-import { useTranslation } from "next-i18next";
+import { useTranslation } from "next-i18next/pages";
 import { CollapsedLeft, CollapsedRight, Expanded } from "tournament-brackets-ui";
 
 import TournamentLayout from "../../../pages/tournaments/_tournament_layout";

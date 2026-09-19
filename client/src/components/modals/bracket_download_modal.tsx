@@ -7,7 +7,7 @@ import {
   Button,
   Text,
 } from "@mantine/core";
-import { useTranslation } from "next-i18next";
+import { useTranslation } from "next-i18next/pages";
 
 type Format = "booklet" | "poster";
 

@@ -1,6 +1,6 @@
 import { Alert, Container, Text, Title } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import React from 'react';
 import { HiMiniWrenchScrewdriver } from 'react-icons/hi2';
 

@@ -20,7 +20,7 @@ import { useForm } from "@mantine/form";
 import BuildIcon from "@mui/icons-material/Build";
 import type { MRT_TableInstance } from "material-react-table";
 import { useRouter } from "next/router";
-import { useTranslation } from "next-i18next";
+import { useTranslation } from "next-i18next/pages";
 
 import {
   createDivision,

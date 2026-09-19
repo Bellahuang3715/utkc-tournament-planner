@@ -14,7 +14,7 @@ import {
   MultiSelect,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useTranslation } from "next-i18next";
+import { useTranslation } from "next-i18next/pages";
 import { getClubs, getPlayerFields } from "../../services/adapter";
 import { createPlayer } from "../../services/player";
 import { updatePlayerCodes } from "../../services/player";

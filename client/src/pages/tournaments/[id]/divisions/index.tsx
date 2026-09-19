@@ -13,9 +13,9 @@ import {
   Text,
   Box,
 } from "@mantine/core";
-import { useTranslation } from "next-i18next";
+import { useTranslation } from "next-i18next/pages";
 import { IconDownload, IconPencil, IconTrash } from "@tabler/icons-react";
-import { serverSideTranslations } from "next-i18next/serverSideTranslations";
+import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import { useRouter } from "next/router";
 
 import TournamentLayout from "../../_tournament_layout";

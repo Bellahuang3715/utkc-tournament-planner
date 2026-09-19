@@ -15,7 +15,7 @@ import {
 } from "@mantine/core";
 import { showNotification } from "@mantine/notifications";
 import { IconX, IconPlus } from "@tabler/icons-react";
-import { useTranslation } from "next-i18next";
+import { useTranslation } from "next-i18next/pages";
 import {
   PlayerFieldTypes,
   FieldInsertable,
