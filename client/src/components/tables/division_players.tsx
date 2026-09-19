@@ -1,14 +1,17 @@
 import React, { useMemo, useState } from "react";
-import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
+import { Button, Group } from "@mantine/core";
+import {
+  MantineReactTable,
+  useMantineReactTable,
+  type MRT_ColumnDef,
+} from "mantine-react-table-open";
 import { useTranslation } from "next-i18next/pages";
 
 import { getPlayerFields, getDivisionPlayers, getPlayers } from "../../services/adapter";
 import { Player } from "../../interfaces/player";
 import RequestErrorAlert from "../utils/error_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
-import { NoContent } from "../no_content/empty_table_info";
-import { addPlayersToDivision, removePlayersFromDivision } from "../../services/division";
-import { useRouter } from "next/router";
+import { removePlayersFromDivision } from "../../services/division";
 import { assignBrackets, pickClosestSizes } from "../utils/seeding";
 import {
   fetchDivisionBracketsWithPlayers,
@@ -31,7 +34,6 @@ export default function DivisionPlayersTable({
   divisionPrefix?: string | null;
 }) {
   const { t } = useTranslation();
-  const router = useRouter();
 
   const swrPlayerFieldsResponse = getPlayerFields(tournamentId);
   const swrDivisionPlayersResponse = getDivisionPlayers(divisionId);
@@ -55,32 +57,19 @@ export default function DivisionPlayersTable({
     return m;
   }, [allPlayers]);
 
-  if (swrPlayerFieldsResponse.error || swrDivisionPlayersResponse.error) {
-    return (
-      <RequestErrorAlert
-        error={
-          swrPlayerFieldsResponse.error || swrDivisionPlayersResponse.error
-        }
-      />
-    );
-  }
-  if (
-    swrPlayerFieldsResponse.isLoading ||
-    swrDivisionPlayersResponse.isLoading
-  ) {
-    return <TableSkeletonSingleColumn />;
-  }
-
-  const columns: MRT_ColumnDef<Player>[] = [
-    { accessorKey: "name", header: t("name_header", "Name") },
-    { accessorKey: "club", header: t("club_header", "Club") },
-    { accessorKey: "code", header: t("code_header", "Code") },
-    {
-      accessorKey: "bias",
-      header: t("bias", "Bias"),
-      Cell: ({ cell }) => (cell.getValue<boolean>() ? t("yes") : t("no")),
-    },
-  ];
+  const columns = useMemo<MRT_ColumnDef<Player>[]>(
+    () => [
+      { accessorKey: "name", header: t("name_header", "Name") },
+      { accessorKey: "club", header: t("club_header", "Club") },
+      { accessorKey: "code", header: t("code_header", "Code") },
+      {
+        accessorKey: "bias",
+        header: t("bias", "Bias"),
+        Cell: ({ cell }) => (cell.getValue<boolean>() ? t("yes") : t("no")),
+      },
+    ],
+    [t],
+  );
 
   const onChangeRosterAndBrackets = async (
     nextPlayerIds: number[],
@@ -276,6 +265,57 @@ export default function DivisionPlayersTable({
     await swrDivisionPlayersResponse.mutate();
   };
 
+  const table = useMantineReactTable({
+    columns,
+    data: players,
+    getRowId: (row) => String(row.id),
+    enableRowSelection: true,
+    enableColumnOrdering: true,
+    enableStickyHeader: true,
+    enableColumnPinning: true,
+    enableRowPinning: true,
+    rowPinningDisplayMode: "select-sticky",
+    enableRowNumbers: true,
+    initialState: { showColumnFilters: false, density: "xs" },
+    renderTopToolbarCustomActions: ({ table: tableInstance }) => {
+      const selected = tableInstance
+        .getSelectedRowModel()
+        .rows.map((r) => r.original.id);
+      return (
+        <Group gap="xs">
+          <Button type="button" variant="light" onClick={handleAddPlayersClick}>
+            {t("add_players_to_division", "Add players to division")}
+          </Button>
+          <Button
+            type="button"
+            variant="light"
+            color="red"
+            onClick={() => handleRemoveSelected(selected)}
+            disabled={!selected.length}
+          >
+            {t("remove_from_division", "Remove from division")}
+          </Button>
+        </Group>
+      );
+    },
+  });
+
+  if (swrPlayerFieldsResponse.error || swrDivisionPlayersResponse.error) {
+    return (
+      <RequestErrorAlert
+        error={
+          swrPlayerFieldsResponse.error || swrDivisionPlayersResponse.error
+        }
+      />
+    );
+  }
+  if (
+    swrPlayerFieldsResponse.isLoading ||
+    swrDivisionPlayersResponse.isLoading
+  ) {
+    return <TableSkeletonSingleColumn />;
+  }
+
   return (
     <>
       <AddPlayersToDivisionModal
@@ -295,41 +335,7 @@ export default function DivisionPlayersTable({
           await swrAllPlayersResponse.mutate();
         }}
       />
-      <MaterialReactTable<Player>
-        columns={columns}
-        data={players}
-        enableRowSelection
-        enableColumnOrdering
-        enableStickyHeader
-        enableColumnPinning
-        enableRowPinning
-        rowPinningDisplayMode="select-sticky"
-        enableRowNumbers={true}
-        renderTopToolbarCustomActions={({ table }) => {
-          const selected = table
-            .getSelectedRowModel()
-            .rows.map((r) => r.original.id);
-          return (
-            <>
-              <button
-                type="button"
-                onClick={handleAddPlayersClick}
-                style={{ marginRight: 8 }}
-              >
-                {t("add_players_to_division", "Add players to division")}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleRemoveSelected(selected)}
-                disabled={!selected.length}
-              >
-                {t("remove_from_division", "Remove from division")}
-              </button>
-            </>
-          );
-        }}
-      initialState={{ showColumnFilters: false, density: 'compact' }}
-    />
+      <MantineReactTable table={table} />
     </>
   );
 }

@@ -1,7 +1,11 @@
-import React, { useState } from "react";
-import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
-import { useTranslation } from "next-i18next/pages";
+import React, { useMemo, useState } from "react";
 import { Badge, Button, Group } from "@mantine/core";
+import {
+  MantineReactTable,
+  useMantineReactTable,
+  type MRT_ColumnDef,
+} from "mantine-react-table-open";
+import { useTranslation } from "next-i18next/pages";
 
 import { getDivisionTeams, getTeams } from "../../services/adapter";
 import AddNewTeamModal from "../modals/add_new_team_modal";
@@ -35,13 +39,6 @@ export default function DivisionTeamsTable({
   const swrDivisionTeamsResponse = getDivisionTeams(divisionId);
   const swrAllTeamsResponse = getTeams(tournamentId);
 
-  if (swrDivisionTeamsResponse.error) {
-    return <RequestErrorAlert error={swrDivisionTeamsResponse.error} />;
-  }
-  if (swrDivisionTeamsResponse.isLoading) {
-    return <TableSkeletonSingleColumn />;
-  }
-
   const teams: DivisionTeam[] = swrDivisionTeamsResponse.data?.teams ?? [];
 
   const rawAllTeams = swrAllTeamsResponse.data;
@@ -56,32 +53,35 @@ export default function DivisionTeamsTable({
   const divisionTeamIds = new Set(teams.map((x) => x.id));
   const availableToAdd = allTeams.filter((team) => !divisionTeamIds.has(team.id));
 
-  const columns: MRT_ColumnDef<DivisionTeam>[] = [
-    { accessorKey: "code", header: t("team_name", "Team name") },
-    {
-      accessorKey: "category",
-      header: t("category_table_header", "Category"),
-      Cell: ({ row }) => {
-        const label = row.original.category;
-        const bg = categoryChipBackground(row.original.category_color, label);
-        return (
-          <Badge
-            style={{
-              backgroundColor: bg,
-              color: chipTextColor(bg),
-            }}
-          >
-            {label}
-          </Badge>
-        );
+  const columns = useMemo<MRT_ColumnDef<DivisionTeam>[]>(
+    () => [
+      { accessorKey: "code", header: t("team_name", "Team name") },
+      {
+        accessorKey: "category",
+        header: t("category_table_header", "Category"),
+        Cell: ({ row }) => {
+          const label = row.original.category;
+          const bg = categoryChipBackground(row.original.category_color, label);
+          return (
+            <Badge
+              style={{
+                backgroundColor: bg,
+                color: chipTextColor(bg),
+              }}
+            >
+              {label}
+            </Badge>
+          );
+        },
       },
-    },
-    {
-      accessorKey: "bias",
-      header: t("bias", "Bias"),
-      Cell: ({ cell }) => (cell.getValue<boolean>() ? t("yes") : t("no")),
-    },
-  ];
+      {
+        accessorKey: "bias",
+        header: t("bias", "Bias"),
+        Cell: ({ cell }) => (cell.getValue<boolean>() ? t("yes") : t("no")),
+      },
+    ],
+    [t],
+  );
 
   const onChangeRosterAndBrackets = async (
     nextTeamIds: number[],
@@ -287,38 +287,51 @@ export default function DivisionTeamsTable({
     await swrDivisionTeamsResponse.mutate();
   };
 
-  const renderTopToolbarCustomActions = ({ table }: { table: any }) => {
-    const selected = table
-      .getSelectedRowModel()
-      .rows.map((r: { original: DivisionTeam }) => r.original.id);
-    return (
-      <Group gap="xs">
-        <Button
-          variant="light"
-          size="xs"
-          onClick={() => setAddNewTeamModalOpen(true)}
-        >
-          {t("add_new_team", "Add new team")}
-        </Button>
-        <Button
-          variant="light"
-          size="xs"
-          onClick={handleAddTeams}
-        >
-          {t("add_teams_to_division", "Add teams to division")}
-        </Button>
-        <Button
-          variant="light"
-          color="red"
-          size="xs"
-          onClick={() => handleRemoveSelected(selected)}
-          disabled={!selected.length}
-        >
-          {t("remove_from_division", "Remove from division")}
-        </Button>
-      </Group>
-    );
-  };
+  const table = useMantineReactTable({
+    columns,
+    data: teams,
+    getRowId: (row) => String(row.id),
+    enableRowSelection: true,
+    enableStickyHeader: true,
+    enableColumnPinning: true,
+    enableRowNumbers: true,
+    initialState: { showColumnFilters: false, density: "xs" },
+    renderTopToolbarCustomActions: ({ table: tableInstance }) => {
+      const selected = tableInstance
+        .getSelectedRowModel()
+        .rows.map((r) => r.original.id);
+      return (
+        <Group gap="xs">
+          <Button
+            variant="light"
+            size="xs"
+            onClick={() => setAddNewTeamModalOpen(true)}
+          >
+            {t("add_new_team", "Add new team")}
+          </Button>
+          <Button variant="light" size="xs" onClick={handleAddTeams}>
+            {t("add_teams_to_division", "Add teams to division")}
+          </Button>
+          <Button
+            variant="light"
+            color="red"
+            size="xs"
+            onClick={() => handleRemoveSelected(selected)}
+            disabled={!selected.length}
+          >
+            {t("remove_from_division", "Remove from division")}
+          </Button>
+        </Group>
+      );
+    },
+  });
+
+  if (swrDivisionTeamsResponse.error) {
+    return <RequestErrorAlert error={swrDivisionTeamsResponse.error} />;
+  }
+  if (swrDivisionTeamsResponse.isLoading) {
+    return <TableSkeletonSingleColumn />;
+  }
 
   if (teams.length === 0) {
     return (
@@ -350,16 +363,7 @@ export default function DivisionTeamsTable({
         onClose={() => setAddNewTeamModalOpen(false)}
         onSuccess={handleAddNewTeamSuccess}
       />
-      <MaterialReactTable<DivisionTeam>
-      columns={columns}
-      data={teams}
-      enableRowSelection
-      enableStickyHeader
-      enableColumnPinning
-      enableRowNumbers={true}
-      renderTopToolbarCustomActions={renderTopToolbarCustomActions}
-      initialState={{ showColumnFilters: false, density: "compact" }}
-    />
+      <MantineReactTable table={table} />
     </>
   );
 }

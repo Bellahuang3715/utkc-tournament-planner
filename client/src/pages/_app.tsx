@@ -8,6 +8,7 @@ import '@mantine/spotlight/styles.css';
 import { appWithTranslation } from 'next-i18next/pages';
 import Head from 'next/head';
 import { useRouter } from "next/router";
+import 'mantine-react-table-open/styles.css';
 
 import { AuthProvider } from '../context/AuthContext';
 import { BracketSpotlight } from '../components/modals/spotlight';
