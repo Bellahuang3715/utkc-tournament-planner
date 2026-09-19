@@ -7,6 +7,8 @@ declare module "tournament-brackets-ui" {
   type VariantProps = {
     entity?: Entity;
     size: Size;
+    /** Bracket lines, text, and fillable chrome. */
+    theme?: "light" | "dark";
     [key: string]: any;
   };
 

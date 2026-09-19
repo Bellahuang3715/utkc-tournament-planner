@@ -16,8 +16,8 @@ import { useForm } from "@mantine/form";
 import { MdDelete } from "react-icons/md";
 import { IconCalendar, IconCalendarTime, IconCopy } from "@tabler/icons-react";
 import assert from "assert";
-import { useTranslation } from "next-i18next";
-import { serverSideTranslations } from "next-i18next/serverSideTranslations";
+import { useTranslation } from "next-i18next/pages";
+import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import { useRouter } from "next/router";
 import React from "react";
 import { SWRResponse } from "swr";
@@ -191,19 +191,6 @@ function GeneralTournamentForm({
         >
           {t("remove_logo")}
         </Button>
-      </Fieldset>
-      <Fieldset legend={t("miscellaneous_title")} mt="lg" radius="md">
-        <Checkbox
-          label={t("miscellaneous_label")}
-          {...form.getInputProps("players_can_be_in_multiple_teams", {
-            type: "checkbox",
-          })}
-        />
-        <Checkbox
-          mt="md"
-          label={t("auto_assign_courts_label")}
-          {...form.getInputProps("auto_assign_courts", { type: "checkbox" })}
-        />
       </Fieldset>
 
       <Button fullWidth mt={24} color="green" type="submit">
