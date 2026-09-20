@@ -2,6 +2,7 @@ export interface Club {
   id: number;
   name: string;
   abbreviation: string;
+  country: string;
   representative: string;
   contact_email: string;
   created: string;
@@ -12,6 +13,7 @@ export interface Club {
 export interface ClubFormValues {
   name: string;
   abbreviation: string;
+  country?: string;
   representative?: string;
   contact_email?: string;
 }

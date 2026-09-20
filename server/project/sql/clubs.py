@@ -18,13 +18,14 @@ from project.utils.types import assert_some
 async def create_club(club: ClubCreateBody, creator_id: UserId) -> Club:
     async with database.transaction():
         query = """
-            INSERT INTO clubs (name, abbreviation, representative, contact_email, created, updated, creator_id)
-            VALUES (:name, :abbreviation, :representative, :contact_email, NOW(), NOW(), :creator_id)
+            INSERT INTO clubs (name, abbreviation, country, representative, contact_email, created, updated, creator_id)
+            VALUES (:name, :abbreviation, :country, :representative, :contact_email, NOW(), NOW(), :creator_id)
             RETURNING *
         """
         values = {
             "name": club.name,
             "abbreviation": club.abbreviation,
+            "country": club.country or "Canada",
             "representative": club.representative,
             "contact_email": club.contact_email,
             "creator_id": creator_id,
@@ -41,7 +42,12 @@ async def create_club(club: ClubCreateBody, creator_id: UserId) -> Club:
 async def sql_update_club(club_id: ClubId, club: ClubUpdateBody) -> Club | None:
     query = """
         UPDATE clubs
-        SET name = :name, abbreviation = :abbreviation, representative = :representative, contact_email = :contact_email, updated = NOW()
+        SET name = :name,
+            abbreviation = :abbreviation,
+            country = :country,
+            representative = :representative,
+            contact_email = :contact_email,
+            updated = NOW()
         WHERE id = :club_id
         RETURNING *
         """
@@ -49,6 +55,7 @@ async def sql_update_club(club_id: ClubId, club: ClubUpdateBody) -> Club | None:
         "club_id": club_id,
         "name": club.name,
         "abbreviation": club.abbreviation,
+        "country": club.country or "Canada",
         "representative": club.representative,
         "contact_email": club.contact_email,
     }

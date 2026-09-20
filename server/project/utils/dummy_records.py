@@ -53,6 +53,7 @@ DUMMY_TOURNAMENT = TournamentInsertable(
 DUMMY_CLUB = ClubInsertable(
     name="Some Cool Club",
     abbreviation="SC",
+    country="Canada",
     representative="John Doe",
     contact_email="john@gmail.com",
     created=DUMMY_MOCK_TIME,

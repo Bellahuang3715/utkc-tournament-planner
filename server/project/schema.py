@@ -33,6 +33,7 @@ clubs = Table(
     Column("id", BigInteger, primary_key=True, index=True, autoincrement=True),
     Column("name", String, nullable=False, index=True),
     Column("abbreviation", String, nullable=False, index=True),
+    Column("country", String, nullable=False, server_default="Canada", index=True),
     Column("representative", String, nullable=True, index=True),
     Column("contact_email", String, nullable=True, index=True),
     Column("created", DateTimeTZ, nullable=False, server_default=func.now()),

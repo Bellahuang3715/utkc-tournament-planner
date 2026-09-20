@@ -1,23 +1,30 @@
-import React, { useState, useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "next-i18next/pages";
 import { SWRResponse } from "swr";
 import {
-  MaterialReactTable,
-  MaterialReactTableProps,
+  MantineReactTable,
+  useMantineReactTable,
   type MRT_ColumnDef,
   type MRT_Row,
-} from "material-react-table";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { Box, IconButton, Tooltip } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
-import { Button, Anchor, Group, Text } from "@mantine/core";
-import { BiEditAlt } from "react-icons/bi";
-import AddBoxIcon from "@mui/icons-material/AddBox";
-import { IconMail } from '@tabler/icons-react';
+} from "mantine-react-table-open";
+import {
+  ActionIcon,
+  Anchor,
+  Button,
+  Group,
+  Stack,
+  Text,
+  Tooltip,
+} from "@mantine/core";
+import { IconMail, IconPencil, IconPlus, IconTrash } from "@tabler/icons-react";
+import { CircleFlag } from "react-circle-flags";
 
 import { Club } from "../../interfaces/club";
 import { deleteClub } from "../../services/club";
+import {
+  countryCodeFromName,
+  DEFAULT_COUNTRY,
+} from "../../utils/countries";
 import ClubModal from "../modals/club_modal";
 import { EmptyTableInfo } from "../no_content/empty_table_info";
 import RequestErrorAlert from "../utils/error_alert";
@@ -35,16 +42,55 @@ export default function ClubsTable({
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClub, setEditingClub] = useState<Club | null>(null);
 
-  // column definitions
+  const handleDeleteRows = async (rows: MRT_Row<Club>[]) => {
+    if (!rows.length) return;
+    const names = rows.map((r) => r.original.name).join(", ");
+    const ok = window.confirm(
+      t("confirm_delete_message", {
+        name: names,
+        defaultValue: `Delete ${names}?`,
+      }),
+    );
+    if (!ok) return;
+    await Promise.all(rows.map((r) => deleteClub(r.original.id)));
+    await swrClubsResponse.mutate();
+  };
+
   const columns = useMemo<MRT_ColumnDef<Club>[]>(
     () => [
       {
         accessorKey: "name",
         header: t("name_header", "Name"),
+        Cell: ({ cell }) => (
+          <Text fw={600} size="sm">
+            {cell.getValue<string>()}
+          </Text>
+        ),
       },
       {
         accessorKey: "abbreviation",
         header: t("abbreviation_header", "Abbreviation"),
+      },
+      {
+        accessorKey: "country",
+        header: t("country_header", "Country"),
+        size: 80,
+        Cell: ({ cell }) => {
+          const country = cell.getValue<string>() || DEFAULT_COUNTRY;
+          const code = countryCodeFromName(country);
+          return (
+            <Tooltip label={country}>
+              <span style={{ display: "inline-flex", lineHeight: 0 }}>
+                <CircleFlag
+                  countryCode={code}
+                  height="22"
+                  title={country}
+                  aria-label={country}
+                />
+              </span>
+            </Tooltip>
+          );
+        },
       },
       {
         accessorKey: "representative",
@@ -52,28 +98,23 @@ export default function ClubsTable({
         Cell: ({ cell }) => cell.getValue<string>() || "—",
       },
       {
-        accessorKey: 'contact_email',
-        header: t('email_header', 'Contact Email'),
+        accessorKey: "contact_email",
+        header: t("email_header", "Contact Email"),
         enableColumnFilter: false,
         Cell: ({ cell }) => {
           const email = cell.getValue<string>();
-          if (!email) {
-            return <Text color="dimmed">—</Text>;
-          }
+          if (!email) return <Text c="dimmed">—</Text>;
           return (
-            <Tooltip title={t('send_email', 'Send email')} placement="top" arrow>
-              <Anchor href={`mailto:${email}`} size="sm" style={{ textDecoration: 'none' }}>
-                <Group gap="xs">
+            <Tooltip label={t("send_email", "Send email")}>
+              <Anchor
+                href={`mailto:${email}`}
+                size="sm"
+                underline="hover"
+                style={{ textDecoration: "none" }}
+              >
+                <Group gap={6} wrap="nowrap">
                   <IconMail size={16} stroke={1.5} />
-                  <Text
-                    lineClamp={1}
-                    style={{
-                      maxWidth: 150,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
+                  <Text size="sm" lineClamp={1} maw={180}>
                     {email}
                   </Text>
                 </Group>
@@ -83,57 +124,93 @@ export default function ClubsTable({
         },
       },
       {
-        accessorKey: "updated",
-        header: t("updated_header", "Last Updated"),
-        Cell: ({ cell }) => (
-          <time dateTime={cell.getValue<string>()}>
-            {new Date(cell.getValue<string>()).toLocaleString()}
-          </time>
-        ),
-      },
-      {
         id: "actions",
         header: t("actions_header", "Actions"),
         enableColumnFilter: false,
         enableSorting: false,
-        enableEditing: false,
-        size: 120,
+        size: 100,
         Cell: ({ row }) => (
-          <Box sx={{ display: "flex", gap: 8 }}>
-            <Tooltip title={t("edit_button", "Edit")}>
-              <Button
+          <Group gap={4} wrap="nowrap">
+            <Tooltip label={t("edit_button", "Edit")}>
+              <ActionIcon
+                variant="subtle"
                 color="green"
-                size="xs"
+                aria-label={t("edit_button", "Edit")}
                 onClick={() => {
                   setEditingClub(row.original);
                   setModalOpen(true);
                 }}
-                leftSection={<BiEditAlt size={20} />}
               >
-                {t("edit_club_header")}
-              </Button>
+                <IconPencil size={18} />
+              </ActionIcon>
             </Tooltip>
-          </Box>
+            <Tooltip label={t("delete_button", "Delete")}>
+              <ActionIcon
+                variant="subtle"
+                color="red"
+                aria-label={t("delete_button", "Delete")}
+                onClick={() => void handleDeleteRows([row])}
+              >
+                <IconTrash size={18} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
         ),
       },
     ],
-    [t, swrClubsResponse]
+    [t],
   );
 
-  const handleDelete = (row: MRT_Row<Club>) => {
-    if (
-      window.confirm(t("confirm_delete_message", { name: row.original.name }))
-    ) {
-      deleteClub(row.original.id);
-      swrClubsResponse.mutate();
-    }
+  const openCreate = () => {
+    setEditingClub(null);
+    setModalOpen(true);
   };
 
-  if (swrClubsResponse.error)
+  const table = useMantineReactTable({
+    columns,
+    data: clubs,
+    getRowId: (row) => String(row.id),
+    enableRowSelection: true,
+    enableColumnFilters: true,
+    enableSorting: true,
+    enablePagination: true,
+    enableColumnOrdering: true,
+    enableColumnPinning: true,
+    initialState: {
+      density: "xs",
+      showColumnFilters: false,
+    },
+    renderTopToolbarCustomActions: ({ table: tableInstance }) => {
+      const selected = tableInstance.getSelectedRowModel().rows;
+      return (
+        <Group gap="xs">
+          <Button
+            leftSection={<IconPlus size={16} />}
+            variant="filled"
+            onClick={openCreate}
+          >
+            {t("create_club_button", "Add club")}
+          </Button>
+          <Button
+            leftSection={<IconTrash size={16} />}
+            variant="light"
+            color="red"
+            disabled={!selected.length}
+            onClick={() => void handleDeleteRows(selected)}
+          >
+            {t("delete_selected", "Delete selected")}
+          </Button>
+        </Group>
+      );
+    },
+  });
+
+  if (swrClubsResponse.error) {
     return <RequestErrorAlert error={swrClubsResponse.error} />;
-  if (swrClubsResponse.isLoading) return <TableSkeletonSingleColumn />;
-  if (clubs.length === 0)
-    return <EmptyTableInfo entity_name={t("clubs_title")} />;
+  }
+  if (swrClubsResponse.isLoading) {
+    return <TableSkeletonSingleColumn />;
+  }
 
   return (
     <>
@@ -143,56 +220,16 @@ export default function ClubsTable({
         opened={modalOpen}
         setOpened={setModalOpen}
       />
-      <LocalizationProvider dateAdapter={AdapterDayjs}>
-        <MaterialReactTable<Club>
-          columns={columns}
-          data={clubs}
-          enableColumnOrdering={true}
-          enableColumnPinning
-          enableColumnFilters
-          enableRowSelection
-          enableSorting
-          enablePagination
-          renderTopToolbarCustomActions={({ table }) => {
-            const handleRemoveUsers = () => {
-              confirm("Are you sure you want to remove the selected team(s)?");
-            };
-
-            return (
-              <Box
-                display="flex"
-                justifyContent="space-between"
-                alignItems="center"
-                mb={2}
-              >
-                <Tooltip title="Add Team">
-                  <IconButton
-                    onClick={() => {
-                      setEditingClub(null);
-                      setModalOpen(true);
-                    }}
-                  >
-                    <AddBoxIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Remove Team(s)">
-                  <span>
-                    <IconButton
-                      disabled={
-                        table.getSelectedRowModel().flatRows.length === 0
-                      }
-                      onClick={handleRemoveUsers}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-              </Box>
-            );
-          }}
-          initialState={{ density: 'compact' }}
-        />
-      </LocalizationProvider>
+      {clubs.length === 0 ? (
+        <Stack gap="md" align="flex-start">
+          <EmptyTableInfo entity_name={t("clubs_title", "clubs")} />
+          <Button leftSection={<IconPlus size={16} />} onClick={openCreate}>
+            {t("create_club_button", "Add club")}
+          </Button>
+        </Stack>
+      ) : (
+        <MantineReactTable table={table} />
+      )}
     </>
   );
 }

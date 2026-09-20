@@ -4784,6 +4784,11 @@ react-beautiful-dnd@^13.1.1:
     redux "^4.0.4"
     use-memo-one "^1.1.1"
 
+react-circle-flags@^0.0.30:
+  version "0.0.30"
+  resolved "https://registry.npmjs.org/react-circle-flags/-/react-circle-flags-0.0.30.tgz"
+  integrity sha512-LVbJGOcw8PO/OtxfT/2fDadT7IAYlKN6NOIWWN5KdoPyiICFM/WrCEM8ZiDTV+DpdFpN+uwDMtnno8qU4NluOw==
+
 react-dom@^19.3.0:
   version "19.3.0"
   resolved "https://registry.npmjs.org/react-dom/-/react-dom-19.3.0.tgz"

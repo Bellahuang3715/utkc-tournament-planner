@@ -8,6 +8,7 @@ from project.utils.id_types import UserId, ClubId
 class ClubInsertable(BaseModelORM):
     name: str
     abbreviation: str
+    country: str = "Canada"
     representative: Optional[str] = None
     contact_email: Optional[str] = None
     created: datetime_utc
@@ -22,6 +23,7 @@ class Club(ClubInsertable):
 class ClubCreateBody(BaseModelORM):
     name: str
     abbreviation: str
+    country: str = "Canada"
     representative: Optional[str] = None
     contact_email: Optional[str] = None
 
@@ -29,5 +31,6 @@ class ClubCreateBody(BaseModelORM):
 class ClubUpdateBody(BaseModelORM):
     name: str
     abbreviation: str
+    country: str = "Canada"
     representative: Optional[str] = None
     contact_email: Optional[str] = None
