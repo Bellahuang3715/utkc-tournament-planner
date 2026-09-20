@@ -1,17 +1,20 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Accordion,
-  Tabs,
+  ActionIcon,
+  Badge,
   Button,
-  Group,
-  Stack,
-  Title,
-  Loader,
   Center,
-  Grid,
+  Group,
+  Loader,
+  Paper,
   SegmentedControl,
+  SimpleGrid,
+  Stack,
+  Tabs,
   Text,
-  Box,
+  Title,
+  Tooltip,
 } from "@mantine/core";
 import { useTranslation } from "next-i18next/pages";
 import { IconDownload, IconPencil, IconTrash } from "@tabler/icons-react";
@@ -20,7 +23,6 @@ import { useRouter } from "next/router";
 
 import TournamentLayout from "../../_tournament_layout";
 import { getTournamentIdFromRouter } from "../../../../components/utils/util";
-import { BracketDownloadModal } from "../../../../components/modals/bracket_download_modal";
 import DivisionDetailsModal from "../../../../components/modals/division_details_modal";
 import DivisionPlayersTable from "../../../../components/tables/division_players";
 import DivisionTeamsTable from "../../../../components/tables/division_teams";
@@ -47,11 +49,10 @@ import {
 } from "../../../../services/bracket";
 import { ViewMode } from "../../../../interfaces/bracket";
 
-import { exportBracketsToExcel } from "../../../../components/export/exportExcel";
-import { BracketsExportCanvas } from "../../../../components/export/BracketsExportCanvas";
-import { exportElementToPdf } from "../../../../components/export/exportPdf";
-
-type Format = "booklet" | "poster";
+import {
+  exportBracketsToExcel,
+  exportTeamBracketsToExcel,
+} from "../../../../components/export/exportExcel";
 
 interface BracketData {
   id: string;
@@ -76,9 +77,6 @@ export default function BracketsPage() {
   // control which accordion item is open (so we can know collapsed/expanded)
   const [openItem, setOpenItem] = useState<string | null>(null);
 
-  // download modal state
-  const [dlGroup, setDlGroup] = useState<GroupModel | null>(null);
-
   // details modal state
   const [editDetailsOf, setEditDetailsOf] = useState<GroupModel | null>(null);
 
@@ -91,18 +89,6 @@ export default function BracketsPage() {
   );
 
   const [viewMode, setViewMode] = useState<ViewMode>("booklet");
-
-  const exportRef = useRef<HTMLDivElement | null>(null);
-  const [exporting, setExporting] = useState<{
-    divisionId: number;
-    divisionName: string;
-    format: Format;
-    brackets?: BracketWithPlayers[];
-    bracketsTeams?: BracketWithTeams[];
-    clubAbbrevByName?: Map<string, string>;
-    useCodeOnly?: boolean;
-    playerIdToDisplayCode?: Record<number, string>;
-  } | null>(null);
 
   const swrDivisions = getDivisions(tournamentIdValid ? tournamentData.id : null);
   const groups = swrDivisions.data?.data ?? [];
@@ -177,361 +163,346 @@ export default function BracketsPage() {
     setEditDetailsOf(null);
   };
 
-  /** Wait for the export canvas to mount, render [data-export-page], and for the first bracket to have non-zero size (fixes first page blank in multi-page booklet). */
-  const waitForExportCanvas = (timeoutMs = 5000): Promise<HTMLDivElement | null> => {
-    return new Promise((resolve) => {
-      const start = Date.now();
-      const check = () => {
-        const el = exportRef.current;
-        const pages = el?.querySelectorAll?.("[data-export-page]");
-        if (el && pages && pages.length > 0) {
-          const firstBracket = pages[0].querySelector<HTMLElement>("[data-export-bracket]");
-          const ready =
-            firstBracket &&
-            firstBracket.offsetWidth >= 1 &&
-            firstBracket.offsetHeight >= 1;
-          if (ready) {
-            resolve(el);
-            return;
-          }
-        }
-        if (Date.now() - start >= timeoutMs) {
-          resolve(el && pages && pages.length > 0 ? el : null);
-          return;
-        }
-        requestAnimationFrame(check);
-      };
-      requestAnimationFrame(check);
-    });
-  };
-
-  const downloadPDF = async (divisionId: number, format: Format) => {
-    // Always fetch fresh for the division you’re exporting
+  const downloadExcel = async (divisionId: number) => {
     const group = groups.find((g: any) => g.id === divisionId);
     const divisionName = group?.name ?? `Division ${divisionId}`;
     const isTeams = group?.division_type === "TEAMS";
 
-    if (isTeams) {
-      const res = await fetchDivisionBracketsWithTeams(divisionId);
-      const divisionBracketsTeams = res.data.data as BracketWithTeams[];
-
-      setExporting({
-        divisionId,
-        divisionName,
-        format,
-        bracketsTeams: divisionBracketsTeams,
-      });
-    } else {
-      const res = await fetchDivisionBracketsWithPlayers(divisionId);
-      const divisionBrackets = res.data.data as BracketWithPlayers[];
-
-      setExporting({
-        divisionId,
-        divisionName,
-        format,
-        brackets: divisionBrackets,
-        clubAbbrevByName,
-      });
+    try {
+      if (isTeams) {
+        const res = await fetchDivisionBracketsWithTeams(divisionId);
+        await exportTeamBracketsToExcel(
+          divisionName,
+          res.data.data as BracketWithTeams[],
+          `${divisionName}.xlsx`,
+        );
+      } else {
+        const res = await fetchDivisionBracketsWithPlayers(divisionId);
+        await exportBracketsToExcel(
+          divisionName,
+          res.data.data as BracketWithPlayers[],
+          `${divisionName}.xlsx`,
+          clubAbbrevByName,
+        );
+      }
+    } catch (err: any) {
+      window.alert(err?.message || t("export_failed", "Export failed"));
     }
-
-    const el = await waitForExportCanvas();
-    if (!el) {
-      setExporting(null);
-      return;
-    }
-
-    await exportElementToPdf(el, `${divisionName}-${format}.pdf`, format);
-
-    setExporting(null);
-  };
-
-  const downloadExcel = async (divisionId: number) => {
-    const res = await fetchDivisionBracketsWithPlayers(divisionId);
-    const divisionBrackets = res.data.data as BracketWithPlayers[];
-
-    const divisionName =
-      groups.find((g: any) => g.id === divisionId)?.name ??
-      `Division ${divisionId}`;
-
-    exportBracketsToExcel(
-      divisionName,
-      divisionBrackets,
-      `${divisionName}.xlsx`,
-    );
   };
 
   return (
     <TournamentLayout tournament_id={tournamentData.id}>
-      <Stack gap="xl" p="md">
-        <Title order={2}>{t("brackets")}</Title>
+      <Stack gap="lg">
+        <Stack gap={4}>
+          <Title order={2}>{t("divisions_title", "Divisions")}</Title>
+          <Text size="sm" c="dimmed" maw={560}>
+            {t(
+              "divisions_page_subtitle",
+              "Open a division to manage details, roster, and bracket trees",
+            )}
+          </Text>
+        </Stack>
 
-        <Accordion
-          variant="separated"
-          value={openItem}
-          onChange={setOpenItem}
-          chevronPosition="left"
-        >
-          {groups.map((group: any) => {
-            const opened = openItem === String(group.id);
+        {groups.length === 0 ? (
+          <Paper withBorder radius="md" p="xl">
+            <Stack gap="xs" align="flex-start">
+              <Text fw={600}>{t("no_divisions_title", "No divisions yet")}</Text>
+              <Text size="sm" c="dimmed">
+                {t(
+                  "no_divisions_description",
+                  "Generate brackets from Players or Teams to create your first division.",
+                )}
+              </Text>
+            </Stack>
+          </Paper>
+        ) : (
+          <Accordion
+            variant="separated"
+            radius="md"
+            value={openItem}
+            onChange={setOpenItem}
+            chevronPosition="left"
+          >
+            {groups.map((group: any) => {
+              const opened = openItem === String(group.id);
+              const isTeams = group.division_type === "TEAMS";
+              const countLabel =
+                typeof group.totalPlayers === "number"
+                  ? `${group.totalPlayers} ${
+                      isTeams
+                        ? t("teams_title", "teams")
+                        : t("players", "players")
+                    }`
+                  : null;
 
-            return (
-              <Accordion.Item key={group.id} value={String(group.id)}>
-                <Accordion.Control>
-                  <Group justify="space-between" wrap="nowrap" w="100%">
-                    <Text>
-                      {group.name}
-                      {typeof group.totalPlayers === "number" && (
-                        <> ({group.totalPlayers} {t("players")})</>
-                      )}
-                    </Text>
-
-                    {/* Right-side Download button visible when collapsed */}
-                    {!opened && (
-                      <Group gap="xs">
-                        <Button
-                          size="xs"
-                          leftSection={<IconDownload size={14} />}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDlGroup(group);
-                          }}
+              return (
+                <Accordion.Item key={group.id} value={String(group.id)}>
+                  <Accordion.Control>
+                    <Group justify="space-between" wrap="nowrap" w="100%" pr="xs">
+                      <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+                        <Text fw={600} truncate>
+                          {group.name}
+                        </Text>
+                        <Badge
+                          variant="light"
+                          color={isTeams ? "blue" : "violet"}
+                          size="sm"
                         >
-                          {t("download", "Download")}
-                        </Button>
-                        <Button
-                          size="xs"
-                          color="red"
-                          leftSection={<IconTrash size={16} />}
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            if (
-                              confirm(
-                                t("confirm_delete_group", "Delete this group?"),
-                              )
-                            ) {
-                              await deleteDivision(group.id);
-                              await swrDivisions.mutate();
-                            }
-                          }}
-                        >
-                          {t("delete", "Delete")}
-                        </Button>
-                      </Group>
-                    )}
-                  </Group>
-                </Accordion.Control>
-
-                <Accordion.Panel>
-                  <Tabs defaultValue="details">
-                    <Tabs.List>
-                      <Tabs.Tab value="details">
-                        {t("details", "Details")}
-                      </Tabs.Tab>
-                      {group.division_type === "TEAMS" ? (
-                        <Tabs.Tab value="teams">
-                          {t("teams_title", "Teams")}
-                        </Tabs.Tab>
-                      ) : (
-                        <Tabs.Tab value="players">
-                          {t("players", "Players")}
-                        </Tabs.Tab>
-                      )}
-                      <Tabs.Tab value="trees">{t("trees", "Trees")}</Tabs.Tab>
-                    </Tabs.List>
-
-                    {/* DETAILS TAB */}
-                    <Tabs.Panel value="details" pt="md">
-                      <Stack gap="sm">
-                        {/* <Title order={4}>{t("group_information", "Group Information")}</Title> */}
-                        <Group justify="space-between" align="center">
-                          <Title order={4}>
-                            {t("group_information", "Group Information")}
-                          </Title>
-                          <Button
-                            leftSection={<IconPencil size={16} />}
-                            onClick={() => setEditDetailsOf(group)}
-                          >
-                            {t("edit_details", "Edit details")}
-                          </Button>
-                        </Group>
-                        <Grid>
-                          <Grid.Col span={{ base: 12, sm: 6 }}>
-                            <Text>
-                              <b>{t("group_name", "Group Name")}:</b>{" "}
-                              {group.name}
-                            </Text>
-                            <Text>
-                              <b>{t("prefix", "prefix")}:</b>{" "}
-                              {group.prefix ?? "—"}
-                            </Text>
-                            {/* <Text><b>{t("total_players", "Total Players")}:</b> {group.totalPlayers}</Text> */}
-                          </Grid.Col>
-                          <Grid.Col span={{ base: 12, sm: 6 }}>
-                            <Text>
-                              <b>
-                                {t("match_duration", "Match Duration (min)")}:
-                              </b>{" "}
-                              {group.duration_mins}
-                            </Text>
-                            <Text>
-                              <b>
-                                {t(
-                                  "overtime_duration",
-                                  "Overtime Duration (min)",
-                                )}
-                                :
-                              </b>{" "}
-                              {group.margin_mins}
-                            </Text>
-                            <Text>
-                              <b>{t("division_type", "Type")}:</b>{" "}
-                              {group.division_type}
-                            </Text>
-                          </Grid.Col>
-                        </Grid>
-                      </Stack>
-                    </Tabs.Panel>
-
-                    {/* PLAYERS TAB (Individuals only) */}
-                    <Tabs.Panel value="players" pt="md">
-                      <DivisionPlayersTable
-                        tournamentId={tournamentData.id}
-                        divisionId={group.id}
-                        divisionName={group.name}
-                        divisionPrefix={group.prefix}
-                      />
-                    </Tabs.Panel>
-
-                    {/* TEAMS TAB (Teams only) */}
-                    <Tabs.Panel value="teams" pt="md">
-                      <DivisionTeamsTable tournamentId={tournamentData.id} divisionId={group.id} />
-                    </Tabs.Panel>
-
-                    {/* TREES TAB */}
-                    <Tabs.Panel value="trees" pt="md">
-                      <Stack gap="sm">
-                        <Group justify="space-between" align="center">
-                          <Text c="dimmed" size="sm">
-                            {t(
-                              "trees_note",
-                              "Choose a format to preview all trees in this group.",
-                            )}
+                          {isTeams
+                            ? t("teams_title", "Teams")
+                            : t("individuals", "Individuals")}
+                        </Badge>
+                        {group.prefix ? (
+                          <Badge variant="outline" color="gray" size="sm">
+                            {group.prefix}
+                          </Badge>
+                        ) : null}
+                        {countLabel ? (
+                          <Text size="sm" c="dimmed" visibleFrom="sm">
+                            {countLabel}
                           </Text>
-                          <Button
-                            leftSection={<IconPencil size={16} />}
-                            onClick={() =>
-                              router.push(
-                                `/tournaments/${tournamentData.id}/divisions/${group.id}/edit`,
-                              )
-                            }
-                          >
-                            {t("edit_trees", "Edit trees")}
-                          </Button>
-                        </Group>
+                        ) : null}
+                      </Group>
 
-                        <Box
-                          style={{
-                            zIndex: 15,
-                            background: "var(--mantine-color-body)",
-                            borderBottom:
-                              "1px solid var(--mantine-color-gray-3)",
-                          }}
+                      {!opened && (
+                        <Group
+                          gap={4}
+                          wrap="nowrap"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <Box p="sm">
-                            <SegmentedControl
-                              fullWidth
-                              value={viewMode}
-                              onChange={(v) => setViewMode(v as ViewMode)}
-                              data={[
-                                {
-                                  label: t("booklet", "Booklet"),
-                                  value: "booklet",
-                                },
-                                {
-                                  label: t("poster", "Poster"),
-                                  value: "poster",
-                                },
-                              ]}
-                            />
-                          </Box>
-                        </Box>
-
-                        {/* Trees preview for the active format */}
-                        <Stack gap="sm">
-                          {group.division_type === "TEAMS" ? (
-                            viewMode === "booklet" ? (
-                              <BracketPairsSectionTeams
-                                brackets={bracketsTeams}
-                                pairs={pairsTeams}
-                                formatStyles={
-                                  viewMode === "booklet"
-                                    ? DEFAULT_BOOKLET
-                                    : DEFAULT_POSTER
+                          <Tooltip label={t("download_excel", "Download Excel")}>
+                            <ActionIcon
+                              variant="subtle"
+                              color="gray"
+                              aria-label={t("download_excel", "Download Excel")}
+                              onClick={() => void downloadExcel(group.id)}
+                            >
+                              <IconDownload size={18} />
+                            </ActionIcon>
+                          </Tooltip>
+                          <Tooltip label={t("delete", "Delete")}>
+                            <ActionIcon
+                              variant="subtle"
+                              color="red"
+                              aria-label={t("delete", "Delete")}
+                              onClick={async () => {
+                                if (
+                                  confirm(
+                                    t(
+                                      "confirm_delete_group",
+                                      "Delete this division?",
+                                    ),
+                                  )
+                                ) {
+                                  await deleteDivision(group.id);
+                                  await swrDivisions.mutate();
                                 }
+                              }}
+                            >
+                              <IconTrash size={18} />
+                            </ActionIcon>
+                          </Tooltip>
+                        </Group>
+                      )}
+                    </Group>
+                  </Accordion.Control>
+
+                  <Accordion.Panel>
+                    <Tabs defaultValue="details">
+                      <Tabs.List>
+                        <Tabs.Tab value="details">
+                          {t("details", "Details")}
+                        </Tabs.Tab>
+                        {isTeams ? (
+                          <Tabs.Tab value="teams">
+                            {t("teams_title", "Teams")}
+                          </Tabs.Tab>
+                        ) : (
+                          <Tabs.Tab value="players">
+                            {t("players", "Players")}
+                          </Tabs.Tab>
+                        )}
+                        <Tabs.Tab value="trees">
+                          {t("trees", "Trees")}
+                        </Tabs.Tab>
+                      </Tabs.List>
+
+                      <Tabs.Panel value="details" pt="md">
+                        <Stack gap="md">
+                          <Group justify="space-between" align="center">
+                            <Text fw={600}>
+                              {t("group_information", "Division information")}
+                            </Text>
+                            <Button
+                              variant="light"
+                              size="sm"
+                              leftSection={<IconPencil size={16} />}
+                              onClick={() => setEditDetailsOf(group)}
+                            >
+                              {t("edit_details", "Edit details")}
+                            </Button>
+                          </Group>
+
+                          <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
+                            <Paper withBorder radius="md" p="md">
+                              <Text size="xs" c="dimmed" tt="uppercase">
+                                {t("group_name", "Name")}
+                              </Text>
+                              <Text fw={600} mt={4}>
+                                {group.name}
+                              </Text>
+                            </Paper>
+                            <Paper withBorder radius="md" p="md">
+                              <Text size="xs" c="dimmed" tt="uppercase">
+                                {t("prefix", "Prefix")}
+                              </Text>
+                              <Text fw={600} mt={4}>
+                                {group.prefix ?? "—"}
+                              </Text>
+                            </Paper>
+                            <Paper withBorder radius="md" p="md">
+                              <Text size="xs" c="dimmed" tt="uppercase">
+                                {t("division_type", "Type")}
+                              </Text>
+                              <Badge
+                                mt={6}
+                                variant="light"
+                                color={isTeams ? "blue" : "violet"}
+                              >
+                                {isTeams
+                                  ? t("teams_title", "Teams")
+                                  : t("individuals", "Individuals")}
+                              </Badge>
+                            </Paper>
+                            <Paper withBorder radius="md" p="md">
+                              <Text size="xs" c="dimmed" tt="uppercase">
+                                {t("match_duration", "Match duration")}
+                              </Text>
+                              <Text fw={600} mt={4}>
+                                {group.duration_mins} {t("minutes_short", "min")}
+                              </Text>
+                            </Paper>
+                            <Paper withBorder radius="md" p="md">
+                              <Text size="xs" c="dimmed" tt="uppercase">
+                                {t("overtime_duration", "Overtime / margin")}
+                              </Text>
+                              <Text fw={600} mt={4}>
+                                {group.margin_mins} {t("minutes_short", "min")}
+                              </Text>
+                            </Paper>
+                            {countLabel ? (
+                              <Paper withBorder radius="md" p="md">
+                                <Text size="xs" c="dimmed" tt="uppercase">
+                                  {isTeams
+                                    ? t("teams_title", "Teams")
+                                    : t("players", "Players")}
+                                </Text>
+                                <Text fw={600} mt={4}>
+                                  {countLabel}
+                                </Text>
+                              </Paper>
+                            ) : null}
+                          </SimpleGrid>
+                        </Stack>
+                      </Tabs.Panel>
+
+                      <Tabs.Panel value="players" pt="md">
+                        <DivisionPlayersTable
+                          tournamentId={tournamentData.id}
+                          divisionId={group.id}
+                          divisionName={group.name}
+                          divisionPrefix={group.prefix}
+                        />
+                      </Tabs.Panel>
+
+                      <Tabs.Panel value="teams" pt="md">
+                        <DivisionTeamsTable
+                          tournamentId={tournamentData.id}
+                          divisionId={group.id}
+                        />
+                      </Tabs.Panel>
+
+                      <Tabs.Panel value="trees" pt="md">
+                        <Stack gap="md">
+                          <Group justify="space-between" align="center" wrap="wrap">
+                            <Text c="dimmed" size="sm" maw={420}>
+                              {t(
+                                "trees_note",
+                                "Preview booklet or poster layout for this division’s trees.",
+                              )}
+                            </Text>
+                            <Button
+                              variant="light"
+                              size="sm"
+                              leftSection={<IconPencil size={16} />}
+                              onClick={() =>
+                                router.push(
+                                  `/tournaments/${tournamentData.id}/divisions/${group.id}/edit`,
+                                )
+                              }
+                            >
+                              {t("edit_trees", "Edit trees")}
+                            </Button>
+                          </Group>
+
+                          <SegmentedControl
+                            value={viewMode}
+                            onChange={(v) => setViewMode(v as ViewMode)}
+                            data={[
+                              {
+                                label: t("booklet", "Booklet"),
+                                value: "booklet",
+                              },
+                              {
+                                label: t("poster", "Poster"),
+                                value: "poster",
+                              },
+                            ]}
+                          />
+
+                          <Stack gap="sm">
+                            {isTeams ? (
+                              viewMode === "booklet" ? (
+                                <BracketPairsSectionTeams
+                                  brackets={bracketsTeams}
+                                  pairs={pairsTeams}
+                                  formatStyles={DEFAULT_BOOKLET}
+                                />
+                              ) : (
+                                <PosterGroupsSectionTeams
+                                  brackets={bracketsTeams}
+                                  formatStyles={DEFAULT_POSTER}
+                                />
+                              )
+                            ) : viewMode === "booklet" ? (
+                              <BracketPairsSection
+                                brackets={brackets}
+                                pairs={pairs}
+                                formatStyles={DEFAULT_BOOKLET}
                               />
                             ) : (
-                              <PosterGroupsSectionTeams
-                                brackets={bracketsTeams}
+                              <PosterGroupsSection
+                                brackets={brackets}
                                 formatStyles={DEFAULT_POSTER}
                               />
-                            )
-                          ) : viewMode === "booklet" ? (
-                            <BracketPairsSection
-                              brackets={brackets}
-                              pairs={pairs}
-                              formatStyles={DEFAULT_BOOKLET}
-                            />
-                          ) : (
-                            <PosterGroupsSection
-                              brackets={brackets}
-                              formatStyles={DEFAULT_POSTER}
-                            />
-                          )}
+                            )}
+                          </Stack>
                         </Stack>
-                      </Stack>
-                    </Tabs.Panel>
-                  </Tabs>
-                </Accordion.Panel>
-              </Accordion.Item>
-            );
-          })}
-        </Accordion>
+                      </Tabs.Panel>
+                    </Tabs>
+                  </Accordion.Panel>
+                </Accordion.Item>
+              );
+            })}
+          </Accordion>
+        )}
 
-        {/* Download selection modal */}
-        <BracketDownloadModal
-          opened={!!dlGroup}
-          onClose={() => setDlGroup(null)}
-          onConfirm={async (formats) => {
-            if (dlGroup) {
-              for (const fmt of formats) {
-                await downloadPDF(dlGroup.id, fmt);
-              }
-            }
-            setDlGroup(null);
-          }}
-        />
-
-        {/* Group details modal */}
         <DivisionDetailsModal
           opened={!!editDetailsOf}
           group={editDetailsOf}
           onClose={() => setEditDetailsOf(null)}
           onSave={handleSaveGroupDetails}
         />
-
-        {/* Hidden exporter (canvas capture for PDF) */}
-        {exporting && (
-          <BracketsExportCanvas
-            ref={exportRef}
-            divisionName={exporting.divisionName}
-            format={exporting.format}
-            brackets={exporting.brackets}
-            bracketsTeams={exporting.bracketsTeams}
-            clubAbbrevByName={exporting.clubAbbrevByName}
-            useCodeOnly={exporting.useCodeOnly}
-            playerIdToDisplayCode={exporting.playerIdToDisplayCode}
-          />
-        )}
       </Stack>
     </TournamentLayout>
   );
