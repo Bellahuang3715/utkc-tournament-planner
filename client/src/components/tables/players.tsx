@@ -1,24 +1,26 @@
 import { useTranslation } from "next-i18next/pages";
-import React, { useState, useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { SWRResponse } from "swr";
 import {
-  MaterialReactTable,
+  MantineReactTable,
+  useMantineReactTable,
   type MRT_ColumnDef,
   type MRT_Row,
-} from "material-react-table";
-import { Box, IconButton, Tooltip } from "@mui/material";
-import { BiEditAlt } from "react-icons/bi";
-import { Button } from "@mantine/core";
-
-import AddBoxIcon from "@mui/icons-material/AddBox";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import PlayerCreateModal, { PlayerEditModal } from "../modals/player_create_modal";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+} from "mantine-react-table-open";
+import { ActionIcon, Button, Group, Stack, Text, Tooltip } from "@mantine/core";
+import {
+  IconDownload,
+  IconListDetails,
+  IconPencil,
+  IconPlus,
+  IconTrash,
+} from "@tabler/icons-react";
 import { mkConfig, generateCsv, download } from "export-to-csv";
 
+import PlayerCreateModal, {
+  PlayerEditModal,
+} from "../modals/player_create_modal";
+import PlayerFieldsConfigModal from "../modals/player_fields_config_modal";
 import { Player } from "../../interfaces/player";
 import { FieldInsertable } from "../../interfaces/player_fields";
 import { TournamentMinimal } from "../../interfaces/tournament";
@@ -40,6 +42,7 @@ export default function PlayersTable({
   const { t } = useTranslation();
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [fieldsModalOpen, setFieldsModalOpen] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
 
   const players: Player[] =
@@ -47,102 +50,202 @@ export default function PlayersTable({
 
   const playerFields: FieldInsertable[] =
     swrPlayerFieldsResponse.data?.fields ?? [];
-    
-  // console.log("playerFields", playerFields);
 
-  // ────── CSV CONFIG ─────────────────────────────────────────────
   const csvConfig = mkConfig({
     fieldSeparator: ",",
     decimalSeparator: ".",
     useKeysAsHeaders: true,
   });
 
-  // export all rows (unfiltered/unpaginated)
   const handleExportAll = () => {
-    // const csv = generateCsv(csvConfig)(players);
-    // download(csvConfig)(csv);
+    const rows = players.map((p) => {
+      const base: Record<string, unknown> = {
+        id: p.id,
+        name: p.name,
+        club: p.club ?? "",
+        code: p.code ?? "",
+      };
+      for (const f of playerFields) {
+        if (!f.include) continue;
+        base[f.key] = p.data?.[f.key] ?? "";
+      }
+      return base;
+    });
+    const csv = generateCsv(csvConfig)(rows as any);
+    download(csvConfig)(csv);
   };
 
-  // 1) build the column definitions
-   const columns = useMemo<MRT_ColumnDef<Player>[]>(
-     () => {
-      // 1a) explicit "name" column
-      const nameCol: MRT_ColumnDef<Player> = {
-        accessorKey: 'name',
-        header: t('name_header', 'Name'),
-        filterVariant: 'text',
-      };
-      const clubCol: MRT_ColumnDef<Player> = {
-        accessorKey: 'club',
-        header: t('club_header', 'Club'),
-        filterVariant: 'text',
-      };
+  const handleDeleteRows = async (rows: MRT_Row<Player>[]) => {
+    if (!rows.length) return;
+    const ok = window.confirm(
+      t(
+        "confirm_remove_players",
+        "Are you sure you want to remove the selected players?",
+      ),
+    );
+    if (!ok) return;
+    try {
+      await Promise.all(
+        rows.map((row) => deletePlayer(tournamentData.id, row.original.id)),
+      );
+      await swrPlayersResponse.mutate();
+    } catch (err) {
+      console.error("Failed to delete player(s):", err);
+    }
+  };
 
-      const fieldCols = playerFields
-        .filter((f) => f.include)
-        .sort((a, b) => a.position - b.position)
-        .map((f) => {
-          const col: MRT_ColumnDef<Player> = {
-            id: f.key,
-            header: f.label,
-            accessorFn: (row) => row.data[f.key],
-            filterVariant:
-              f.type === "TEXT"
-                ? "text"
-                : f.type === "CHECKBOX"
+  const columns = useMemo<MRT_ColumnDef<Player>[]>(() => {
+    const nameCol: MRT_ColumnDef<Player> = {
+      accessorKey: "name",
+      header: t("name_header", "Name"),
+      filterVariant: "text",
+      Cell: ({ cell }) => (
+        <Text fw={600} size="sm">
+          {cell.getValue<string>()}
+        </Text>
+      ),
+    };
+    const clubCol: MRT_ColumnDef<Player> = {
+      accessorKey: "club",
+      header: t("club_header", "Club"),
+      filterVariant: "text",
+      Cell: ({ cell }) => cell.getValue<string | null>() || "—",
+    };
+
+    const fieldCols = playerFields
+      .filter((f) => f.include)
+      .sort((a, b) => a.position - b.position)
+      .map((f) => {
+        const col: MRT_ColumnDef<Player> = {
+          id: f.key,
+          header: f.label,
+          accessorFn: (row) => row.data[f.key],
+          filterVariant:
+            f.type === "TEXT"
+              ? "text"
+              : f.type === "CHECKBOX"
                 ? "checkbox"
                 : f.type === "NUMBER"
-                ? "range"
-                : "multi-select",
+                  ? "range"
+                  : "multi-select",
+        };
+        if (f.type === "DROPDOWN") {
+          col.mantineFilterMultiSelectProps = {
+            data: f.options ?? [],
           };
-          if (f.type === "DROPDOWN") {
-            col.filterSelectOptions = f.options;
-          }
-          if (f.type === "NUMBER") {
-            col.filterFn = "between";
-          }
-          if (f.type === "CHECKBOX") {
-            col.accessorFn = (row) => (row.data[f.key] ? "true" : "false");
-            col.Cell = ({ cell }) =>
-              cell.getValue<string>() === "true" ? t("yes") : t("no");
-          }
-          return col;
-        });
-
-        const actionsCol = {
-          id: "actions",
-          header: "Actions",
-          enableColumnFilter: false,
-          enableSorting: false,
-          enableEditing: false,
-          size: 100,
-          Cell: ({ row }: { row: MRT_Row<Player> }) => (
-            <Box sx={{ display: "flex", gap: "0.5rem" }}>
-              <Button
-                color="green"
-                size="xs"
-                style={{ marginRight: 10 }}
-                onClick={() => {
-                  setEditingPlayer(row.original);
-                  setEditModalOpen(true);
-                }}
-                leftSection={<BiEditAlt size={20} />}
-              >
-                {t("edit_player_title")}
-              </Button>
-            </Box>
-          ),
         }
+        if (f.type === "NUMBER") {
+          col.filterFn = "between";
+        }
+        if (f.type === "CHECKBOX") {
+          col.accessorFn = (row) => (row.data[f.key] ? "true" : "false");
+          col.Cell = ({ cell }) =>
+            cell.getValue<string>() === "true" ? t("yes") : t("no");
+        }
+        return col;
+      });
 
-        return [
-          nameCol,
-          clubCol,
-          ...fieldCols,
-          actionsCol
-        ];
-      },
-     [playerFields, t]
-   );
+    const actionsCol: MRT_ColumnDef<Player> = {
+      id: "actions",
+      header: t("actions_header", "Actions"),
+      enableColumnFilter: false,
+      enableSorting: false,
+      size: 100,
+      Cell: ({ row }) => (
+        <Group gap={4} wrap="nowrap">
+          <Tooltip label={t("edit_player_title", "Edit player")}>
+            <ActionIcon
+              variant="subtle"
+              color="green"
+              aria-label={t("edit_player_title", "Edit player")}
+              onClick={() => {
+                setEditingPlayer(row.original);
+                setEditModalOpen(true);
+              }}
+            >
+              <IconPencil size={18} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label={t("delete_button", "Delete")}>
+            <ActionIcon
+              variant="subtle"
+              color="red"
+              aria-label={t("delete_button", "Delete")}
+              onClick={() => void handleDeleteRows([row])}
+            >
+              <IconTrash size={18} />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
+      ),
+    };
+
+    return [nameCol, clubCol, ...fieldCols, actionsCol];
+  }, [playerFields, t]);
+
+  const table = useMantineReactTable({
+    columns,
+    data: players,
+    getRowId: (row) => String(row.id),
+    enableRowSelection: true,
+    enableColumnFilters: true,
+    enableSorting: true,
+    enablePagination: true,
+    enableColumnOrdering: true,
+    enableColumnPinning: true,
+    enableStickyHeader: true,
+    enableRowPinning: true,
+    rowPinningDisplayMode: "select-sticky",
+    initialState: {
+      density: "xs",
+      showColumnFilters: true,
+    },
+    renderTopToolbarCustomActions: ({ table: tableInstance }) => {
+      const selected = tableInstance.getSelectedRowModel().rows;
+      return (
+        <Group gap="xs">
+          <Button
+            leftSection={<IconPlus size={16} />}
+            variant="filled"
+            onClick={() => setCreateModalOpen(true)}
+          >
+            {t("add_player_button", "Add player")}
+          </Button>
+          <Button
+            leftSection={<IconListDetails size={16} />}
+            variant="outline"
+            onClick={() => setFieldsModalOpen(true)}
+          >
+            {t("configure_template", "Manage Player Fields")}
+          </Button>
+          <Button
+            leftSection={<IconTrash size={16} />}
+            variant="light"
+            color="red"
+            disabled={!selected.length}
+            onClick={async () => {
+              await handleDeleteRows(selected);
+              tableInstance.resetRowSelection();
+            }}
+          >
+            {t("delete_selected", "Delete selected")}
+          </Button>
+        </Group>
+      );
+    },
+    renderBottomToolbarCustomActions: ({ table: tableInstance }) => (
+      <Group gap="md" p="xs" wrap="wrap">
+        <Button
+          leftSection={<IconDownload size={16} />}
+          variant="light"
+          onClick={handleExportAll}
+        >
+          {t("export_all_data", "Export All Data")}
+        </Button>
+        <GenerateBracketsButton table={tableInstance} />
+      </Group>
+    ),
+  });
 
   if (swrPlayersResponse.error || swrPlayerFieldsResponse.error) {
     return (
@@ -172,106 +275,43 @@ export default function PlayersTable({
         setOpened={setEditModalOpen}
         player={editingPlayer}
       />
-      <LocalizationProvider dateAdapter={AdapterDayjs}>
-        <MaterialReactTable<Player>
-          columns={columns}
-          data={players}
-          enableColumnOrdering
-          enableStickyHeader
-          enableColumnPinning
-          enableRowPinning
-          enableRowSelection
-          // enableRowNumbers={true}
-          // enableColumnResizing={true}
-          // selectAllMode="all"
-          rowPinningDisplayMode="select-sticky"
-          getRowId={(row) => row.id.toString()}
-          renderRowActions={({ row, table }) => (
-            <Box sx={{ display: "flex", gap: "0.5rem" }}>
-              <Tooltip title={t("edit")}>
-                <IconButton
-                  size="small"
-                  onClick={() => table.setEditingRow(row)}
-                >
-                  <EditIcon />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          )}
-          renderTopToolbarCustomActions={({ table }) => {
-            const handleRemovePlayers = async () => {
-              const selected = table.getSelectedRowModel().flatRows;
-              if (selected.length === 0) return;
-              const ok = window.confirm(
-                t("confirm_remove_players", "Are you sure you want to remove the selected players?")
-              );
-              if (!ok) return;
-              const tournamentId = tournamentData.id;
-              try {
-                await Promise.all(
-                  selected.map((row) =>
-                    deletePlayer(tournamentId, row.original.id)
-                  )
-                );
-                table.resetRowSelection();
-                await swrPlayersResponse.mutate();
-              } catch (err) {
-                console.error("Failed to delete player(s):", err);
-              }
-            };
-
-            return (
-              <Box
-                display="flex"
-                justifyContent="space-between"
-                alignItems="center"
-                mb={2}
-              >
-                <Tooltip title="Add Player">
-                  <IconButton onClick={() => setCreateModalOpen(true)}>
-                    <AddBoxIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Remove Player(s)">
-                  <span>
-                    <IconButton
-                      disabled={
-                        table.getSelectedRowModel().flatRows.length === 0
-                      }
-                      onClick={handleRemovePlayers}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-              </Box>
-            );
-          }}
-          renderBottomToolbarCustomActions={({ table }) => (
-            <Box
-              sx={{
-                display: "flex",
-                gap: "16px",
-                padding: "8px",
-                flexWrap: "wrap",
-              }}
+      <PlayerFieldsConfigModal
+        tournament_id={tournamentData.id}
+        opened={fieldsModalOpen}
+        onClose={() => setFieldsModalOpen(false)}
+        onSave={async () => {
+          setFieldsModalOpen(false);
+          await swrPlayerFieldsResponse.mutate();
+        }}
+      />
+      {players.length === 0 ? (
+        <Stack gap="md" align="flex-start">
+          <NoContent
+            title={t("no_players_title", "No players yet")}
+            description={t(
+              "no_players_description",
+              "Add players to this tournament to get started.",
+            )}
+          />
+          <Group gap="xs">
+            <Button
+              leftSection={<IconPlus size={16} />}
+              onClick={() => setCreateModalOpen(true)}
             >
-              {/* export all data */}
-              <Button
-                leftSection={<FileDownloadIcon />}
-                onClick={handleExportAll}
-                style={{ textTransform: "none" }}
-              >
-                {t("export_all_data", "Export All Data")}
-              </Button>
-
-              {/* brackets generator */}
-              <GenerateBracketsButton table={table} />
-            </Box>
-          )}
-          initialState={{ showColumnFilters: true, density: 'compact' }}
-        />
-      </LocalizationProvider>
+              {t("add_player_button", "Add player")}
+            </Button>
+            <Button
+              leftSection={<IconListDetails size={16} />}
+              variant="outline"
+              onClick={() => setFieldsModalOpen(true)}
+            >
+              {t("configure_template", "Manage Player Fields")}
+            </Button>
+          </Group>
+        </Stack>
+      ) : (
+        <MantineReactTable table={table} />
+      )}
     </>
   );
 }

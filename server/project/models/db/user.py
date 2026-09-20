@@ -18,6 +18,12 @@ class UserBase(BaseModelORM):
     name: str
     created: datetime_utc
     account_type: UserAccountType
+    phone: str | None = None
+    organization: str | None = None
+    title: str | None = None
+    city: str | None = None
+    country: str | None = "Canada"
+    bio: str | None = None
 
     @property
     def subscription(self) -> Subscription:
@@ -41,6 +47,12 @@ class UserPublic(UserBase):
 class UserToUpdate(BaseModel):
     email: str
     name: str
+    phone: str | None = None
+    organization: str | None = None
+    title: str | None = None
+    city: str | None = None
+    country: str | None = None
+    bio: str | None = None
 
 
 class UserPasswordToUpdate(BaseModel):

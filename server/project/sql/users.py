@@ -38,11 +38,29 @@ async def get_user_access_to_club(club_id: ClubId, user_id: UserId) -> bool:
 async def update_user(user_id: UserId, user: UserToUpdate) -> None:
     query = """
         UPDATE users
-        SET name = :name, email = :email
+        SET name = :name,
+            email = :email,
+            phone = :phone,
+            organization = :organization,
+            title = :title,
+            city = :city,
+            country = :country,
+            bio = :bio
         WHERE id = :user_id
         """
     await database.execute(
-        query=query, values={"user_id": user_id, "name": user.name, "email": user.email}
+        query=query,
+        values={
+            "user_id": user_id,
+            "name": user.name,
+            "email": user.email,
+            "phone": user.phone,
+            "organization": user.organization,
+            "title": user.title,
+            "city": user.city,
+            "country": user.country,
+            "bio": user.bio,
+        },
     )
 
 

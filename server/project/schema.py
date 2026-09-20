@@ -25,6 +25,12 @@ users = Table(
         ),
         nullable=False,
     ),
+    Column("phone", String, nullable=True),
+    Column("organization", String, nullable=True),
+    Column("title", String, nullable=True),
+    Column("city", String, nullable=True),
+    Column("country", String, nullable=True, server_default="Canada"),
+    Column("bio", String, nullable=True),
 )
 
 clubs = Table(

@@ -1,129 +1,244 @@
-import React from 'react';
-import { Button, Select, Tabs, TextInput } from '@mantine/core';
+import React, { useEffect } from 'react';
+import {
+  Autocomplete,
+  Button,
+  Container,
+  Fieldset,
+  Grid,
+  Group,
+  Text,
+  Textarea,
+  TextInput,
+} from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { BiGlobe } from 'react-icons/bi';
-import { IconHash, IconLogout, IconUser } from '@tabler/icons-react';
+import { showNotification } from '@mantine/notifications';
+import { IconCheck, IconLogout } from '@tabler/icons-react';
 import { useRouter } from 'next/router';
-import assert from 'assert';
+import { useTranslation } from 'next-i18next/pages';
+import { CircleFlag } from 'react-circle-flags';
 
 import { UserInterface } from '../../interfaces/user';
 import { updatePassword, updateUser } from '../../services/user';
+import {
+  COUNTRY_OPTIONS,
+  DEFAULT_COUNTRY,
+  countryCodeFromName,
+} from '../../utils/countries';
 import { PasswordStrength } from '../utils/password';
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from '../../context/AuthContext';
 
-export default function UserForm({ user, t, i18n }: { user: UserInterface; t: any; i18n: any }) {
+export default function UserForm({ user }: { user: UserInterface }) {
+  const { t } = useTranslation();
   const { logout } = useAuth();
   const router = useRouter();
-  const details_form = useForm({
-    initialValues: {
-      name: user != null ? user.name : '',
-      email: user != null ? user.email : '',
-      password: '',
-    },
 
+  const detailsForm = useForm({
+    initialValues: {
+      name: user.name ?? '',
+      email: user.email ?? '',
+      phone: user.phone ?? '',
+      organization: user.organization ?? '',
+      title: user.title ?? '',
+      city: user.city ?? '',
+      country: user.country || DEFAULT_COUNTRY,
+      bio: user.bio ?? '',
+    },
     validate: {
       name: (value) => (value !== '' ? null : t('empty_name_validation')),
       email: (value) => (value !== '' ? null : t('empty_email_validation')),
     },
   });
-  const password_form = useForm({
+
+  const passwordForm = useForm({
     initialValues: {
       password: '',
     },
-
     validate: {
-      password: (value) => (value.length >= 8 ? null : t('too_short_password_validation')),
+      password: (value) =>
+        value.length >= 8 ? null : t('too_short_password_validation'),
     },
   });
 
-  const locales = [
-    { value: 'zh', label: '🇨🇳 Chinese' },
-    { value: 'nl', label: '🇳🇱 Dutch' },
-    { value: 'en', label: '🇺🇸 English' },
-    { value: 'fr', label: '🇫🇷 French' },
-    { value: 'de', label: '🇩🇪 German' },
-    { value: 'el', label: '🇬🇷 Greek' },
-    { value: 'it', label: '🇮🇹 Italian' },
-    { value: 'ja', label: '🇯🇵 Japanese' },
-    { value: 'pt', label: '🇵🇹 Portuguese' },
-    { value: 'es', label: '🇪🇸 Spanish' },
-    { value: 'se', label: '🇸🇪 Swedish' },
-  ];
+  useEffect(() => {
+    detailsForm.setValues({
+      name: user.name ?? '',
+      email: user.email ?? '',
+      phone: user.phone ?? '',
+      organization: user.organization ?? '',
+      title: user.title ?? '',
+      city: user.city ?? '',
+      country: user.country || DEFAULT_COUNTRY,
+      bio: user.bio ?? '',
+    });
+  }, [user]);
 
-  const changeLanguage = (newLocale: string | null) => {
-    const { pathname, asPath, query } = router;
-    assert(newLocale != null);
-    router.push({ pathname, query }, asPath, { locale: newLocale });
-  };
+  const createdLabel = user.created
+    ? new Date(user.created).toLocaleString()
+    : '—';
 
   return (
-    <Tabs defaultValue="details">
-      <Tabs.List>
-        <Tabs.Tab value="details" leftSection={<IconUser size="1.0rem" />}>
-          {t('edit_details_tab_title')}
-        </Tabs.Tab>
-        <Tabs.Tab value="password" leftSection={<IconHash size="1.0rem" />}>
-          {t('edit_password_tab_title')}
-        </Tabs.Tab>
-        <Tabs.Tab value="language" leftSection={<BiGlobe size="1.0rem" />}>
-          {t('edit_language_tab_title')}
-        </Tabs.Tab>
-      </Tabs.List>
-      <Tabs.Panel value="details" pt="xs">
-        <form
-          onSubmit={details_form.onSubmit(async (values) => {
-            if (user != null) await updateUser(user.id, values);
-          })}
-        >
+    <Container size="sm" px={0}>
+      <form
+        onSubmit={detailsForm.onSubmit(async (values) => {
+          await updateUser(user.id, {
+            name: values.name,
+            email: values.email,
+            phone: values.phone || null,
+            organization: values.organization || null,
+            title: values.title || null,
+            city: values.city || null,
+            country: values.country?.trim() || DEFAULT_COUNTRY,
+            bio: values.bio || null,
+          });
+          showNotification({
+            title: t('success', 'Saved'),
+            message: t('profile_saved', 'Your profile was updated'),
+            color: 'green',
+            icon: <IconCheck size={16} />,
+          });
+        })}
+      >
+        <Fieldset legend={t('profile_section', 'Profile')} radius="md">
           <TextInput
             withAsterisk
-            mt="1.0rem"
-            label={t('name_input_label')}
-            {...details_form.getInputProps('name')}
+            label={t('name_input_label', 'Name')}
+            placeholder={t('name_input_placeholder', 'Your full name')}
+            {...detailsForm.getInputProps('name')}
           />
+          <Grid mt="sm">
+            <Grid.Col span={{ sm: 6 }}>
+              <TextInput
+                label={t('title_input_label', 'Title / role')}
+                placeholder={t('title_input_placeholder', 'e.g. Tournament director')}
+                {...detailsForm.getInputProps('title')}
+              />
+            </Grid.Col>
+            <Grid.Col span={{ sm: 6 }}>
+              <TextInput
+                label={t('organization_input_label', 'Organization')}
+                placeholder={t('organization_input_placeholder', 'Club or organization')}
+                {...detailsForm.getInputProps('organization')}
+              />
+            </Grid.Col>
+          </Grid>
+          <Textarea
+            mt="sm"
+            label={t('bio_input_label', 'About')}
+            placeholder={t('bio_input_placeholder', 'A short bio (optional)')}
+            minRows={3}
+            autosize
+            {...detailsForm.getInputProps('bio')}
+          />
+        </Fieldset>
+
+        <Fieldset legend={t('contact_section', 'Contact')} mt="lg" radius="md">
           <TextInput
             withAsterisk
-            mt="1.0rem"
-            label={t('email_input_label')}
+            label={t('email_input_label', 'Email')}
             type="email"
-            {...details_form.getInputProps('email')}
+            {...detailsForm.getInputProps('email')}
           />
-          <Button fullWidth style={{ marginTop: 20 }} color="green" type="submit">
-            {t('save_button')}
-          </Button>
-          <Button
-            fullWidth
-            style={{ marginTop: 20 }}
-            color="red"
-            variant="outline"
-            leftSection={<IconLogout />}
-            onClick={() => logout(t, router)}
-          >
-            {t('logout_title')}
-          </Button>
-        </form>
-      </Tabs.Panel>
-      <Tabs.Panel value="password" pt="xs">
+          <TextInput
+            mt="sm"
+            label={t('phone_input_label', 'Phone')}
+            placeholder={t('phone_input_placeholder', '+1 416 555 0100')}
+            {...detailsForm.getInputProps('phone')}
+          />
+          <Grid mt="sm">
+            <Grid.Col span={{ sm: 6 }}>
+              <TextInput
+                label={t('city_input_label', 'City')}
+                placeholder={t('city_input_placeholder', 'Toronto')}
+                {...detailsForm.getInputProps('city')}
+              />
+            </Grid.Col>
+            <Grid.Col span={{ sm: 6 }}>
+              <Autocomplete
+                label={t('country_input_label', 'Country')}
+                placeholder={t('country_input_placeholder', 'Start typing a country')}
+                data={COUNTRY_OPTIONS.map((c) => c.name)}
+                limit={12}
+                comboboxProps={{ withinPortal: true }}
+                leftSection={
+                  <CircleFlag
+                    countryCode={countryCodeFromName(detailsForm.values.country)}
+                    height="16"
+                    style={{ pointerEvents: 'none' }}
+                  />
+                }
+                renderOption={({ option }) => (
+                  <Group gap="sm" wrap="nowrap">
+                    <CircleFlag
+                      countryCode={countryCodeFromName(option.value)}
+                      height="18"
+                    />
+                    <Text size="sm">{option.value}</Text>
+                  </Group>
+                )}
+                {...detailsForm.getInputProps('country')}
+              />
+            </Grid.Col>
+          </Grid>
+        </Fieldset>
+
+        <Button fullWidth mt="lg" color="green" type="submit">
+          {t('save_button')}
+        </Button>
+      </form>
+
+      <Fieldset legend={t('security_section', 'Security')} mt="xl" radius="md">
+        <Text size="sm" c="dimmed" mb="sm">
+          {t('change_password_description', 'Update your account password')}
+        </Text>
         <form
-          onSubmit={password_form.onSubmit(async (values) => {
-            if (user != null) await updatePassword(user.id, values.password);
+          onSubmit={passwordForm.onSubmit(async (values) => {
+            await updatePassword(user.id, values.password);
+            passwordForm.reset();
+            showNotification({
+              title: t('success', 'Saved'),
+              message: t('password_saved', 'Your password was updated'),
+              color: 'green',
+              icon: <IconCheck size={16} />,
+            });
           })}
         >
-          <PasswordStrength form={password_form} />
-          <Button fullWidth style={{ marginTop: 20 }} color="green" type="submit">
-            {t('save_button')}
+          <PasswordStrength form={passwordForm} />
+          <Button fullWidth mt="md" color="green" type="submit">
+            {t('update_password_button', 'Update password')}
           </Button>
         </form>
-      </Tabs.Panel>
-      <Tabs.Panel value="language" pt="xs">
-        <Select
-          allowDeselect={false}
-          value={i18n.language}
-          label={t('language')}
-          data={locales}
-          onChange={async (lng) => changeLanguage(lng)}
-        />
-      </Tabs.Panel>
-    </Tabs>
+      </Fieldset>
+
+      <Fieldset legend={t('account_section', 'Account')} mt="xl" radius="md">
+        <Grid>
+          <Grid.Col span={{ sm: 6 }}>
+            <Text size="xs" c="dimmed" tt="uppercase">
+              {t('account_type_label', 'Account type')}
+            </Text>
+            <Text size="sm" fw={500}>
+              {user.account_type || '—'}
+            </Text>
+          </Grid.Col>
+          <Grid.Col span={{ sm: 6 }}>
+            <Text size="xs" c="dimmed" tt="uppercase">
+              {t('member_since_label', 'Member since')}
+            </Text>
+            <Text size="sm" fw={500}>
+              {createdLabel}
+            </Text>
+          </Grid.Col>
+        </Grid>
+        <Button
+          fullWidth
+          mt="lg"
+          color="red"
+          variant="outline"
+          leftSection={<IconLogout size={18} />}
+          onClick={() => logout(t, router)}
+        >
+          {t('logout_title')}
+        </Button>
+      </Fieldset>
+    </Container>
   );
 }

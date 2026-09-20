@@ -1,0 +1,28 @@
+.userButton {
+  padding: rem(4px) rem(8px);
+  border-radius: var(--mantine-radius-sm);
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+
+  @mixin hover {
+    background-color: light-dark(
+      var(--mantine-color-gray-0),
+      var(--mantine-color-dark-4)
+    );
+  }
+}
+
+.userName {
+  max-width: rem(140px);
+
+  @media (max-width: $mantine-breakpoint-md) {
+    display: none;
+  }
+}
+
+.chevron {
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+
+  @media (max-width: $mantine-breakpoint-md) {
+    display: none;
+  }
+}

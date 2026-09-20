@@ -18,7 +18,6 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from "@mantine/form";
 import BuildIcon from "@mui/icons-material/Build";
-import type { MRT_TableInstance } from "material-react-table";
 import { useRouter } from "next/router";
 import { useTranslation } from "next-i18next/pages";
 
@@ -48,8 +47,22 @@ type PlayerRow = {
 
 type RowWithId = { id: string | number } & Record<string, any>;
 
+/** Minimal table surface used by Generate Brackets (MRT / TanStack). */
+type BracketTableInstance<TRow extends RowWithId> = {
+  getSelectedRowModel: () => { rows: Array<{ original: TRow }> };
+  getState: () => {
+    columnFilters?: Array<{ id: string; value: unknown }>;
+    globalFilter?: unknown;
+    sorting?: Array<{ id: string; desc: boolean }>;
+  };
+  getColumn: (id: string) => {
+    id?: string;
+    columnDef?: { header?: unknown };
+  } | undefined;
+};
+
 interface GenerateBracketsButtonProps<TRow extends RowWithId> {
-  table: MRT_TableInstance<TRow>;
+  table: BracketTableInstance<TRow>;
 }
 
 function makePlayerCodes(prefix: string, n: number): string[] {
@@ -571,7 +584,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
 export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
   table,
 }: {
-  table: MRT_TableInstance<TRow>;
+  table: BracketTableInstance<TRow>;
 }) {
   const { id: tournamentId } = getTournamentIdFromRouter();
   const router = useRouter();
@@ -904,7 +917,7 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
 
 /** Build a readable list of filters from MRT/TanStack Table state */
 function summarizeFilters<TRow extends RowWithId>(
-  table: MRT_TableInstance<TRow>,
+  table: BracketTableInstance<TRow>,
 ): string[] {
   const state = table.getState() as any;
   const filters: string[] = [];

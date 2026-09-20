@@ -31,11 +31,20 @@ from project.utils.types import assert_some
 router = APIRouter()
 
 
+@router.get("/users/me", response_model=UserPublicResponse)
+async def get_current_user(
+    user_public: UserPublic = Depends(firebase_user_authenticated),
+) -> UserPublicResponse:
+    if user_public is None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
+    return UserPublicResponse(data=user_public)
+
+
 @router.get("/users/{user_id}", response_model=UserPublicResponse)
 async def get_me(
     user_id: UserId, user_public: UserPublic = Depends(firebase_user_authenticated)
 ) -> UserPublicResponse:
-    if user_public.id != user_id:
+    if user_public is None or user_public.id != user_id:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Can't view details of this user")
 
     return UserPublicResponse(data=user_public)
@@ -47,7 +56,7 @@ async def update_user_details(
     user_to_update: UserToUpdate,
     user_public: UserPublic = Depends(firebase_user_authenticated),
 ) -> UserPublicResponse:
-    if user_public.id != user_id:
+    if user_public is None or user_public.id != user_id:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Can't change details of this user")
 
     await update_user(user_public.id, user_to_update)

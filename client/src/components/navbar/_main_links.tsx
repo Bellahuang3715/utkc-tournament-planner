@@ -11,7 +11,6 @@ import {
   IconScoreboard,
   IconSettings,
   IconTrophy,
-  IconUser,
   IconUsers,
 } from '@tabler/icons-react';
 import { useTranslation } from 'next-i18next/pages';
@@ -76,12 +75,6 @@ export function getBaseLinksDict() {
   return [
     { link: '/clubs', label: capitalize(t('clubs_title')), links: [], icon: IconUsers },
     { link: '/', label: capitalize(t('tournaments_title')), links: [], icon: IconHome },
-    {
-      link: '/user',
-      label: t('user_title'),
-      links: [],
-      icon: IconUser,
-    },
     {
       icon: IconDots,
       link: '',

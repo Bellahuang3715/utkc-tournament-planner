@@ -20,6 +20,7 @@ import {
   getBaseLinks,
   getBaseLinksDict,
 } from "../components/navbar/_main_links";
+import { UserMenu } from "../components/navbar/_user_menu";
 import classes from "./_layout.module.css";
 
 interface HeaderActionLink {
@@ -118,15 +119,17 @@ export function HeaderAction({
             {breadcrumbs}
           </Group>
         </Center>
-        <Group gap={5} className={classes.links} visibleFrom="sm">
-          {items}
+        <Group gap="xs" className={classes.links}>
+          <Group gap={5} visibleFrom="sm">
+            {items}
+          </Group>
+          <UserMenu />
           <ActionIcon
             variant="default"
             onClick={() =>
               setColorScheme(computedColorScheme === "light" ? "dark" : "light")
             }
             size={30}
-            ml="1rem"
           >
             <IconSun size={16} className={classes.light} />
             <IconMoonStars size={16} className={classes.dark} />

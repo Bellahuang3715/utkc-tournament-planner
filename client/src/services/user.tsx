@@ -1,6 +1,16 @@
 import { UserBodyInterface, UserToRegisterInterface } from '../interfaces/user';
 import { createAxios, handleRequestError } from './adapter';
 
+export async function getCurrentUser() {
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.get('users/me');
+  } catch {
+    // Profile page falls back to Firebase / empty placeholders.
+    return null;
+  }
+}
+
 export async function updateUser(user_id: number, user: UserBodyInterface) {
   try {
     const axiosInstance = await createAxios();
