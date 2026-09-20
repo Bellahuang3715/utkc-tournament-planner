@@ -7,13 +7,21 @@ export type OpeningSlotCells = {
   name: string;
 };
 
-export type BracketPlayerTemplateMap = {
-  /** Template file under /templates/bracket_players/ */
-  file: string;
-  /** Worksheet to fill and copy into the division workbook. */
+/** One worksheet layout inside a size template (Full / Left / Right). */
+export type BracketSheetLayout = {
   sheet: string;
   openingSlots: OpeningSlotCells[];
 };
+
+export type BracketPlayerTemplateMap = {
+  /** Template file under /templates/bracket_players/ */
+  file: string;
+  expanded: BracketSheetLayout;
+  collapsedLeft: BracketSheetLayout;
+  collapsedRight: BracketSheetLayout;
+};
+
+export type BracketExportFormat = "expanded" | "collapsed";
 
 export type BracketExportPlayer = {
   id: string;

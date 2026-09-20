@@ -10,9 +10,12 @@ import { DEFAULT_POSTER } from "../utils/brackets_editor/shared";
 import {
   bracketPlayerTemplateUrl,
   getBracketPlayerTemplate,
+  resolveBracketSheetLayout,
+  type BracketExportFormat,
   type BracketExportPlayer,
   type BracketFillStyles,
   type BracketPlayerTemplateMap,
+  type BracketSheetLayout,
 } from "./bracket_player_templates";
 
 function excelFontName(fontFamily?: string): string | undefined {
@@ -75,15 +78,16 @@ function formatName(player: BracketExportPlayer | undefined): string {
 
 export function fillBracketPlayerSheet(
   sheet: ExcelJS.Worksheet,
-  map: BracketPlayerTemplateMap,
+  layout: BracketSheetLayout,
   players: BracketExportPlayer[],
   opts: {
     styles?: BracketFillStyles;
+    templateFile?: string;
   } = {},
 ) {
-  if (map.openingSlots.length === 0) {
+  if (layout.openingSlots.length === 0) {
     throw new Error(
-      `Template map for ${map.file} has no openingSlots defined yet`,
+      `Template map for ${opts.templateFile ?? layout.sheet} (${layout.sheet}) has no openingSlots defined yet`,
     );
   }
 
@@ -99,7 +103,7 @@ export function fillBracketPlayerSheet(
     color: opts.styles?.textStyle?.color,
   };
 
-  map.openingSlots.forEach((cells, i) => {
+  layout.openingSlots.forEach((cells, i) => {
     const p = players[i];
     setCell(sheet, cells.id, p?.noShow ? "—" : (p?.id ?? ""), idFont);
     if (cells.score) {
@@ -308,10 +312,194 @@ function buildSharedStringsXml(items: string[]): string {
   );
 }
 
+/** Child elements of a counted styles.xml section (`<font>…`, `<xf …/>`, …). */
+function parseStyleSectionItems(sectionInner: string, itemTag: string): string[] {
+  const re = new RegExp(
+    `<${itemTag}\\b[^>]*\\/>|<${itemTag}\\b[^>]*>[\\s\\S]*?<\\/${itemTag}>`,
+    "g",
+  );
+  return [...sectionInner.matchAll(re)].map((m) => m[0]);
+}
+
+function getStyleSection(
+  stylesXml: string,
+  tag: string,
+): { inner: string; items: string[] } {
+  const m = stylesXml.match(
+    new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)<\\/${tag}>`),
+  );
+  if (!m) return { inner: "", items: [] };
+  const itemTag =
+    tag === "numFmts"
+      ? "numFmt"
+      : tag === "fonts"
+        ? "font"
+        : tag === "fills"
+          ? "fill"
+          : tag === "borders"
+            ? "border"
+            : tag === "cellStyleXfs" || tag === "cellXfs"
+              ? "xf"
+              : tag === "dxfs"
+                ? "dxf"
+                : "";
+  return {
+    inner: m[1],
+    items: itemTag ? parseStyleSectionItems(m[1], itemTag) : [],
+  };
+}
+
+function replaceStyleSection(
+  stylesXml: string,
+  tag: string,
+  items: string[],
+): string {
+  const body = items.join("");
+  const next = `<${tag} count="${items.length}">${body}</${tag}>`;
+  if (new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*?<\\/${tag}>`).test(stylesXml)) {
+    return stylesXml.replace(
+      new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*?<\\/${tag}>`),
+      next,
+    );
+  }
+  // Insert before cellXfs if missing (e.g. numFmts).
+  if (tag === "numFmts") {
+    return stylesXml.replace(/<fonts\b/, `${next}<fonts`);
+  }
+  return stylesXml;
+}
+
+/**
+ * Remap font/fill/border (and custom numFmt) indexes inside an `<xf>` when
+ * appending one workbook's cellXfs onto another's styles.xml.
+ */
+function remapXfComponentIndexes(
+  xfXml: string,
+  offsets: {
+    font: number;
+    fill: number;
+    border: number;
+    numFmtIdMap: Map<number, number>;
+  },
+): string {
+  return xfXml
+    .replace(/\bfontId="(\d+)"/g, (_m, n: string) => {
+      return `fontId="${offsets.font + Number(n)}"`;
+    })
+    .replace(/\bfillId="(\d+)"/g, (_m, n: string) => {
+      return `fillId="${offsets.fill + Number(n)}"`;
+    })
+    .replace(/\bborderId="(\d+)"/g, (_m, n: string) => {
+      return `borderId="${offsets.border + Number(n)}"`;
+    })
+    .replace(/\bnumFmtId="(\d+)"/g, (_m, n: string) => {
+      const id = Number(n);
+      const mapped = offsets.numFmtIdMap.get(id);
+      return `numFmtId="${mapped ?? id}"`;
+    })
+    // Keep pointing at the first workbook's cellStyleXfs[0].
+    .replace(/\bxfId="\d+"/g, `xfId="0"`);
+}
+
+/** Remap cell `s="N"` style indexes after concatenating cellXfs tables. */
+function remapSheetStyleIndexes(sheetXml: string, cellXfOffset: number): string {
+  if (cellXfOffset === 0) return sheetXml;
+  return sheetXml.replace(
+    /\bs="(\d+)"/g,
+    (_m, n: string) => `s="${cellXfOffset + Number(n)}"`,
+  );
+}
+
+type MergedStylesState = {
+  /** styles.xml from the first part; sections are replaced as we append. */
+  xml: string;
+  numFmts: string[];
+  fonts: string[];
+  fills: string[];
+  borders: string[];
+  cellXfs: string[];
+};
+
+function createMergedStylesState(firstStylesXml: string): MergedStylesState {
+  return {
+    xml: firstStylesXml,
+    numFmts: getStyleSection(firstStylesXml, "numFmts").items,
+    fonts: getStyleSection(firstStylesXml, "fonts").items,
+    fills: getStyleSection(firstStylesXml, "fills").items,
+    borders: getStyleSection(firstStylesXml, "borders").items,
+    cellXfs: getStyleSection(firstStylesXml, "cellXfs").items,
+  };
+}
+
+function nextCustomNumFmtId(numFmts: string[]): number {
+  let max = 163;
+  for (const item of numFmts) {
+    const m = item.match(/\bnumFmtId="(\d+)"/);
+    if (m) max = Math.max(max, Number(m[1]));
+  }
+  return max + 1;
+}
+
+/**
+ * Append another workbook's style tables onto the merge master.
+ * Returns the cellXf index offset to apply to that workbook's sheet XML.
+ */
+function appendStylesFromWorkbook(
+  state: MergedStylesState,
+  stylesXml: string,
+): number {
+  const cellXfOffset = state.cellXfs.length;
+  const addNumFmts = getStyleSection(stylesXml, "numFmts").items;
+  const addFonts = getStyleSection(stylesXml, "fonts").items;
+  const addFills = getStyleSection(stylesXml, "fills").items;
+  const addBorders = getStyleSection(stylesXml, "borders").items;
+  const addCellXfs = getStyleSection(stylesXml, "cellXfs").items;
+
+  const numFmtIdMap = new Map<number, number>();
+  let nextNumFmtId = nextCustomNumFmtId(state.numFmts);
+  for (const item of addNumFmts) {
+    const m = item.match(/\bnumFmtId="(\d+)"/);
+    const oldId = m ? Number(m[1]) : nextNumFmtId;
+    const newId = nextNumFmtId++;
+    numFmtIdMap.set(oldId, newId);
+    state.numFmts.push(
+      item.replace(/\bnumFmtId="\d+"/, `numFmtId="${newId}"`),
+    );
+  }
+
+  const offsets = {
+    font: state.fonts.length,
+    fill: state.fills.length,
+    border: state.borders.length,
+    numFmtIdMap,
+  };
+
+  state.fonts.push(...addFonts);
+  state.fills.push(...addFills);
+  state.borders.push(...addBorders);
+  state.cellXfs.push(
+    ...addCellXfs.map((xf) => remapXfComponentIndexes(xf, offsets)),
+  );
+
+  return cellXfOffset;
+}
+
+function buildMergedStylesXml(state: MergedStylesState): string {
+  let xml = state.xml;
+  if (state.numFmts.length > 0) {
+    xml = replaceStyleSection(xml, "numFmts", state.numFmts);
+  }
+  xml = replaceStyleSection(xml, "fonts", state.fonts);
+  xml = replaceStyleSection(xml, "fills", state.fills);
+  xml = replaceStyleSection(xml, "borders", state.borders);
+  xml = replaceStyleSection(xml, "cellXfs", state.cellXfs);
+  return xml;
+}
+
 /**
  * Merge several single-sheet .xlsx buffers into one workbook.
- * Copies sheet XML as-is so template styling stays intact, and concatenates
- * sharedStrings so each group's player text keeps the right values.
+ * Copies sheet XML as-is (with sharedString + style index remaps) so template
+ * styling stays intact even when groups use different size templates.
  */
 async function mergeSingleSheetWorkbooks(
   parts: Array<{ sheetName: string; buffer: ArrayBuffer }>,
@@ -331,6 +519,10 @@ async function mergeSingleSheetWorkbooks(
   const out = zips[0];
 
   const masterShared: string[] = [];
+  const firstStylesXml = await zips[0].file("xl/styles.xml")!.async("string");
+  const stylesState = createMergedStylesState(firstStylesXml);
+  /** Identical styles.xml → reuse the same cellXf offset (no duplicate append). */
+  const stylesOffsetByXml = new Map<string, number>([[firstStylesXml, 0]]);
   const sheetInfos: Array<{
     name: string;
     sheetXml: string;
@@ -351,13 +543,26 @@ async function mergeSingleSheetWorkbooks(
     const sstItems = sstFile
       ? parseSharedStringItems(await sstFile.async("string"))
       : [];
-    const indexOffset = masterShared.length;
+    const sstOffset = masterShared.length;
     masterShared.push(...sstItems);
+
+    // First part owns the master styles table (offset 0). Later parts from a
+    // different template must append fonts/fills/borders/cellXfs or their
+    // `s="N"` indexes resolve against the wrong styles.xml.
+    const stylesXml = await zip.file("xl/styles.xml")!.async("string");
+    let cellXfOffset = stylesOffsetByXml.get(stylesXml);
+    if (cellXfOffset === undefined) {
+      cellXfOffset = appendStylesFromWorkbook(stylesState, stylesXml);
+      stylesOffsetByXml.set(stylesXml, cellXfOffset);
+    }
 
     const rawSheet = await zip.file(s.sheetPath)!.async("string");
     sheetInfos.push({
       name: parts[i].sheetName.slice(0, 31),
-      sheetXml: remapSheetSharedStringIndexes(rawSheet, indexOffset),
+      sheetXml: remapSheetStyleIndexes(
+        remapSheetSharedStringIndexes(rawSheet, sstOffset),
+        cellXfOffset,
+      ),
       relsXml: zip.file(relsPath)
         ? await zip.file(relsPath)!.async("string")
         : null,
@@ -402,6 +607,7 @@ async function mergeSingleSheetWorkbooks(
   }
 
   out.file("xl/sharedStrings.xml", buildSharedStringsXml(masterShared));
+  out.file("xl/styles.xml", buildMergedStylesXml(stylesState));
 
   const firstWbXml = await zips[0].file("xl/workbook.xml")!.async("string");
   out.file(
@@ -449,9 +655,10 @@ async function mergeSingleSheetWorkbooks(
 }
 
 /**
- * Build one workbook named after the division.
- * Fills each size template in place (same as Storybook), then strips to
- * Poster via OOXML so styles stay intact, compiled as `Group 1`, …
+ * Build one workbook named after the division (e.g. `Division A.xlsx`).
+ *
+ * Expanded → "Full" sheet for every group.
+ * Collapsed → "Left" for odd group indexes, "Right" for even.
  */
 export async function exportBracketsToExcel(
   divisionName: string,
@@ -462,26 +669,33 @@ export async function exportBracketsToExcel(
     idStyle: DEFAULT_POSTER.playerId,
     textStyle: DEFAULT_POSTER.playerText,
   },
+  format: BracketExportFormat = "expanded",
 ) {
   const sorted = [...brackets].sort((a, b) => a.index - b.index);
   if (sorted.length === 0) {
     throw new Error("No brackets to export");
   }
 
-  const missingSizes = [
-    ...new Set(
-      sorted
-        .map((b) => b.num_players)
-        .filter((n) => {
-          const map = getBracketPlayerTemplate(n);
-          return !map || map.openingSlots.length === 0;
-        }),
-    ),
-  ];
-  if (missingSizes.length) {
+  const missingSizes = new Set<number>();
+  for (const b of sorted) {
+    const map = getBracketPlayerTemplate(b.num_players);
+    if (!map) {
+      missingSizes.add(b.num_players);
+      continue;
+    }
+    const layout = resolveBracketSheetLayout(map, format, b.index);
+    if (layout.openingSlots.length === 0) {
+      missingSizes.add(b.num_players);
+    }
+  }
+  if (missingSizes.size) {
+    const kind =
+      format === "expanded"
+        ? "expanded (Full)"
+        : "collapsed (Left/Right)";
     throw new Error(
-      `No Excel template mapping for bracket size(s): ${missingSizes.join(", ")}. ` +
-        `Add public/templates/bracket_players/{size}-player.xlsx and a map in bracket_player_templates/.`,
+      `No Excel ${kind} mapping for bracket size(s): ${[...missingSizes].join(", ")}. ` +
+        `Add maps in bracket_player_templates/index.ts.`,
     );
   }
 
@@ -489,23 +703,27 @@ export async function exportBracketsToExcel(
 
   for (const b of sorted) {
     const map = getBracketPlayerTemplate(b.num_players)!;
+    const layout = resolveBracketSheetLayout(map, format, b.index);
     const wb = await loadTemplateWorkbook(map);
-    const poster = wb.getWorksheet(map.sheet);
-    if (!poster) {
-      throw new Error(`Worksheet "${map.sheet}" not found in ${map.file}`);
+    const sheet = wb.getWorksheet(layout.sheet);
+    if (!sheet) {
+      throw new Error(`Worksheet "${layout.sheet}" not found in ${map.file}`);
     }
 
     // Storybook path: mutate template cells only — leave other sheets alone
     // so ExcelJS does not prune shared style indexes on write.
-    fillBracketPlayerSheet(poster, map, toExportPlayers(b, clubAbbrevByName), {
-      styles,
-    });
+    fillBracketPlayerSheet(
+      sheet,
+      layout,
+      toExportPlayers(b, clubAbbrevByName),
+      { styles, templateFile: map.file },
+    );
 
     const filled = await wb.xlsx.writeBuffer();
     const sheetName = `Group ${b.index}`;
     const buffer = await extractNamedSheetAsWorkbook(
       filled,
-      map.sheet,
+      layout.sheet,
       sheetName,
     );
     parts.push({ sheetName, buffer });

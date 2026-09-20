@@ -24,6 +24,8 @@ import { useRouter } from "next/router";
 import TournamentLayout from "../../_tournament_layout";
 import { getTournamentIdFromRouter } from "../../../../components/utils/util";
 import DivisionDetailsModal from "../../../../components/modals/division_details_modal";
+// BracketExportModal kept for future expanded/collapsed multi-export UI:
+// import BracketExportModal from "../../../../components/modals/bracket_export_modal";
 import DivisionPlayersTable from "../../../../components/tables/division_players";
 import DivisionTeamsTable from "../../../../components/tables/division_teams";
 import { getDivisions, getClubs } from "../../../../services/adapter";
@@ -183,6 +185,8 @@ export default function BracketsPage() {
           res.data.data as BracketWithPlayers[],
           `${divisionName}.xlsx`,
           clubAbbrevByName,
+          undefined,
+          "expanded",
         );
       }
     } catch (err: any) {
@@ -503,6 +507,7 @@ export default function BracketsPage() {
           onClose={() => setEditDetailsOf(null)}
           onSave={handleSaveGroupDetails}
         />
+        {/* BracketExportModal (expanded/collapsed multi-select) — re-enable later */}
       </Stack>
     </TournamentLayout>
   );
