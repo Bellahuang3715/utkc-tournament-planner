@@ -24,15 +24,25 @@ import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import { Expanded, EXPANDED_SIZES_INDIVIDUALS, EXPANDED_SIZES_TEAMS } from "tournament-brackets-ui";
 
+import { showNotification } from "@mantine/notifications";
 import TournamentLayout from "../../../_tournament_layout";
 import RequestErrorAlert from "../../../../../components/utils/error_alert";
 import { getTournamentIdFromRouter } from "../../../../../components/utils/util";
-import { getClubs, getDivisions } from "../../../../../services/adapter";
+import { getClubs, getDivisions, requestSucceeded } from "../../../../../services/adapter";
 import {
+  buildPlayerIdResolver,
+  ensureFinalsBracket,
+  fetchDivisionBracketCells,
   fetchDivisionBracketsWithPlayers,
   fetchDivisionBracketsWithTeams,
+  isFinalsBracket,
+  mergeCellsIntoUiPlayers,
+  putDivisionBracketCells,
   toUIPlayersWithClubAbbrev,
   toUITeamNames,
+  type BracketCell,
+  type BracketUIPlayerSlot,
+  uiPlayersToBracketCells,
 } from "../../../../../services/bracket";
 import { DEFAULT_BOOKLET } from "../../../../../components/utils/brackets_editor/shared";
 import type { BracketWithPlayers, BracketWithTeams } from "../../../../../interfaces/bracket";
@@ -156,6 +166,13 @@ export default function DivisionScoresEditorPage() {
   const [bracketsTeams, setBracketsTeams] = useState<BracketWithTeams[] | null>(null);
   const [loadingBrackets, setLoadingBrackets] = useState(false);
   const [bracketsLoaded, setBracketsLoaded] = useState(false);
+  /** Saved filled-slot scores keyed by bracket id. */
+  const [cellsByBracketId, setCellsByBracketId] = useState<Record<number, BracketCell[]>>({});
+  /** In-edit drafts from onPlayersChange, keyed by bracket id. */
+  const [draftByBracketId, setDraftByBracketId] = useState<Record<number, BracketUIPlayerSlot[]>>({});
+  const [finalsBracketId, setFinalsBracketId] = useState<number | null>(null);
+  const [finalsDraft, setFinalsDraft] = useState<BracketUIPlayerSlot[] | null>(null);
+  const [saving, setSaving] = useState(false);
 
   /** `group-{id}` for a pool bracket, or `playoff-{size}` for knockout stages. */
   const [activeTab, setActiveTab] = useState<string | null>(null);
@@ -173,8 +190,14 @@ export default function DivisionScoresEditorPage() {
       ),
     );
 
-  const enterEdit = () => setPageMode("edit");
+  const enterEdit = () => {
+    setDraftByBracketId({});
+    setFinalsDraft(null);
+    setPageMode("edit");
+  };
   const cancelEdit = () => {
+    setDraftByBracketId({});
+    setFinalsDraft(null);
     setBracketRevision((n) => n + 1);
     setPageMode("view");
   };
@@ -184,10 +207,82 @@ export default function DivisionScoresEditorPage() {
     cancelEdit();
     return true;
   };
-  const saveEdit = () => {
-    // Local commit for now — bracket components keep in-memory edits when
-    // switching fillable → view without remounting. Persist API TBD.
-    setPageMode("view");
+
+  const saveEdit = async () => {
+    if (!divisionId || selectedDivision?.division_type === "TEAMS") {
+      setPageMode("view");
+      return;
+    }
+    const draftEntries = Object.entries(draftByBracketId);
+    const hasFinalsDraft = finalsDraft != null;
+    if (!draftEntries.length && !hasFinalsDraft) {
+      setPageMode("view");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const resolve = buildPlayerIdResolver(bracketsPlayers ?? []);
+      const payload = draftEntries.map(([bracketId, players]) => ({
+        bracket_id: Number(bracketId),
+        cells: uiPlayersToBracketCells(players, resolve),
+      }));
+
+      if (hasFinalsDraft && finalsDraft) {
+        const finalsSize = playoffStages[0]?.size ?? finalsDraft.length;
+        let finalsId = finalsBracketId;
+        if (finalsId == null) {
+          const created = await ensureFinalsBracket(divisionId, finalsSize);
+          if (!created || !requestSucceeded(created as any)) {
+            return;
+          }
+          finalsId = (created as any).data?.data?.id ?? (created as any).data?.id;
+          if (finalsId == null) {
+            showNotification({
+              color: "red",
+              title: t("error", "Error"),
+              message: t("scores_save_failed", "Failed to save scores."),
+            });
+            return;
+          }
+          setFinalsBracketId(Number(finalsId));
+        }
+        payload.push({
+          bracket_id: Number(finalsId),
+          cells: uiPlayersToBracketCells(finalsDraft, resolve),
+        });
+      }
+
+      const res = await putDivisionBracketCells(divisionId, payload);
+      if (!res || !requestSucceeded(res as any)) {
+        return;
+      }
+
+      const cellsRes = await fetchDivisionBracketCells(divisionId);
+      const cells = (cellsRes.data?.data ?? []) as BracketCell[];
+      const byBracket: Record<number, BracketCell[]> = {};
+      for (const cell of cells) {
+        (byBracket[cell.bracket_id] ??= []).push(cell);
+      }
+      setCellsByBracketId(byBracket);
+      setDraftByBracketId({});
+      setFinalsDraft(null);
+      setBracketRevision((n) => n + 1);
+      setPageMode("view");
+      showNotification({
+        color: "green",
+        title: t("saved", "Saved"),
+        message: t("scores_save_success", "Scores saved."),
+      });
+    } catch {
+      showNotification({
+        color: "red",
+        title: t("error", "Error"),
+        message: t("scores_save_failed", "Failed to save scores."),
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   useEffect(() => {
@@ -227,6 +322,10 @@ export default function DivisionScoresEditorPage() {
     setActiveTab(null);
     setPageMode("view");
     setBracketRevision(0);
+    setDraftByBracketId({});
+    setFinalsDraft(null);
+    setFinalsBracketId(null);
+    setCellsByBracketId({});
 
     const run = async () => {
       try {
@@ -236,8 +335,21 @@ export default function DivisionScoresEditorPage() {
           setBracketsTeams(res.data.data as BracketWithTeams[]);
         } else {
           setBracketsTeams(null);
-          const res = await fetchDivisionBracketsWithPlayers(divisionId);
-          setBracketsPlayers(res.data.data as BracketWithPlayers[]);
+          const [bracketsRes, cellsRes] = await Promise.all([
+            fetchDivisionBracketsWithPlayers(divisionId),
+            fetchDivisionBracketCells(divisionId),
+          ]);
+          const allBrackets = (bracketsRes.data.data ?? []) as BracketWithPlayers[];
+          const finals = allBrackets.find((b) => isFinalsBracket(b));
+          const groups = allBrackets.filter((b) => !isFinalsBracket(b));
+          setBracketsPlayers(groups);
+          setFinalsBracketId(finals?.id ?? null);
+          const cells = (cellsRes.data?.data ?? []) as BracketCell[];
+          const byBracket: Record<number, BracketCell[]> = {};
+          for (const cell of cells) {
+            (byBracket[cell.bracket_id] ??= []).push(cell);
+          }
+          setCellsByBracketId(byBracket);
         }
       } finally {
         setLoadingBrackets(false);
@@ -263,6 +375,33 @@ export default function DivisionScoresEditorPage() {
       ? (sortedTeams as Array<BracketWithPlayers | BracketWithTeams>)
       : (sortedPlayers as Array<BracketWithPlayers | BracketWithTeams>);
   }, [selectedDivision, sortedTeams, sortedPlayers]);
+
+  /** Finals opening-slot name placeholders: Winner of Group 1 … N */
+  const finalsOpeningSlotLabels = useMemo(
+    () =>
+      groupsForCards.map((g) =>
+        t("winner_of_group", "Winner of Group {{n}}", { n: g.index }),
+      ),
+    [groupsForCards, t],
+  );
+
+  /** Roster for finals pickers (group players). Enables openingSlotLabels in edit mode. */
+  const finalsPlayerOptions = useMemo(() => {
+    if (!bracketsPlayers?.length) return [];
+    const opts: { id: string; name: string; club?: string }[] = [];
+    for (const b of bracketsPlayers) {
+      for (const slot of b.players ?? []) {
+        const id =
+          slot.code ?? slot.participant_number ?? String(slot.player_id);
+        const clubName = slot.club ?? undefined;
+        const club = clubName
+          ? clubAbbrevByName.get(clubName) ?? clubName
+          : undefined;
+        opts.push({ id, name: slot.name ?? "", club });
+      }
+    }
+    return opts;
+  }, [bracketsPlayers, clubAbbrevByName]);
 
   const playoffStages = useMemo(() => {
     const finals = getFinalsStage(groupsForCards.length);
@@ -359,6 +498,22 @@ export default function DivisionScoresEditorPage() {
             </Text>
           </Stack>
           <Group gap="sm" align="center" wrap="wrap">
+            <Badge variant="light" color="blue" size="lg">
+              {selectedDivision.division_type === "TEAMS"
+                ? t("teams", "Teams")
+                : t("individuals", "Individuals")}
+            </Badge>
+            <SegmentedControl
+              value={pageMode}
+              onChange={(v) => {
+                if (v === "edit") enterEdit();
+                else tryExitEdit();
+              }}
+              data={[
+                { label: t("view", "View"), value: "view" },
+                { label: t("edit", "Edit"), value: "edit" },
+              ]}
+            />
             <Popover width={220} position="bottom-end" withArrow shadow="md">
               <Popover.Target>
                 <ActionIcon
@@ -394,22 +549,6 @@ export default function DivisionScoresEditorPage() {
                 </Stack>
               </Popover.Dropdown>
             </Popover>
-            <Badge variant="light" color="blue" size="lg">
-              {selectedDivision.division_type === "TEAMS"
-                ? t("teams", "Teams")
-                : t("individuals", "Individuals")}
-            </Badge>
-            <SegmentedControl
-              value={pageMode}
-              onChange={(v) => {
-                if (v === "edit") enterEdit();
-                else tryExitEdit();
-              }}
-              data={[
-                { label: t("view", "View"), value: "view" },
-                { label: t("edit", "Edit"), value: "edit" },
-              ]}
-            />
           </Group>
         </Group>
 
@@ -449,11 +588,6 @@ export default function DivisionScoresEditorPage() {
                           ? t("editing_group", "Editing: Group {{n}}", { n: b.index })
                           : t("viewing_group", "Viewing: Group {{n}}", { n: b.index })}
                       </Badge>
-                      {pageMode === "edit" && (
-                        <Text size="sm" c="dimmed">
-                          {t("scores_local_edit_hint", "Local editing (saving to server coming soon)")}
-                        </Text>
-                      )}
                     </Group>
                     <Box style={{ maxWidth: "100%", overflowX: "auto", marginTop: 8 }}>
                       <Expanded.Teams
@@ -479,20 +613,24 @@ export default function DivisionScoresEditorPage() {
                       </Badge>
                       {pageMode === "edit" && (
                         <Text size="sm" c="dimmed">
-                          {t("scores_local_edit_hint", "Local editing (saving to server coming soon)")}
+                          {t(
+                            "scores_edit_hint",
+                            "Edit scores below, then Save to persist.",
+                          )}
                         </Text>
                       )}
                     </Group>
                     <Box style={{ maxWidth: "100%", overflowX: "auto", marginTop: 8 }}>
                       {(() => {
-                        const players = toUIPlayersWithClubAbbrev(
+                        const opening = toUIPlayersWithClubAbbrev(
                           b as BracketWithPlayers,
                           clubAbbrevByName,
                         );
-                        const playersFillable = players.map((p) => ({
-                          ...p,
-                          score: (p as any).score ?? "",
-                        }));
+                        const playersFillable = mergeCellsIntoUiPlayers(
+                          opening,
+                          cellsByBracketId[b.id] ?? [],
+                          clubAbbrevByName,
+                        );
                         return (
                           <Expanded.Individuals
                             key={`individuals-${b.id}-${bracketRevision}-${bracketTheme}`}
@@ -503,6 +641,12 @@ export default function DivisionScoresEditorPage() {
                             textStyles={bracketTextStyles}
                             scoreInputTransform={tournamentMkdtScoreInput}
                             formatScoreDisplay={circledScoreDisplay}
+                            onPlayersChange={(players: BracketUIPlayerSlot[]) => {
+                              setDraftByBracketId((prev) => ({
+                                ...prev,
+                                [b.id]: players,
+                              }));
+                            }}
                           />
                         );
                       })()}
@@ -523,7 +667,10 @@ export default function DivisionScoresEditorPage() {
                     </Badge>
                     {pageMode === "edit" && (
                       <Text size="sm" c="dimmed">
-                        {t("scores_local_edit_hint", "Local editing (saving to server coming soon)")}
+                        {t(
+                          "scores_edit_hint",
+                          "Edit scores below, then Save to persist.",
+                        )}
                       </Text>
                     )}
                   </Group>
@@ -540,12 +687,33 @@ export default function DivisionScoresEditorPage() {
                       />
                     ) : (
                       <Expanded.Individuals
-                        key={`playoff-individuals-${stage.size}-${bracketRevision}-${bracketTheme}`}
+                        key={`playoff-individuals-${stage.size}-${bracketRevision}-${bracketTheme}-${pageMode}-${finalsBracketId ?? "new"}`}
                         size={stage.size}
-                        players={emptyPlayoffPlayers(stage.size) as any}
+                        players={
+                          mergeCellsIntoUiPlayers(
+                            emptyPlayoffPlayers(stage.size),
+                            finalsBracketId != null
+                              ? cellsByBracketId[finalsBracketId] ?? []
+                              : [],
+                            clubAbbrevByName,
+                          ) as any
+                        }
                         mode={bracketUiMode}
                         theme={bracketTheme}
                         textStyles={bracketTextStyles}
+                        scoreInputTransform={tournamentMkdtScoreInput}
+                        formatScoreDisplay={circledScoreDisplay}
+                        openingSlotLabels={
+                          pageMode === "edit" ? finalsOpeningSlotLabels : undefined
+                        }
+                        playerOptions={
+                          pageMode === "edit" && finalsPlayerOptions.length
+                            ? finalsPlayerOptions
+                            : undefined
+                        }
+                        onPlayersChange={(players: BracketUIPlayerSlot[]) => {
+                          setFinalsDraft(players);
+                        }}
                       />
                     )}
                   </Box>
@@ -556,10 +724,12 @@ export default function DivisionScoresEditorPage() {
         )}
         {pageMode === "edit" && (
           <Group justify="flex-end" gap="xs">
-            <Button variant="default" onClick={() => tryExitEdit()}>
+            <Button variant="default" onClick={() => tryExitEdit()} disabled={saving}>
               {t("cancel", "Cancel")}
             </Button>
-            <Button onClick={saveEdit}>{t("save", "Save")}</Button>
+            <Button onClick={() => void saveEdit()} loading={saving}>
+              {t("save", "Save")}
+            </Button>
           </Group>
         )}
         <Divider />

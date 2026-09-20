@@ -5510,10 +5510,10 @@ totalist@^3.0.0:
   resolved "https://registry.npmjs.org/totalist/-/totalist-3.0.1.tgz"
   integrity sha512-sf4i37nQ2LBx4m3wB74y+ubopq6W/dIzXg0FDGjsYnZHVa1Da8FH853wlL2gtUhg+xJXjfk3kUZS3BRoQeoQBQ==
 
-tournament-brackets-ui@^0.1.17:
-  version "0.1.17"
-  resolved "https://registry.npmjs.org/tournament-brackets-ui/-/tournament-brackets-ui-0.1.17.tgz"
-  integrity sha512-azkxmsQmGkCoGEdW5WbvUpgvFkNqbeBREGofcJ8ektNi1b9BI21VE+SW/6m1R7BcG8IKN7LuwE8tqAOTeNMTsA==
+tournament-brackets-ui@^0.1.18:
+  version "0.1.18"
+  resolved "https://registry.npmjs.org/tournament-brackets-ui/-/tournament-brackets-ui-0.1.18.tgz"
+  integrity sha512-Nu95igVqW4bDgzO3iwEFzbUxwGK9n06S5UOt78u6jmRKO0qGCFg60kcTTVV7yxbS5HieVR8+0eOyC8dKZi+WBg==
   dependencies:
     form-data "^4.0.6"
     lodash "^4.18.0"

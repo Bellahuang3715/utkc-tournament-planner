@@ -9,6 +9,7 @@ from project.models.db.court import Court
 from project.models.db.match import Match, SuggestedMatch
 from project.models.db.player import Player, PlayerInDivision
 from project.models.db.bracket import Bracket, BracketWithPlayers, BracketWithTeams
+from project.models.db.bracket_cell import BracketCell
 from project.models.db.ranking import Ranking
 from project.models.db.stage_item_inputs import (
     StageItemInputOptionFinal,
@@ -97,6 +98,10 @@ class BracketsWithPlayersResponse(BaseModel):
 
 class BracketsWithTeamsResponse(BaseModel):
     data: list[BracketWithTeams]
+
+
+class BracketCellsResponse(BaseModel):
+    data: list[BracketCell]
 
 
 class StagesWithStageItemsResponse(DataResponse[list[StageWithStageItems]]):

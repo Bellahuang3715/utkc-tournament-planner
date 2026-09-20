@@ -227,25 +227,18 @@ teams_x_brackets = Table(
     Column("bracket_idx", Integer, nullable=False),
 )
 
-# bracket_conns = Table(
-#     "bracket_conns",
-#     metadata,
-#     Column("id", BigInteger, primary_key=True, index=True),
-#     Column("bracket_id", BigInteger, ForeignKey("brackets.id", ondelete="CASCADE"), index=True, nullable=False),
-#     Column("player_1", Integer, nullable=False), # should cascade from another table
-#     Column("player_2", Integer, nullable=False),
-#     Column("winner", Integer, nullable=False),
-#     Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
-# )
-
-# cell = Table(
-#     "cell",
-#     metadata,
-#     Column("id", BigInteger, primary_key=True, index=True),
-#     Column("bracket_id", BigInteger, ForeignKey("brackets.id", ondelete="CASCADE"), nullable=False),
-#     Column("player_id", BigInteger, ForeignKey("players.id", ondelete="CASCADE"), nullable=False),
-#     Column("score", String, nullable=False),
-# )
+# Filled-bracket slot state (opening + advanced rounds). Seeds stay in players_x_brackets.
+# Same player_id may appear in multiple rows (advances); uniqueness is (bracket_id, slot_idx).
+bracket_cells = Table(
+    "bracket_cells",
+    metadata,
+    Column("id", BigInteger, primary_key=True, index=True, autoincrement=True),
+    Column("bracket_id", BigInteger, ForeignKey("brackets.id", ondelete="CASCADE"), nullable=False, index=True,),
+    Column("slot_idx", Integer, nullable=False),
+    Column("player_id", BigInteger, ForeignKey("players.id", ondelete="SET NULL"), nullable=True,),
+    Column("score", String, nullable=False, server_default=""),
+    UniqueConstraint("bracket_id", "slot_idx", name="uq_bracket_cells_bracket_slot"),
+)
 
 # ------------------------------------------------------------ #
 

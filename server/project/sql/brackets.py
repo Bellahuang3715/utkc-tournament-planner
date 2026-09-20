@@ -82,13 +82,14 @@ async def sql_list_division_brackets_with_teams(division_id: DivisionId) -> List
 
 # --- Delete all brackets (and their players/teams) for a division (used when replace=true) ---
 async def sql_delete_division_brackets(division_id: DivisionId) -> None:
-    # players_x_brackets and teams_x_brackets depend on brackets; delete children via join for speed
+    # Keep the Finals knockout bracket (and its cells via that row) across pool reseeds.
     await database.execute(
         """
         DELETE FROM players_x_brackets pxb
         USING brackets b
         WHERE pxb.bracket_id = b.id
           AND b.division_id = :division_id
+          AND (b.title IS DISTINCT FROM 'Finals')
         """,
         {"division_id": division_id},
     )
@@ -98,11 +99,16 @@ async def sql_delete_division_brackets(division_id: DivisionId) -> None:
         USING brackets b
         WHERE txb.bracket_id = b.id
           AND b.division_id = :division_id
+          AND (b.title IS DISTINCT FROM 'Finals')
         """,
         {"division_id": division_id},
     )
     await database.execute(
-        'DELETE FROM brackets WHERE division_id = :division_id',
+        """
+        DELETE FROM brackets
+        WHERE division_id = :division_id
+          AND (title IS DISTINCT FROM 'Finals')
+        """,
         {"division_id": division_id},
     )
 
@@ -235,3 +241,52 @@ async def sql_update_bracket_title(bracket_id: BracketId, title: Optional[str]) 
     )
     assert row is not None
     return Bracket.model_validate(dict(row._mapping))
+
+
+FINALS_BRACKET_TITLE = "Finals"
+
+
+async def sql_get_or_create_finals_bracket(
+    division_id: DivisionId,
+    num_players: int,
+) -> Bracket:
+    """Dedicated knockout bracket for the division (title='Finals'). Not seeded via players_x_brackets."""
+    row = await database.fetch_one(
+        """
+        SELECT id, "index", division_id, num_players, title
+        FROM brackets
+        WHERE division_id = :division_id AND title = :title
+        LIMIT 1
+        """,
+        {"division_id": division_id, "title": FINALS_BRACKET_TITLE},
+    )
+    if row is not None:
+        bracket = Bracket.model_validate(dict(row._mapping))
+        if int(bracket.num_players) != int(num_players):
+            updated = await database.fetch_one(
+                """
+                UPDATE brackets
+                SET num_players = :num_players
+                WHERE id = :bracket_id
+                RETURNING id, "index", division_id, num_players, title
+                """,
+                {"num_players": num_players, "bracket_id": bracket.id},
+            )
+            assert updated is not None
+            return Bracket.model_validate(dict(updated._mapping))
+        return bracket
+
+    created = await database.fetch_one(
+        """
+        INSERT INTO brackets ("index", division_id, num_players, title)
+        VALUES (0, :division_id, :num_players, :title)
+        RETURNING id, "index", division_id, num_players, title
+        """,
+        {
+            "division_id": division_id,
+            "num_players": num_players,
+            "title": FINALS_BRACKET_TITLE,
+        },
+    )
+    assert created is not None
+    return Bracket.model_validate(dict(created._mapping))

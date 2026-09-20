@@ -242,3 +242,137 @@ export async function replaceDivisionBrackets(
     return handleRequestError(err);
   }
 }
+
+export type BracketCell = {
+  id?: number;
+  bracket_id: number;
+  slot_idx: number;
+  player_id: number | null;
+  score: string;
+  name?: string | null;
+  club?: string | null;
+  code?: string | null;
+};
+
+export type BracketUIPlayerSlot = {
+  id: string;
+  name: string;
+  club?: string | null;
+  score?: string;
+  noShow?: boolean;
+};
+
+/** Map display code / numeric id string → player_id for saving cells. */
+export function buildPlayerIdResolver(brackets: BracketWithPlayers[]) {
+  const byCode = new Map<string, number>();
+  const byNumericId = new Map<string, number>();
+  for (const b of brackets) {
+    for (const slot of b.players ?? []) {
+      byNumericId.set(String(slot.player_id), slot.player_id);
+      if (slot.code) byCode.set(slot.code, slot.player_id);
+      if (slot.participant_number) byCode.set(slot.participant_number, slot.player_id);
+    }
+  }
+  return (displayId: string | undefined | null): number | null => {
+    const raw = (displayId ?? "").trim();
+    if (!raw || raw === "—" || raw === "TBD") return null;
+    if (byNumericId.has(raw)) return byNumericId.get(raw)!;
+    if (byCode.has(raw)) return byCode.get(raw)!;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  };
+}
+
+export function uiPlayersToBracketCells(
+  players: BracketUIPlayerSlot[],
+  resolvePlayerId: (displayId: string | undefined | null) => number | null,
+) {
+  return players.map((p, slot_idx) => ({
+    slot_idx,
+    player_id: resolvePlayerId(p.id),
+    score: p.score ?? "",
+  }));
+}
+
+export async function fetchDivisionBracketCells(division_id: number) {
+  const axios = await createAxios();
+  return axios.get(`divisions/${division_id}/bracket-cells`);
+}
+
+export async function putDivisionBracketCells(
+  division_id: number,
+  brackets: { bracket_id: number; cells: { slot_idx: number; player_id: number | null; score: string }[] }[],
+) {
+  try {
+    const axios = await createAxios();
+    return await axios.put(`divisions/${division_id}/bracket-cells`, { brackets });
+  } catch (err: any) {
+    return handleRequestError(err);
+  }
+}
+
+export const FINALS_BRACKET_TITLE = "Finals";
+
+export function isFinalsBracket(b: { title?: string | null }) {
+  return (b.title ?? "") === FINALS_BRACKET_TITLE;
+}
+
+/** Ensure a division Finals bracket exists; returns `{ data: Bracket }`. */
+export async function ensureFinalsBracket(division_id: number, num_players: number) {
+  try {
+    const axios = await createAxios();
+    return await axios.post(
+      `divisions/${division_id}/brackets/finals`,
+      null,
+      { params: { num_players } },
+    );
+  } catch (err: any) {
+    return handleRequestError(err);
+  }
+}
+
+/** Merge saved cells into an Expanded players[] array (opening size + later slots). */
+export function mergeCellsIntoUiPlayers(
+  openingPlayers: BracketUIPlayerSlot[],
+  cells: BracketCell[],
+  clubAbbrevByName?: Map<string, string>,
+): BracketUIPlayerSlot[] {
+  const maxIdx = cells.reduce((m, c) => Math.max(m, c.slot_idx), openingPlayers.length - 1);
+  const len = Math.max(openingPlayers.length, maxIdx + 1);
+  const out: BracketUIPlayerSlot[] = Array.from({ length: len }, (_, i) => {
+    const base = openingPlayers[i];
+    return base
+      ? { ...base, score: base.score ?? "" }
+      : { id: "", name: "", club: null, score: "" };
+  });
+
+  for (const cell of cells) {
+    const clubName = cell.club ?? null;
+    const club =
+      clubName && clubAbbrevByName
+        ? clubAbbrevByName.get(clubName) ?? clubName
+        : clubName;
+    const displayId =
+      cell.code ??
+      (cell.player_id != null ? String(cell.player_id) : "");
+    const existing = out[cell.slot_idx];
+    // Prefer preserving seeded opening identity; always apply saved score / fill blanks.
+    if (existing && (existing.id || existing.name)) {
+      out[cell.slot_idx] = {
+        ...existing,
+        id: existing.id || displayId,
+        name: existing.name || (cell.name ?? ""),
+        club: existing.club || club,
+        score: cell.score ?? existing.score ?? "",
+      };
+    } else {
+      out[cell.slot_idx] = {
+        id: displayId,
+        name: cell.name ?? "",
+        club,
+        score: cell.score ?? "",
+      };
+    }
+  }
+  return out;
+}
