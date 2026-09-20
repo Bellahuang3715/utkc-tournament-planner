@@ -152,6 +152,12 @@ function xmlEscape(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+/** JSZip defaults to STORE (no compression); xlsx needs DEFLATE. */
+const XLSX_ZIP_OPTIONS = {
+  compression: "DEFLATE" as const,
+  compressionOptions: { level: 6 },
+};
+
 function resolveXlPath(target: string, fromDir = "xl"): string {
   if (target.startsWith("/")) return target.slice(1);
   if (target.startsWith("xl/")) return target;
@@ -261,7 +267,7 @@ async function extractNamedSheetAsWorkbook(
   );
   zip.file("[Content_Types].xml", newCt);
 
-  return zip.generateAsync({ type: "arraybuffer" });
+  return zip.generateAsync({ type: "arraybuffer", ...XLSX_ZIP_OPTIONS });
 }
 
 /** Raw `<si>…</si>` entries from a workbook's sharedStrings.xml. */
@@ -438,6 +444,7 @@ async function mergeSingleSheetWorkbooks(
     type: "blob",
     mimeType:
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ...XLSX_ZIP_OPTIONS,
   });
 }
 
