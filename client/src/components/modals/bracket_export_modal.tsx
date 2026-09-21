@@ -8,7 +8,7 @@ import {
   Text,
 } from "@mantine/core";
 import { useTranslation } from "next-i18next/pages";
-import type { BracketExportFormat } from "../export/bracket_player_templates";
+import type { BracketExportFormat } from "../export/bracket_templates";
 
 export default function BracketExportModal({
   opened,

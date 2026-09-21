@@ -1,4 +1,4 @@
-import type { BracketPlayerTemplateMap } from "./types";
+import type { BracketPlayerTemplateMap, BracketTeamTemplateMap } from "./types";
 
 /**
  * Cell maps for `public/templates/bracket_players/12-player.xlsx`.
@@ -56,4 +56,32 @@ export const BRACKET_TEMPLATE_12: BracketPlayerTemplateMap = {
       { id: "F46", name: "F48" },
     ]
   },
+};
+
+/**
+ * Cell maps for `public/templates/bracket_teams/12-team.xlsx`.
+ * Teams only need `name` cells (no id/score).
+ * Collapsed: odd groups → Left, even groups → Right.
+ */
+export const BRACKET_TEAM_TEMPLATE_12: BracketTeamTemplateMap = {
+  file: "12-team.xlsx",
+  expanded: {
+    sheet: "Full", openingSlots: [
+      { name: "A4" },
+      { name: "A8" },
+      { name: "A14" },
+      { name: "A18" },
+      { name: "A25" },
+      { name: "A29" },
+      { name: "A34" },
+      { name: "A38" },
+      { name: "D10" },
+      { name: "D20" },
+      { name: "D31" },
+      { name: "D40" },
+    ]
+  },
+  // TODO: fill Left/Right cell maps
+  collapsedLeft: { sheet: "Left", openingSlots: [] },
+  collapsedRight: { sheet: "Right", openingSlots: [] },
 };

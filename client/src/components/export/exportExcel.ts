@@ -4,19 +4,21 @@ import {
   BracketWithPlayers,
   BracketWithTeams,
 } from "../../interfaces/bracket";
-import { toUIPlayers } from "../../services/bracket";
+import { toUIPlayers, toUITeams } from "../../services/bracket";
 import type { TextStyle } from "../utils/brackets_editor/shared";
 import { DEFAULT_POSTER } from "../utils/brackets_editor/shared";
 import {
   bracketPlayerTemplateUrl,
+  bracketTeamTemplateUrl,
   getBracketPlayerTemplate,
+  getBracketTeamTemplate,
   resolveBracketSheetLayout,
   type BracketExportFormat,
   type BracketExportPlayer,
+  type BracketExportTeam,
   type BracketFillStyles,
-  type BracketPlayerTemplateMap,
   type BracketSheetLayout,
-} from "./bracket_player_templates";
+} from "./bracket_templates";
 
 function excelFontName(fontFamily?: string): string | undefined {
   if (!fontFamily) return undefined;
@@ -105,7 +107,9 @@ export function fillBracketPlayerSheet(
 
   layout.openingSlots.forEach((cells, i) => {
     const p = players[i];
-    setCell(sheet, cells.id, p?.noShow ? "—" : (p?.id ?? ""), idFont);
+    if (cells.id) {
+      setCell(sheet, cells.id, p?.noShow ? "—" : (p?.id ?? ""), idFont);
+    }
     if (cells.score) {
       setCell(sheet, cells.score, p?.noShow ? "—" : (p?.score ?? ""), idFont);
     }
@@ -113,10 +117,35 @@ export function fillBracketPlayerSheet(
   });
 }
 
-async function loadTemplateWorkbook(
-  map: BracketPlayerTemplateMap,
-): Promise<ExcelJS.Workbook> {
-  const url = bracketPlayerTemplateUrl(map);
+export function fillBracketTeamSheet(
+  sheet: ExcelJS.Worksheet,
+  layout: BracketSheetLayout,
+  teams: BracketExportTeam[],
+  opts: {
+    styles?: BracketFillStyles;
+    templateFile?: string;
+  } = {},
+) {
+  if (layout.openingSlots.length === 0) {
+    throw new Error(
+      `Template map for ${opts.templateFile ?? layout.sheet} (${layout.sheet}) has no openingSlots defined yet`,
+    );
+  }
+
+  const nameFont = {
+    fontFamily: opts.styles?.textStyle?.fontFamily,
+    fontSize: opts.styles?.textStyle?.fontSize,
+    color: opts.styles?.textStyle?.color,
+  };
+
+  layout.openingSlots.forEach((cells, i) => {
+    const t = teams[i];
+    const name = (t?.name ?? "").trim();
+    setCell(sheet, cells.name, name === "TBD" ? "" : name, nameFont);
+  });
+}
+
+async function loadTemplateWorkbook(url: string): Promise<ExcelJS.Workbook> {
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`Failed to load template (${res.status}): ${url}`);
@@ -134,6 +163,12 @@ function toExportPlayers(
     id: p.id === "—" ? "" : p.id,
     name: p.name === "TBD" ? "" : p.name,
     club: p.club ? (clubAbbrevByName?.get(p.club) ?? p.club) : p.club,
+  }));
+}
+
+function toExportTeams(b: BracketWithTeams): BracketExportTeam[] {
+  return toUITeams(b).map((t) => ({
+    name: t.name === "TBD" ? "" : t.name,
   }));
 }
 
@@ -695,7 +730,7 @@ export async function exportBracketsToExcel(
         : "collapsed (Left/Right)";
     throw new Error(
       `No Excel ${kind} mapping for bracket size(s): ${[...missingSizes].join(", ")}. ` +
-        `Add maps in bracket_player_templates/index.ts.`,
+        `Add maps in bracket_templates/sizeN.ts.`,
     );
   }
 
@@ -704,7 +739,7 @@ export async function exportBracketsToExcel(
   for (const b of sorted) {
     const map = getBracketPlayerTemplate(b.num_players)!;
     const layout = resolveBracketSheetLayout(map, format, b.index);
-    const wb = await loadTemplateWorkbook(map);
+    const wb = await loadTemplateWorkbook(bracketPlayerTemplateUrl(map));
     const sheet = wb.getWorksheet(layout.sheet);
     if (!sheet) {
       throw new Error(`Worksheet "${layout.sheet}" not found in ${map.file}`);
@@ -733,12 +768,76 @@ export async function exportBracketsToExcel(
   downloadBlob(blob, filename || `${divisionName}.xlsx`);
 }
 
+/**
+ * Build one workbook named after the division (e.g. `Division A.xlsx`).
+ * Team templates only fill `name` cells.
+ *
+ * Expanded → "Full" sheet for every group.
+ * Collapsed → "Left" for odd group indexes, "Right" for even.
+ */
 export async function exportTeamBracketsToExcel(
-  _divisionName: string,
-  _brackets: BracketWithTeams[],
-  _filename: string,
+  divisionName: string,
+  brackets: BracketWithTeams[],
+  filename: string,
+  styles: BracketFillStyles = {
+    textStyle: DEFAULT_POSTER.playerText,
+  },
+  format: BracketExportFormat = "expanded",
 ) {
-  throw new Error(
-    "Team bracket Excel templates are not set up yet. Add files under public/templates/bracket_teams/ and a mapping.",
-  );
+  const sorted = [...brackets].sort((a, b) => a.index - b.index);
+  if (sorted.length === 0) {
+    throw new Error("No brackets to export");
+  }
+
+  const missingSizes = new Set<number>();
+  for (const b of sorted) {
+    const map = getBracketTeamTemplate(b.num_players);
+    if (!map) {
+      missingSizes.add(b.num_players);
+      continue;
+    }
+    const layout = resolveBracketSheetLayout(map, format, b.index);
+    if (layout.openingSlots.length === 0) {
+      missingSizes.add(b.num_players);
+    }
+  }
+  if (missingSizes.size) {
+    const kind =
+      format === "expanded"
+        ? "expanded (Full)"
+        : "collapsed (Left/Right)";
+    throw new Error(
+      `No Excel ${kind} team mapping for bracket size(s): ${[...missingSizes].join(", ")}. ` +
+        `Add maps in bracket_templates/sizeN.ts (BRACKET_TEAM_TEMPLATE_N) and files under public/templates/bracket_teams/.`,
+    );
+  }
+
+  const parts: Array<{ sheetName: string; buffer: ArrayBuffer }> = [];
+
+  for (const b of sorted) {
+    const map = getBracketTeamTemplate(b.num_players)!;
+    const layout = resolveBracketSheetLayout(map, format, b.index);
+    const wb = await loadTemplateWorkbook(bracketTeamTemplateUrl(map));
+    const sheet = wb.getWorksheet(layout.sheet);
+    if (!sheet) {
+      throw new Error(`Worksheet "${layout.sheet}" not found in ${map.file}`);
+    }
+
+    fillBracketTeamSheet(sheet, layout, toExportTeams(b), {
+      styles,
+      templateFile: map.file,
+    });
+
+    const filled = await wb.xlsx.writeBuffer();
+    const sheetName = `Group ${b.index}`;
+    const buffer = await extractNamedSheetAsWorkbook(
+      filled,
+      layout.sheet,
+      sheetName,
+    );
+    parts.push({ sheetName, buffer });
+  }
+
+  const blob = await mergeSingleSheetWorkbooks(parts);
+  downloadBlob(blob, filename || `${divisionName}.xlsx`);
 }
