@@ -37,8 +37,14 @@ const theme = createTheme({
 const App = ({ Component, pageProps }: any) => {
   const router = useRouter();
 
-  // Define routes that don't need authentication
-  const publicRoutes = ["/login", "/register"];
+  // Guest / participant entry points — never wrap in organizer PrivateRoute
+  const isPublicRoute =
+    router.pathname === "/welcome" ||
+    router.pathname === "/join" ||
+    router.pathname === "/login" ||
+    router.pathname === "/register" ||
+    router.pathname === "/password_reset" ||
+    router.pathname.startsWith("/t/[slug]");
 
   return (
     <AuthProvider>
@@ -54,11 +60,9 @@ const App = ({ Component, pageProps }: any) => {
       </Head>
 
       <MantineProvider defaultColorScheme="auto" theme={theme}>
-        <BracketSpotlight />
+        {!isPublicRoute && <BracketSpotlight />}
         <Notifications />
-        {/* <Component {...pageProps} /> */}
-        {/* Use the route guard only for routes that aren't public */}
-        {publicRoutes.includes(router.pathname) ? (
+        {isPublicRoute ? (
           <Component {...pageProps} />
         ) : (
           <PrivateRoute>

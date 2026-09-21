@@ -74,6 +74,18 @@ export function createAxios() {
   });
 }
 
+/** Unauthenticated axios for participant / preview site. */
+export function createPublicAxios() {
+  return Promise.resolve(
+    axios.create({
+      baseURL: getBaseApiUrl(),
+      headers: {
+        Accept: 'application/json',
+      },
+    })
+  );
+}
+
 export async function awaitRequestAndHandleError(
   requestFunction: (instance: AxiosInstance) => Promise<AxiosResponse>
 ): Promise<AxiosError | AxiosResponse> {
@@ -101,7 +113,12 @@ function getTimeState() {
 const fetcher = async (url: string) => {
   const axiosInstance = await createAxios();
   return axiosInstance.get(url).then((res: { data: any }) => res.data);
-}
+};
+
+const publicFetcher = async (url: string) => {
+  const axiosInstance = await createPublicAxios();
+  return axiosInstance.get(url).then((res: { data: any }) => res.data);
+};
 
 const fetcherWithTimestamp = async (url: string) => {
   const axiosInstance = await createAxios();
@@ -120,6 +137,104 @@ export function getTournamentByEndpointName(tournament_endpoint_name: string): S
 
 export function getTournamentById(tournament_id: number): SWRResponse {
   return useSWR(`tournaments/${tournament_id}`, fetcher);
+}
+
+export function getPublicTournamentByEndpoint(
+  endpoint: string | null | undefined,
+  preview: string | null | undefined
+): SWRResponse {
+  const qs = preview ? `?preview=${encodeURIComponent(preview)}` : '';
+  const key = endpoint ? `public/tournaments/${endpoint}${qs}` : null;
+  return useSWR(key, publicFetcher);
+}
+
+function publicTournamentKey(
+  endpoint: string | null | undefined,
+  preview: string | null | undefined,
+  path: string
+): string | null {
+  if (!endpoint) return null;
+  const qs = preview ? `?preview=${encodeURIComponent(preview)}` : '';
+  return `public/tournaments/${encodeURIComponent(endpoint)}/${path}${qs}`;
+}
+
+export function getPublicPlayers(
+  endpoint: string | null | undefined,
+  preview: string | null | undefined
+): SWRResponse {
+  return useSWR(publicTournamentKey(endpoint, preview, 'players'), publicFetcher);
+}
+
+export function getPublicCourts(
+  endpoint: string | null | undefined,
+  preview: string | null | undefined
+): SWRResponse {
+  return useSWR(publicTournamentKey(endpoint, preview, 'courts'), publicFetcher);
+}
+
+export function getPublicDivisions(
+  endpoint: string | null | undefined,
+  preview: string | null | undefined
+): SWRResponse {
+  return useSWR(publicTournamentKey(endpoint, preview, 'divisions'), publicFetcher);
+}
+
+export function getPublicScheduleTimetable(
+  endpoint: string | null | undefined,
+  preview: string | null | undefined
+): SWRResponse {
+  return useSWR(publicTournamentKey(endpoint, preview, 'schedule_timetable'), publicFetcher);
+}
+
+export function getPublicPlayerDivisions(
+  endpoint: string | null | undefined,
+  preview: string | null | undefined,
+  playerId: number | null
+): SWRResponse {
+  const path = playerId != null ? `players/${playerId}/divisions` : '';
+  return useSWR(
+    playerId != null ? publicTournamentKey(endpoint, preview, path) : null,
+    publicFetcher
+  );
+}
+
+export function getPublicDivisionBracketsWithPlayers(
+  endpoint: string | null | undefined,
+  preview: string | null | undefined,
+  divisionId: number | null
+): SWRResponse {
+  const path =
+    divisionId != null ? `divisions/${divisionId}/brackets/with-players` : '';
+  return useSWR(
+    divisionId != null ? publicTournamentKey(endpoint, preview, path) : null,
+    publicFetcher
+  );
+}
+
+export function getPublicDivisionBracketsWithTeams(
+  endpoint: string | null | undefined,
+  preview: string | null | undefined,
+  divisionId: number | null
+): SWRResponse {
+  const path =
+    divisionId != null ? `divisions/${divisionId}/brackets/with-teams` : '';
+  return useSWR(
+    divisionId != null ? publicTournamentKey(endpoint, preview, path) : null,
+    publicFetcher
+  );
+}
+
+export function getPublicDivisionBracketCells(
+  endpoint: string | null | undefined,
+  preview: string | null | undefined,
+  divisionId: number | null
+): SWRResponse {
+  const path = divisionId != null ? `divisions/${divisionId}/bracket-cells` : '';
+  return useSWR(
+    divisionId != null ? publicTournamentKey(endpoint, preview, path) : null,
+    publicFetcher,
+    { refreshInterval: 10_000 }
+  );
 }
 
 export function getTournaments(): SWRResponse {

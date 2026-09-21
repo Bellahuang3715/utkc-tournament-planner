@@ -17,7 +17,7 @@ from project.models.db.stage_item_inputs import (
 )
 from project.models.db.team import FullTeamWithPlayers, Team, TeamInDivision
 from project.models.db.team_category import TeamCategory
-from project.models.db.tournament import Tournament
+from project.models.db.tournament import Tournament, TournamentPublic
 from project.models.db.user import UserPublic
 from project.models.db.util import StageWithStageItems
 from project.models.db.schedule_timetable import TournamentScheduleBody
@@ -51,8 +51,17 @@ class TournamentResponse(DataResponse[Tournament]):
     pass
 
 
+class TournamentPublicResponse(DataResponse[TournamentPublic]):
+    pass
+
+
 class TournamentsResponse(DataResponse[list[Tournament]]):
     pass
+
+
+class DashboardPreviewTokenResponse(BaseModel):
+    success: bool = True
+    dashboard_preview_token: str
 
 
 class DivisionsResponse(DataResponse[list[Division]]):

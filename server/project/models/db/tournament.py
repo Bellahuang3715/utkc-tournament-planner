@@ -15,6 +15,7 @@ class TournamentInsertable(BaseModelORM):
     description: str | None = None
     dashboard_public: bool
     dashboard_endpoint: str | None = None
+    dashboard_preview_token: str | None = None
     logo_path: str | None = None
     players_can_be_in_multiple_teams: bool
     auto_assign_courts: bool
@@ -22,6 +23,20 @@ class TournamentInsertable(BaseModelORM):
 
 class Tournament(TournamentInsertable):
     id: TournamentId
+
+
+class TournamentPublic(BaseModelORM):
+    """Participant-facing tournament payload (never includes preview token)."""
+
+    id: TournamentId
+    name: str
+    organizer: str
+    start_time: datetime_utc
+    location: str | None = None
+    description: str | None = None
+    dashboard_public: bool
+    dashboard_endpoint: str | None = None
+    logo_path: str | None = None
 
 
 class TournamentUpdateBody(BaseModelORM):

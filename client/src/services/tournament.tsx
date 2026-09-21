@@ -63,6 +63,18 @@ export async function updateTournament(
   }
 }
 
+export async function rotateDashboardPreviewToken(tournament_id: number) {
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.post(
+      `tournaments/${tournament_id}/dashboard_preview_token`
+    );
+  } catch (error: any) {
+    handleRequestError(error);
+    throw error;
+  }
+}
+
 export function getTournamentResponseByEndpointName() {
   const endpointName = getTournamentEndpointFromRouter();
   const swrTournamentsResponse = getTournamentByEndpointName(endpointName);

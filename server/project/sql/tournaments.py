@@ -20,13 +20,18 @@ async def sql_get_tournament(tournament_id: TournamentId) -> Tournament:
     return Tournament.model_validate(result)
 
 
-async def sql_get_tournament_by_endpoint_name(endpoint_name: str) -> Tournament | None:
+async def sql_get_tournament_by_endpoint_name(
+    endpoint_name: str,
+    *,
+    require_public: bool = False,
+) -> Tournament | None:
     query = """
         SELECT *
         FROM tournaments
         WHERE dashboard_endpoint = :endpoint_name
-        AND dashboard_public IS TRUE
         """
+    if require_public:
+        query += " AND dashboard_public IS TRUE"
     result = await database.fetch_one(query=query, values={"endpoint_name": endpoint_name})
     return Tournament.model_validate(result) if result is not None else None
 
@@ -74,7 +79,25 @@ async def sql_update_tournament(
     )
 
 
-async def sql_create_tournament(tournament: TournamentBody) -> TournamentId:
+async def sql_set_dashboard_preview_token(
+    tournament_id: TournamentId, preview_token: str
+) -> None:
+    query = """
+        UPDATE tournaments
+        SET dashboard_preview_token = :preview_token
+        WHERE id = :tournament_id
+        """
+    await database.execute(
+        query=query,
+        values={"tournament_id": tournament_id, "preview_token": preview_token},
+    )
+
+
+async def sql_create_tournament(
+    tournament: TournamentBody,
+    *,
+    dashboard_preview_token: str,
+) -> TournamentId:
     query = """
         INSERT INTO tournaments (
             name,
@@ -84,6 +107,7 @@ async def sql_create_tournament(tournament: TournamentBody) -> TournamentId:
             description,
             dashboard_public,
             dashboard_endpoint,
+            dashboard_preview_token,
             logo_path,
             players_can_be_in_multiple_teams,
             auto_assign_courts
@@ -96,6 +120,7 @@ async def sql_create_tournament(tournament: TournamentBody) -> TournamentId:
             :description,
             :dashboard_public,
             :dashboard_endpoint,
+            :dashboard_preview_token,
             :logo_path,
             :players_can_be_in_multiple_teams,
             :auto_assign_courts
@@ -110,6 +135,7 @@ async def sql_create_tournament(tournament: TournamentBody) -> TournamentId:
         "description": tournament.description,
         "dashboard_public": tournament.dashboard_public,
         "dashboard_endpoint": tournament.dashboard_endpoint,
+        "dashboard_preview_token": dashboard_preview_token,
         # logo is always uploaded separately; default to NULL on create
         "logo_path": None,
         "players_can_be_in_multiple_teams": tournament.players_can_be_in_multiple_teams,

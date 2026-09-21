@@ -90,6 +90,35 @@ async def get_divisions_for_tournament(
     return [Division.model_validate(dict(r._mapping)) for r in results]
 
 
+async def sql_get_division(division_id: DivisionId) -> Division | None:
+    query = """
+        SELECT *
+        FROM divisions
+        WHERE id = :division_id
+    """
+    result = await database.fetch_one(query=query, values={"division_id": division_id})
+    return Division.model_validate(dict(result._mapping)) if result is not None else None
+
+
+async def sql_get_divisions_for_player(
+    tournament_id: TournamentId,
+    player_id: int,
+) -> list[Division]:
+    query = """
+        SELECT d.*
+        FROM divisions d
+        JOIN players_x_divisions px ON px.division_id = d.id
+        WHERE d.tournament_id = :tournament_id
+          AND px.player_id = :player_id
+        ORDER BY d.name, d.id
+    """
+    results = await database.fetch_all(
+        query=query,
+        values={"tournament_id": tournament_id, "player_id": player_id},
+    )
+    return [Division.model_validate(dict(r._mapping)) for r in results]
+
+
 async def sql_get_players_for_division(division_id: DivisionId) -> list[PlayerInDivision]:
     query = """
         SELECT

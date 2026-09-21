@@ -58,7 +58,7 @@ function GeneralTournamentForm({
       organizer: "",
       location: "",
       description: "",
-      dashboard_public: true,
+      dashboard_public: false,
       players_can_be_in_multiple_teams: true,
       auto_assign_courts: true,
     },

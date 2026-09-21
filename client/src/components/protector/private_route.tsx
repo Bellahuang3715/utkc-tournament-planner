@@ -2,19 +2,18 @@ import React, { useEffect } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "../../context/AuthContext";
 
+/** Organizer-only gate. Guests are sent to the role picker, not straight to login. */
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    // Check if user is authenticated
-    if (!user) {
-      // Redirect to login page if user is not logged in
-      router.push("/login");
+    if (!loading && !user) {
+      void router.replace("/welcome");
     }
-  }, [user, router]);
+  }, [user, loading, router]);
 
-  if (!user) {
+  if (loading || !user) {
     return null;
   }
 

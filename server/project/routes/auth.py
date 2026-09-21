@@ -9,8 +9,8 @@ from project.utils.types import assert_some
 
 router = APIRouter()
 
-async def firebase_user_authenticated(request: Request):
 
+async def firebase_user_authenticated(request: Request) -> UserPublic:
     # Extract Authorization header
     authorization = request.headers.get("Authorization")
     if not authorization or not authorization.startswith("Bearer "):
@@ -18,7 +18,7 @@ async def firebase_user_authenticated(request: Request):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing or invalid authorization header",
         )
-    
+
     # Extract token
     id_token = authorization.split("Bearer ")[1]
 
@@ -27,8 +27,13 @@ async def firebase_user_authenticated(request: Request):
         decoded_token = auth.verify_id_token(id_token)
         user = await get_user(email=assert_some(decoded_token.get("email")))
         if user is None:
-            return None
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+            )
         return UserPublic.model_validate(user.model_dump())
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Token Verification Error: {str(e)}")
         raise HTTPException(
@@ -36,6 +41,15 @@ async def firebase_user_authenticated(request: Request):
             detail="Invalid or expired ID token",
         )
 
+
+async def firebase_user_optional(request: Request) -> UserPublic | None:
+    """Return the user when a valid Bearer token is present; otherwise None."""
+    authorization = request.headers.get("Authorization")
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    return await firebase_user_authenticated(request)
+
+
 @router.get("/protected")
-async def protected_route(user: dict = Depends(firebase_user_authenticated)):
+async def protected_route(user: UserPublic = Depends(firebase_user_authenticated)):
     return {"message": "You are authorized!", "user": user}

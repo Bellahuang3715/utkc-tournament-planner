@@ -6,18 +6,18 @@ import {
   CopyButton,
   Fieldset,
   Grid,
+  Group,
   Image,
-  NumberInput,
   Text,
   TextInput,
 } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { MdDelete } from "react-icons/md";
-import { IconCalendar, IconCalendarTime, IconCopy } from "@tabler/icons-react";
+import { IconCalendar, IconCalendarTime, IconCopy, IconRefresh } from "@tabler/icons-react";
 import assert from "assert";
-import { useTranslation } from "next-i18next";
-import { serverSideTranslations } from "next-i18next/serverSideTranslations";
+import { useTranslation } from "next-i18next/pages";
+import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import { useRouter } from "next/router";
 import React from "react";
 import { SWRResponse } from "swr";
@@ -38,6 +38,7 @@ import {
 } from "../../../services/adapter";
 import {
   deleteTournament,
+  rotateDashboardPreviewToken,
   updateTournament,
 } from "../../../services/tournament";
 import TournamentLayout from "../_tournament_layout";
@@ -94,7 +95,7 @@ function GeneralTournamentForm({
           tournament.id,
           values.name,
           values.dashboard_public,
-          values.dashboard_endpoint,
+          values.dashboard_endpoint ?? "",
           values.players_can_be_in_multiple_teams,
           values.auto_assign_courts,
           values.start_time.toISOString(),
@@ -135,7 +136,9 @@ function GeneralTournamentForm({
         </Grid>
       </Fieldset>
       <Fieldset legend={t("dashboard_settings_title")} mt="lg" radius="md">
-        <Text fz="sm">{t("dashboard_link_label")}</Text>
+        <Text fz="sm" mb="xs">
+          Tournament code for participants (share this — they enter it on the join page)
+        </Text>
         <Grid>
           <Grid.Col span={{ sm: 9 }}>
             <TextInput
@@ -145,30 +148,94 @@ function GeneralTournamentForm({
           </Grid.Col>
           <Grid.Col span={{ sm: 3 }}>
             <CopyButton
-              value={`${getBaseURL()}/tournaments/${
-                tournament.dashboard_endpoint
-              }/dashboard`}
+              value={form.values.dashboard_endpoint ?? ""}
             >
               {({ copied, copy }) => (
                 <Button
-                  disabled={form.values.dashboard_endpoint === ""}
+                  disabled={!form.values.dashboard_endpoint}
                   leftSection={<IconCopy size="1.1rem" stroke={1.5} />}
                   fullWidth
                   color={copied ? "teal" : "indigo"}
                   onClick={copy}
                 >
-                  {copied ? t("copied_url_button") : t("copy_url_button")}
+                  {copied ? t("copied_url_button") : "Copy code"}
                 </Button>
               )}
             </CopyButton>
           </Grid.Col>
         </Grid>
 
+        <Text fz="sm" mt="md" mb="xs">
+          Direct participant link
+        </Text>
+        <CopyButton
+          value={
+            form.values.dashboard_endpoint
+              ? `${getBaseURL()}/t/${form.values.dashboard_endpoint}`
+              : ""
+          }
+        >
+          {({ copied, copy }) => (
+            <Button
+              disabled={!form.values.dashboard_endpoint}
+              leftSection={<IconCopy size="1.1rem" stroke={1.5} />}
+              fullWidth
+              variant="light"
+              color={copied ? "teal" : "indigo"}
+              onClick={copy}
+            >
+              {copied ? t("copied_url_button") : "Copy participant URL"}
+            </Button>
+          )}
+        </CopyButton>
+
         <Checkbox
           mt="lg"
-          label={t("dashboard_public_description")}
+          label="Publish participant site (anyone with the public link can view)"
           {...form.getInputProps("dashboard_public", { type: "checkbox" })}
         />
+
+        <Text fz="sm" mt="lg" mb="xs">
+          Preview link (works even when unpublished). Share only with staff.
+        </Text>
+        <Group grow align="flex-end">
+          <CopyButton
+            value={
+              form.values.dashboard_endpoint && tournament.dashboard_preview_token
+                ? `${getBaseURL()}/t/${form.values.dashboard_endpoint}?preview=${tournament.dashboard_preview_token}`
+                : ""
+            }
+          >
+            {({ copied, copy }) => (
+              <Button
+                disabled={
+                  !form.values.dashboard_endpoint ||
+                  !tournament.dashboard_preview_token
+                }
+                leftSection={<IconCopy size="1.1rem" stroke={1.5} />}
+                color={copied ? "teal" : "gray"}
+                variant="light"
+                onClick={copy}
+              >
+                {copied ? t("copied_url_button") : "Copy preview URL"}
+              </Button>
+            )}
+          </CopyButton>
+          <Button
+            variant="outline"
+            color="orange"
+            leftSection={<IconRefresh size="1.1rem" stroke={1.5} />}
+            onClick={async () => {
+              await rotateDashboardPreviewToken(tournament.id);
+              await swrTournamentResponse.mutate();
+            }}
+          >
+            Regenerate preview
+          </Button>
+        </Group>
+        <Text size="xs" c="dimmed" mt={6}>
+          Regenerating invalidates the previous preview link immediately.
+        </Text>
 
         <DropzoneButton
           tournamentId={tournament.id}

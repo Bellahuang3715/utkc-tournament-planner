@@ -148,6 +148,16 @@ export default function Login() {
               {t("forgot_password_button")}
             </Anchor>
           </Text>
+          <Text c="dimmed" size="sm" ta="center" mt={12}>
+            Looking for a tournament?{" "}
+            <Anchor<"a"> size="sm" onClick={() => router.push("/join")}>
+              Join as participant
+            </Anchor>
+            {" · "}
+            <Anchor<"a"> size="sm" onClick={() => router.push("/welcome")}>
+              Back
+            </Anchor>
+          </Text>
         </Paper>
       </Container>
     </>

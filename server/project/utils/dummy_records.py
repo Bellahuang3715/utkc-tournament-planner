@@ -45,6 +45,7 @@ DUMMY_TOURNAMENT = TournamentInsertable(
     start_time=DUMMY_MOCK_TIME,
     dashboard_public=True,
     dashboard_endpoint="endpoint-test",
+    dashboard_preview_token="preview-token-test",
     logo_path=None,
     players_can_be_in_multiple_teams=True,
     auto_assign_courts=True,

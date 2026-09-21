@@ -10,6 +10,7 @@ from project.models.db.account import UserAccountType
 from project.models.db.ranking import RankingCreateBody
 from project.models.db.tournament import TournamentBody
 from project.sql.rankings import sql_create_ranking
+from project.logic.dashboard_access import new_dashboard_preview_token
 from project.sql.tournaments import sql_create_tournament
 from project.utils.id_types import UserId
 
@@ -77,10 +78,13 @@ async def setup_demo_account(user_id: UserId) -> None:
         organizer="UofT",
         start_time=datetime_utc.future(hours=1),
         dashboard_public=False,
+        dashboard_endpoint="demo-tournament",
         players_can_be_in_multiple_teams=False,
         auto_assign_courts=True,
     )
-    tournament_id = await sql_create_tournament(tournament)
+    tournament_id = await sql_create_tournament(
+        tournament, dashboard_preview_token=new_dashboard_preview_token()
+    )
 
     ranking = RankingCreateBody()
     await sql_create_ranking(tournament_id=tournament_id, ranking_body=ranking, position=0)
