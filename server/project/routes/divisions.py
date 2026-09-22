@@ -15,7 +15,13 @@ from project.routes.models import (
     DivisionsResponse,
     DivisionPlayersResponse,
     DivisionTeamsResponse,
+    DivisionLockResponse,
+    DivisionLockStatus,
     SuccessResponse,
+)
+from project.sql.bracket_cells import (
+    sql_division_is_locked,
+    sql_ensure_division_unlocked,
 )
 from project.sql.divisions import (
     create_division,
@@ -80,12 +86,22 @@ async def list_division_players(
     return DivisionPlayersResponse(players=players)
 
 
+@router.get("/divisions/{division_id}/lock", response_model=DivisionLockResponse)
+async def get_division_lock_status(
+    division_id: DivisionId,
+    _: UserPublic = Depends(firebase_user_authenticated),
+) -> DivisionLockResponse:
+    locked = await sql_division_is_locked(division_id)
+    return DivisionLockResponse(data=DivisionLockStatus(locked=locked))
+
+
 @router.post("/divisions/{division_id}/players", response_model=SuccessResponse)
 async def attach_players_to_division(
     division_id: DivisionId,
     body: DivisionPlayersAttachBody,
     _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
+    await sql_ensure_division_unlocked(division_id)
     await sql_attach_players_to_division(division_id, body.player_ids, body.bias_player_ids or [])
     return SuccessResponse()
 
@@ -96,6 +112,7 @@ async def detach_players_from_division(
     body: DivisionPlayersDetachBody,
     _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
+    await sql_ensure_division_unlocked(division_id)
     await sql_detach_players_from_division(division_id, body.player_ids)
     return SuccessResponse()
 
@@ -115,6 +132,7 @@ async def attach_teams_to_division(
     body: DivisionTeamsAttachBody,
     _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
+    await sql_ensure_division_unlocked(division_id)
     await sql_attach_teams_to_division(
         division_id, body.team_ids, body.bias_team_ids or []
     )
@@ -127,5 +145,6 @@ async def detach_teams_from_division(
     body: DivisionTeamsDetachBody,
     _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
+    await sql_ensure_division_unlocked(division_id)
     await sql_detach_teams_from_division(division_id, body.team_ids)
     return SuccessResponse()

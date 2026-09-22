@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Button, Group } from "@mantine/core";
+import { Alert, Button, Group } from "@mantine/core";
 import {
   MantineReactTable,
   useMantineReactTable,
@@ -7,7 +7,7 @@ import {
 } from "mantine-react-table-open";
 import { useTranslation } from "next-i18next/pages";
 
-import { getPlayerFields, getDivisionPlayers, getPlayers } from "../../services/adapter";
+import { getPlayerFields, getDivisionPlayers, getPlayers, getDivisionLock } from "../../services/adapter";
 import { Player } from "../../interfaces/player";
 import RequestErrorAlert from "../utils/error_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
@@ -38,6 +38,8 @@ export default function DivisionPlayersTable({
   const swrPlayerFieldsResponse = getPlayerFields(tournamentId);
   const swrDivisionPlayersResponse = getDivisionPlayers(divisionId);
   const swrAllPlayersResponse = getPlayers(tournamentId);
+  const swrLock = getDivisionLock(divisionId);
+  const locked = Boolean(swrLock.data?.data?.locked);
 
   const [addModalOpen, setAddModalOpen] = useState(false);
 
@@ -141,11 +143,12 @@ export default function DivisionPlayersTable({
   };
 
   const handleAddPlayersClick = () => {
+    if (locked) return;
     setAddModalOpen(true);
   };
 
   const handleRemoveSelected = async (selectedIds: number[]) => {
-    if (!selectedIds.length) return;
+    if (locked || !selectedIds.length) return;
 
     const names = players
       .filter((p) => selectedIds.includes(p.id))
@@ -283,7 +286,12 @@ export default function DivisionPlayersTable({
         .rows.map((r) => r.original.id);
       return (
         <Group gap="xs">
-          <Button type="button" variant="light" onClick={handleAddPlayersClick}>
+          <Button
+            type="button"
+            variant="light"
+            onClick={handleAddPlayersClick}
+            disabled={locked}
+          >
             {t("add_players_to_division", "Add players to division")}
           </Button>
           <Button
@@ -291,7 +299,7 @@ export default function DivisionPlayersTable({
             variant="light"
             color="red"
             onClick={() => handleRemoveSelected(selected)}
-            disabled={!selected.length}
+            disabled={locked || !selected.length}
           >
             {t("remove_from_division", "Remove from division")}
           </Button>
@@ -318,6 +326,14 @@ export default function DivisionPlayersTable({
 
   return (
     <>
+      {locked && (
+        <Alert color="orange" mb="sm" title={t("division_locked", "Locked")}>
+          {t(
+            "division_locked_roster_alert",
+            "Scorekeeping has started — roster and seeding are locked. Unlock from Scores by clearing all scores.",
+          )}
+        </Alert>
+      )}
       <AddPlayersToDivisionModal
         opened={addModalOpen}
         onClose={() => setAddModalOpen(false)}

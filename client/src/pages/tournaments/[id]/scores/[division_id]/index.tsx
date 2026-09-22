@@ -29,8 +29,10 @@ import TournamentLayout from "../../../_tournament_layout";
 import RequestErrorAlert from "../../../../../components/utils/error_alert";
 import { getTournamentIdFromRouter } from "../../../../../components/utils/util";
 import { getClubs, getDivisions, requestSucceeded } from "../../../../../services/adapter";
+import ScoreStatusBadge from "../../../../../components/scores/ScoreStatusBadge";
 import {
   buildPlayerIdResolver,
+  clearDivisionBracketCells,
   ensureFinalsBracket,
   fetchDivisionBracketCells,
   fetchDivisionBracketsWithPlayers,
@@ -50,6 +52,14 @@ import {
   circledScoreDisplay,
   tournamentMkdtScoreInput,
 } from "../../../../../utils/score_notation";
+import {
+  aggregateScoreStatuses,
+  computeBracketScoreStatus,
+  isDivisionScorekeepingStarted,
+  payloadStartsScorekeeping,
+  type ScoreStatus,
+} from "../../../../../utils/score_status";
+import { useSWRConfig } from "swr";
 
 type PageMode = "view" | "edit";
 type BracketUiMode = "view" | "fillable";
@@ -132,6 +142,7 @@ export default function DivisionScoresEditorPage() {
     [],
   );
 
+  const { mutate } = useSWRConfig();
   const { id: tournamentId, tournamentData } = getTournamentIdFromRouter();
   const tournamentIdValid = Number.isFinite(tournamentId);
 
@@ -173,6 +184,7 @@ export default function DivisionScoresEditorPage() {
   const [finalsBracketId, setFinalsBracketId] = useState<number | null>(null);
   const [finalsDraft, setFinalsDraft] = useState<BracketUIPlayerSlot[] | null>(null);
   const [saving, setSaving] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
 
   /** `group-{id}` for a pool bracket, or `playoff-{size}` for knockout stages. */
   const [activeTab, setActiveTab] = useState<string | null>(null);
@@ -253,6 +265,32 @@ export default function DivisionScoresEditorPage() {
         });
       }
 
+      const bracketsForLock = [
+        ...(bracketsPlayers ?? []).map((b) => ({
+          id: b.id,
+          num_players: b.num_players,
+        })),
+        ...(finalsBracketId != null && playoffStages[0]
+          ? [{ id: finalsBracketId, num_players: playoffStages[0].size }]
+          : []),
+      ];
+      const currentlyLocked = isDivisionScorekeepingStarted(
+        bracketsForLock,
+        cellsByBracketId,
+      );
+      if (
+        !currentlyLocked &&
+        payloadStartsScorekeeping(payload, bracketsForLock)
+      ) {
+        const ok = window.confirm(
+          t(
+            "division_lock_confirm",
+            "Saving these scores will lock this division. You will no longer be able to add or remove players (or teams) or change seeding until you unlock by clearing all recorded scores. Continue?",
+          ),
+        );
+        if (!ok) return;
+      }
+
       const res = await putDivisionBracketCells(divisionId, payload);
       if (!res || !requestSucceeded(res as any)) {
         return;
@@ -269,6 +307,7 @@ export default function DivisionScoresEditorPage() {
       setFinalsDraft(null);
       setBracketRevision((n) => n + 1);
       setPageMode("view");
+      await mutate(`divisions/${divisionId}/lock`);
       showNotification({
         color: "green",
         title: t("saved", "Saved"),
@@ -282,6 +321,46 @@ export default function DivisionScoresEditorPage() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const unlockDivision = async () => {
+    if (!divisionId) return;
+    const ok = window.confirm(
+      t(
+        "division_unlock_confirm",
+        "Unlock this division? All recorded scores will be cleared, and you will be able to change roster and seeding again.",
+      ),
+    );
+    if (!ok) return;
+    if (pageMode === "edit" && !tryExitEdit()) return;
+
+    setUnlocking(true);
+    try {
+      const res = await clearDivisionBracketCells(divisionId);
+      if (!res || !requestSucceeded(res as any)) {
+        showNotification({
+          color: "red",
+          title: t("error", "Error"),
+          message: t("division_unlock_failed", "Failed to unlock division."),
+        });
+        return;
+      }
+      setCellsByBracketId({});
+      setDraftByBracketId({});
+      setFinalsDraft(null);
+      setBracketRevision((n) => n + 1);
+      await mutate(`divisions/${divisionId}/lock`);
+      showNotification({
+        color: "green",
+        title: t("unlocked", "Unlocked"),
+        message: t(
+          "division_unlock_success",
+          "Scores cleared. Roster and seeding can be edited again.",
+        ),
+      });
+    } finally {
+      setUnlocking(false);
     }
   };
 
@@ -412,6 +491,46 @@ export default function DivisionScoresEditorPage() {
     [playoffStages],
   );
 
+  const groupStatusById = useMemo(() => {
+    const map = new Map<number, ScoreStatus>();
+    for (const b of groupsForCards) {
+      map.set(
+        b.id,
+        computeBracketScoreStatus(b.num_players, cellsByBracketId[b.id] ?? []),
+      );
+    }
+    return map;
+  }, [groupsForCards, cellsByBracketId]);
+
+  const finalsStatus = useMemo((): ScoreStatus | null => {
+    if (!playoffStages.length) return null;
+    if (finalsBracketId == null) return "not_started";
+    const size = playoffStages[0]?.size ?? groupsForCards.length;
+    return computeBracketScoreStatus(
+      size,
+      cellsByBracketId[finalsBracketId] ?? [],
+    );
+  }, [playoffStages, finalsBracketId, cellsByBracketId, groupsForCards.length]);
+
+  const divisionStatus = useMemo(() => {
+    const statuses = [...groupStatusById.values()];
+    if (finalsStatus != null) statuses.push(finalsStatus);
+    return aggregateScoreStatuses(statuses);
+  }, [groupStatusById, finalsStatus]);
+
+  const divisionLocked = useMemo(() => {
+    const bracketsForLock = [
+      ...groupsForCards.map((b) => ({
+        id: b.id,
+        num_players: b.num_players,
+      })),
+      ...(finalsBracketId != null && playoffStages[0]
+        ? [{ id: finalsBracketId, num_players: playoffStages[0].size }]
+        : []),
+    ];
+    return isDivisionScorekeepingStarted(bracketsForLock, cellsByBracketId);
+  }, [groupsForCards, finalsBracketId, playoffStages, cellsByBracketId]);
+
   // Keep active selection stable when data changes.
   useEffect(() => {
     if (activeTab != null) return;
@@ -503,6 +622,23 @@ export default function DivisionScoresEditorPage() {
                 ? t("teams", "Teams")
                 : t("individuals", "Individuals")}
             </Badge>
+            {bracketsLoaded && <ScoreStatusBadge status={divisionStatus} size="lg" />}
+            {bracketsLoaded && divisionLocked && (
+              <>
+                <Badge variant="filled" color="orange" size="lg">
+                  {t("division_locked", "Locked")}
+                </Badge>
+                <Button
+                  variant="light"
+                  color="orange"
+                  size="sm"
+                  loading={unlocking}
+                  onClick={() => void unlockDivision()}
+                >
+                  {t("unlock_division", "Unlock")}
+                </Button>
+              </>
+            )}
             <SegmentedControl
               value={pageMode}
               onChange={(v) => {
@@ -552,6 +688,15 @@ export default function DivisionScoresEditorPage() {
           </Group>
         </Group>
 
+        {bracketsLoaded && divisionLocked && (
+          <Text size="sm" c="dimmed">
+            {t(
+              "division_locked_hint",
+              "Scorekeeping has started — roster and seeding are locked. Unlock to clear all scores and edit them again.",
+            )}
+          </Text>
+        )}
+
         {loadingBrackets && !bracketsLoaded ? (
           <Center style={{ minHeight: 260 }}>
             <Loader />
@@ -583,11 +728,16 @@ export default function DivisionScoresEditorPage() {
                 {selectedDivision.division_type === "TEAMS" ? (
                   <Paper withBorder radius="md" p="md">
                     <Group justify="space-between" mb="sm">
-                      <Badge variant="light">
-                        {pageMode === "edit"
-                          ? t("editing_group", "Editing: Group {{n}}", { n: b.index })
-                          : t("viewing_group", "Viewing: Group {{n}}", { n: b.index })}
-                      </Badge>
+                      <Group gap="xs">
+                        <Badge variant="light">
+                          {pageMode === "edit"
+                            ? t("editing_group", "Editing: Group {{n}}", { n: b.index })
+                            : t("viewing_group", "Viewing: Group {{n}}", { n: b.index })}
+                        </Badge>
+                        <ScoreStatusBadge
+                          status={groupStatusById.get(b.id) ?? "not_started"}
+                        />
+                      </Group>
                     </Group>
                     <Box style={{ maxWidth: "100%", overflowX: "auto", marginTop: 8 }}>
                       <Expanded.Teams
@@ -606,11 +756,16 @@ export default function DivisionScoresEditorPage() {
                 ) : (
                   <Paper withBorder radius="md" p="md">
                     <Group justify="space-between" mb="sm">
-                      <Badge variant="light">
-                        {pageMode === "edit"
-                          ? t("editing_group", "Editing: Group {{n}}", { n: b.index })
-                          : t("viewing_group", "Viewing: Group {{n}}", { n: b.index })}
-                      </Badge>
+                      <Group gap="xs">
+                        <Badge variant="light">
+                          {pageMode === "edit"
+                            ? t("editing_group", "Editing: Group {{n}}", { n: b.index })
+                            : t("viewing_group", "Viewing: Group {{n}}", { n: b.index })}
+                        </Badge>
+                        <ScoreStatusBadge
+                          status={groupStatusById.get(b.id) ?? "not_started"}
+                        />
+                      </Group>
                       {pageMode === "edit" && (
                         <Text size="sm" c="dimmed">
                           {t(
@@ -660,11 +815,14 @@ export default function DivisionScoresEditorPage() {
               <Tabs.Panel key={stage.key} value={stage.key} pt="md">
                 <Paper withBorder radius="md" p="md">
                   <Group justify="space-between" mb="sm">
-                    <Badge variant="light" color="grape">
-                      {pageMode === "edit"
-                        ? `${t("edit", "Edit")}: ${t(stage.labelKey, stage.labelDefault, { n: stage.size })}`
-                        : `${t("view", "View")}: ${t(stage.labelKey, stage.labelDefault, { n: stage.size })}`}
-                    </Badge>
+                    <Group gap="xs">
+                      <Badge variant="light" color="grape">
+                        {pageMode === "edit"
+                          ? `${t("edit", "Edit")}: ${t(stage.labelKey, stage.labelDefault, { n: stage.size })}`
+                          : `${t("view", "View")}: ${t(stage.labelKey, stage.labelDefault, { n: stage.size })}`}
+                      </Badge>
+                      <ScoreStatusBadge status={finalsStatus ?? "not_started"} />
+                    </Group>
                     {pageMode === "edit" && (
                       <Text size="sm" c="dimmed">
                         {t(

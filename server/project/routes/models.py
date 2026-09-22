@@ -109,6 +109,14 @@ class BracketsWithTeamsResponse(BaseModel):
     data: list[BracketWithTeams]
 
 
+class DivisionLockStatus(BaseModel):
+    locked: bool
+
+
+class DivisionLockResponse(DataResponse[DivisionLockStatus]):
+    pass
+
+
 class BracketCellsResponse(BaseModel):
     data: list[BracketCell]
 

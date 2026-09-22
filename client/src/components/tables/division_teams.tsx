@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Badge, Button, Group } from "@mantine/core";
+import { Alert, Badge, Button, Group } from "@mantine/core";
 import {
   MantineReactTable,
   useMantineReactTable,
@@ -7,7 +7,7 @@ import {
 } from "mantine-react-table-open";
 import { useTranslation } from "next-i18next/pages";
 
-import { getDivisionTeams, getTeams } from "../../services/adapter";
+import { getDivisionTeams, getTeams, getDivisionLock } from "../../services/adapter";
 import AddNewTeamModal from "../modals/add_new_team_modal";
 import RequestErrorAlert from "../utils/error_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
@@ -38,6 +38,8 @@ export default function DivisionTeamsTable({
 
   const swrDivisionTeamsResponse = getDivisionTeams(divisionId);
   const swrAllTeamsResponse = getTeams(tournamentId);
+  const swrLock = getDivisionLock(divisionId);
+  const locked = Boolean(swrLock.data?.data?.locked);
 
   const teams: DivisionTeam[] = swrDivisionTeamsResponse.data?.teams ?? [];
 
@@ -166,6 +168,7 @@ export default function DivisionTeamsTable({
   };
 
   const handleAddTeams = async () => {
+    if (locked) return;
     if (!availableToAdd.length) {
       window.alert(
         t("no_available_teams_to_add", "There are no additional teams to add to this division."),
@@ -195,7 +198,7 @@ export default function DivisionTeamsTable({
   };
 
   const handleRemoveSelected = async (selectedIds: number[]) => {
-    if (!selectedIds.length) return;
+    if (locked || !selectedIds.length) return;
 
     if (selectedIds.length > 1) {
       window.alert(
@@ -306,10 +309,16 @@ export default function DivisionTeamsTable({
             variant="light"
             size="xs"
             onClick={() => setAddNewTeamModalOpen(true)}
+            disabled={locked}
           >
             {t("add_new_team", "Add new team")}
           </Button>
-          <Button variant="light" size="xs" onClick={handleAddTeams}>
+          <Button
+            variant="light"
+            size="xs"
+            onClick={handleAddTeams}
+            disabled={locked}
+          >
             {t("add_teams_to_division", "Add teams to division")}
           </Button>
           <Button
@@ -317,7 +326,7 @@ export default function DivisionTeamsTable({
             color="red"
             size="xs"
             onClick={() => handleRemoveSelected(selected)}
-            disabled={!selected.length}
+            disabled={locked || !selected.length}
           >
             {t("remove_from_division", "Remove from division")}
           </Button>
@@ -336,11 +345,29 @@ export default function DivisionTeamsTable({
   if (teams.length === 0) {
     return (
       <>
+        {locked && (
+          <Alert color="orange" mb="sm" title={t("division_locked", "Locked")}>
+            {t(
+              "division_locked_roster_alert",
+              "Scorekeeping has started — roster and seeding are locked. Unlock from Scores by clearing all scores.",
+            )}
+          </Alert>
+        )}
         <Group mb="sm" justify="flex-start" gap="xs">
-          <Button variant="light" size="sm" onClick={() => setAddNewTeamModalOpen(true)}>
+          <Button
+            variant="light"
+            size="sm"
+            onClick={() => setAddNewTeamModalOpen(true)}
+            disabled={locked}
+          >
             {t("add_new_team", "Add new team")}
           </Button>
-          <Button variant="light" size="sm" onClick={handleAddTeams}>
+          <Button
+            variant="light"
+            size="sm"
+            onClick={handleAddTeams}
+            disabled={locked}
+          >
             {t("add_teams_to_division", "Add teams to division")}
           </Button>
         </Group>
@@ -357,6 +384,14 @@ export default function DivisionTeamsTable({
 
   return (
     <>
+      {locked && (
+        <Alert color="orange" mb="sm" title={t("division_locked", "Locked")}>
+          {t(
+            "division_locked_roster_alert",
+            "Scorekeeping has started — roster and seeding are locked. Unlock from Scores by clearing all scores.",
+          )}
+        </Alert>
+      )}
       <AddNewTeamModal
         tournamentId={tournamentId}
         opened={addNewTeamModalOpen}

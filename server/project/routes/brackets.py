@@ -27,6 +27,8 @@ from project.sql.brackets import (
 from project.utils.id_types import DivisionId, BracketId
 from project.models.db.bracket import BracketTitleUpdateBody
 from project.sql.bracket_cells import (
+    sql_clear_division_bracket_cells,
+    sql_ensure_division_unlocked,
     sql_list_bracket_cells,
     sql_list_division_bracket_cells,
     sql_replace_bracket_cells,
@@ -78,6 +80,16 @@ async def replace_division_bracket_cells(
     return SuccessResponse()
 
 
+@router.delete("/divisions/{division_id}/bracket-cells", response_model=SuccessResponse)
+async def clear_division_bracket_cells(
+    division_id: DivisionId,
+    _: UserPublic = Depends(firebase_user_authenticated),
+) -> SuccessResponse:
+    """Clear all recorded scores for the division (unlocks roster/seeding edits)."""
+    await sql_clear_division_bracket_cells(division_id)
+    return SuccessResponse()
+
+
 @router.get("/brackets/{bracket_id}/cells", response_model=BracketCellsResponse)
 async def list_bracket_cells(
     bracket_id: BracketId,
@@ -103,6 +115,7 @@ async def create_division_brackets(
     replace: bool = Query(False, description="Delete existing brackets for this division before inserting"),
     _: UserPublic = Depends(firebase_user_authenticated),
 ) -> BracketsResponse:
+    await sql_ensure_division_unlocked(division_id)
     created = await sql_create_division_brackets(division_id, body, replace=replace)
     return BracketsResponse(data=created)
 
@@ -114,6 +127,7 @@ async def create_division_brackets_teams(
     replace: bool = Query(False, description="Delete existing brackets for this division before inserting"),
     _: UserPublic = Depends(firebase_user_authenticated),
 ) -> BracketsResponse:
+    await sql_ensure_division_unlocked(division_id)
     created = await sql_create_division_brackets_teams(division_id, body, replace=replace)
     return BracketsResponse(data=created)
 

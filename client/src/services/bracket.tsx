@@ -128,6 +128,11 @@ export async function postDivisionBrackets(
   }
 }
 
+export async function fetchDivisionBrackets(division_id: number) {
+  const axios = await createAxios();
+  return axios.get(`divisions/${division_id}/brackets`);
+}
+
 export async function fetchDivisionBracketsWithPlayers(division_id: number) {
   const axios = await createAxios();
   return axios.get(`divisions/${division_id}/brackets/with-players`);
@@ -306,6 +311,21 @@ export async function putDivisionBracketCells(
   try {
     const axios = await createAxios();
     return await axios.put(`divisions/${division_id}/bracket-cells`, { brackets });
+  } catch (err: any) {
+    return handleRequestError(err);
+  }
+}
+
+export async function fetchDivisionLock(division_id: number) {
+  const axios = await createAxios();
+  return axios.get<{ data: { locked: boolean } }>(`divisions/${division_id}/lock`);
+}
+
+/** Clear all recorded scores for the division (unlocks roster/seeding). */
+export async function clearDivisionBracketCells(division_id: number) {
+  try {
+    const axios = await createAxios();
+    return await axios.delete(`divisions/${division_id}/bracket-cells`);
   } catch (err: any) {
     return handleRequestError(err);
   }

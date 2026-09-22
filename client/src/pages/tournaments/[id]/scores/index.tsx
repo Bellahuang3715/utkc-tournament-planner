@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Badge,
   Card,
@@ -15,9 +15,34 @@ import { serverSideTranslations } from "next-i18next/pages/serverSideTranslation
 import { useRouter } from "next/router";
 
 import TournamentLayout from "../../_tournament_layout";
+import ScoreStatusBadge from "../../../../components/scores/ScoreStatusBadge";
 import { getTournamentIdFromRouter } from "../../../../components/utils/util";
 import RequestErrorAlert from "../../../../components/utils/error_alert";
 import { getDivisions } from "../../../../services/adapter";
+import {
+  fetchDivisionBracketCells,
+  fetchDivisionBrackets,
+  isFinalsBracket,
+  type BracketCell,
+} from "../../../../services/bracket";
+import {
+  aggregateScoreStatuses,
+  computeBracketScoreStatus,
+  type ScoreStatus,
+} from "../../../../utils/score_status";
+
+type GroupStatus = {
+  bracketId: number;
+  index: number;
+  title: string | null;
+  isFinals: boolean;
+  status: ScoreStatus;
+};
+
+type DivisionScoreOverview = {
+  status: ScoreStatus;
+  groups: GroupStatus[];
+};
 
 export default function ScoresPage() {
   const { t } = useTranslation();
@@ -39,6 +64,90 @@ export default function ScoresPage() {
       })),
     [divisions],
   );
+
+  const divisionIdsKey = useMemo(
+    () => divisionOptions.map((d) => d.id).join(","),
+    [divisionOptions],
+  );
+
+  const [overviewByDivision, setOverviewByDivision] = useState<
+    Record<number, DivisionScoreOverview>
+  >({});
+  const [loadingStatuses, setLoadingStatuses] = useState(false);
+
+  useEffect(() => {
+    if (!tournamentIdValid || !divisionIdsKey) {
+      setOverviewByDivision({});
+      setLoadingStatuses(false);
+      return;
+    }
+
+    const divisionIds = divisionIdsKey.split(",").map(Number);
+    let cancelled = false;
+    setLoadingStatuses(true);
+
+    const run = async () => {
+      const entries = await Promise.all(
+        divisionIds.map(async (divisionId) => {
+          try {
+            const [bracketsRes, cellsRes] = await Promise.all([
+              fetchDivisionBrackets(divisionId),
+              fetchDivisionBracketCells(divisionId),
+            ]);
+            const brackets = (bracketsRes.data?.data ?? []) as Array<{
+              id: number;
+              index: number;
+              num_players: number;
+              title?: string | null;
+            }>;
+            const cells = (cellsRes.data?.data ?? []) as BracketCell[];
+            const cellsByBracket = new Map<number, BracketCell[]>();
+            for (const cell of cells) {
+              const list = cellsByBracket.get(cell.bracket_id) ?? [];
+              list.push(cell);
+              cellsByBracket.set(cell.bracket_id, list);
+            }
+
+            const groups: GroupStatus[] = brackets
+              .slice()
+              .sort((a, b) => a.index - b.index)
+              .map((b) => ({
+                bracketId: b.id,
+                index: b.index,
+                title: b.title ?? null,
+                isFinals: isFinalsBracket(b),
+                status: computeBracketScoreStatus(
+                  b.num_players,
+                  cellsByBracket.get(b.id) ?? [],
+                ),
+              }));
+
+            const overview: DivisionScoreOverview = {
+              status: aggregateScoreStatuses(groups.map((g) => g.status)),
+              groups,
+            };
+            return [divisionId, overview] as const;
+          } catch {
+            return [
+              divisionId,
+              { status: "not_started" as ScoreStatus, groups: [] },
+            ] as const;
+          }
+        }),
+      );
+
+      if (cancelled) return;
+      const next: Record<number, DivisionScoreOverview> = {};
+      for (const [id, overview] of entries) next[id] = overview;
+      setOverviewByDivision(next);
+      setLoadingStatuses(false);
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [tournamentIdValid, divisionIdsKey]);
 
   if (swrDivisions.error) return <RequestErrorAlert error={swrDivisions.error} />;
 
@@ -85,6 +194,10 @@ export default function ScoresPage() {
                     : d.prefix
                       ? `Prefix: ${d.prefix}`
                       : undefined;
+                const overview = overviewByDivision[d.id];
+                const poolGroups =
+                  overview?.groups.filter((g) => !g.isFinals) ?? [];
+                const finalsGroup = overview?.groups.find((g) => g.isFinals);
 
                 return (
                   <Card
@@ -97,15 +210,58 @@ export default function ScoresPage() {
                       router.push(`/tournaments/${tournamentData.id}/scores/${d.id}`)
                     }
                   >
-                    <Group position="apart">
-                      <Stack spacing={2}>
-                        <Text weight={600}>{d.name}</Text>
-                        {subtitle && <Text size="sm" c="dimmed">{subtitle}</Text>}
-                      </Stack>
-                      <Badge color={d.division_type === "TEAMS" ? "blue" : "violet"} variant="light">
-                        {d.division_type === "TEAMS" ? t("teams", "Teams") : t("individuals", "Individuals")}
-                      </Badge>
-                    </Group>
+                    <Stack gap="sm">
+                      <Group justify="space-between" align="flex-start" wrap="nowrap">
+                        <Stack gap={2} style={{ minWidth: 0 }}>
+                          <Text fw={600}>{d.name}</Text>
+                          {subtitle && (
+                            <Text size="sm" c="dimmed">
+                              {subtitle}
+                            </Text>
+                          )}
+                        </Stack>
+                        <Stack gap={6} align="flex-end">
+                          <Badge
+                            color={d.division_type === "TEAMS" ? "blue" : "violet"}
+                            variant="light"
+                          >
+                            {d.division_type === "TEAMS"
+                              ? t("teams", "Teams")
+                              : t("individuals", "Individuals")}
+                          </Badge>
+                          {loadingStatuses && !overview ? (
+                            <Loader size="xs" />
+                          ) : overview ? (
+                            <ScoreStatusBadge status={overview.status} />
+                          ) : null}
+                        </Stack>
+                      </Group>
+
+                      {overview && (poolGroups.length > 0 || finalsGroup) && (
+                        <Stack gap={4}>
+                          {poolGroups.map((g) => (
+                            <Group key={g.bracketId} justify="space-between" gap="xs">
+                              <Text size="xs" c="dimmed">
+                                {g.title?.trim()
+                                  ? g.title
+                                  : t("bracket_group_label", "Group {{n}}", {
+                                      n: g.index,
+                                    })}
+                              </Text>
+                              <ScoreStatusBadge status={g.status} size="xs" />
+                            </Group>
+                          ))}
+                          {finalsGroup && (
+                            <Group justify="space-between" gap="xs">
+                              <Text size="xs" c="dimmed">
+                                {t("finals", "Finals")}
+                              </Text>
+                              <ScoreStatusBadge status={finalsGroup.status} size="xs" />
+                            </Group>
+                          )}
+                        </Stack>
+                      )}
+                    </Stack>
                   </Card>
                 );
               })}
@@ -122,4 +278,3 @@ export const getServerSideProps = async ({ locale }: { locale: string }) => ({
     ...(await serverSideTranslations(locale ?? "en", ["common"])),
   },
 });
-

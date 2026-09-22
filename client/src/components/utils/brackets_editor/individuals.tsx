@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Button,
   Stack,
   Title,
@@ -20,7 +21,7 @@ import { CollapsedLeft, CollapsedRight, Expanded } from "tournament-brackets-ui"
 
 import TournamentLayout from "../../../pages/tournaments/_tournament_layout";
 import { getTournamentIdFromRouter } from "../util";
-import { getClubs } from "../../../services/adapter";
+import { getClubs, getDivisionLock } from "../../../services/adapter";
 import {
   toUIPlayersWithClubAbbrev,
   fetchDivisionBracketsWithPlayers,
@@ -298,6 +299,9 @@ export default function BracketsEditorIndividuals({
   const ready = router.isReady;
   const { t } = useTranslation();
 
+  const swrLock = getDivisionLock(divisionId ? Number(divisionId) : null);
+  const locked = Boolean(swrLock.data?.data?.locked);
+
   const [players, setPlayers] = useState<DivisionPlayer[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("booklet");
   const [saving, setSaving] = useState(false);
@@ -383,7 +387,7 @@ export default function BracketsEditorIndividuals({
   };
 
   const doSwap = () => {
-    if (!brackets || !swapA || !swapB || swapA === swapB) return;
+    if (locked || !brackets || !swapA || !swapB || swapA === swapB) return;
     const aId = Number(swapA);
     const bId = Number(swapB);
     if (!Number.isFinite(aId) || !Number.isFinite(bId)) return;
@@ -444,7 +448,7 @@ export default function BracketsEditorIndividuals({
   };
 
   const save = async () => {
-    if (!divisionId || !brackets) return;
+    if (locked || !divisionId || !brackets) return;
     setSaving(true);
     try {
       await replaceDivisionBrackets(Number(divisionId), brackets);
@@ -457,6 +461,7 @@ export default function BracketsEditorIndividuals({
   };
 
   const regenerateAll = () => {
+    if (locked) return;
     if (!players.length) {
       alert(t("no_players", "No players in this division. Add players first."));
       return;
@@ -550,6 +555,15 @@ export default function BracketsEditorIndividuals({
           </Text>
         </Group>
 
+        {locked && (
+          <Alert color="orange" title={t("division_locked", "Locked")}>
+            {t(
+              "division_locked_roster_alert",
+              "Scorekeeping has started — roster and seeding are locked. Unlock from Scores by clearing all scores.",
+            )}
+          </Alert>
+        )}
+
         <Grid gutter="sm">
           <Grid.Col span={{ base: 12, md: 6 }}>
             <StyleEditor
@@ -587,6 +601,7 @@ export default function BracketsEditorIndividuals({
                   value={swapA}
                   onChange={setSwapA}
                   w={280}
+                  disabled={locked}
                 />
                 <Select
                   label={t("swap_player_b", "with Player B")}
@@ -596,22 +611,28 @@ export default function BracketsEditorIndividuals({
                   value={swapB}
                   onChange={setSwapB}
                   w={280}
+                  disabled={locked}
                 />
                 <Button
                   onClick={doSwap}
-                  disabled={!swapA || !swapB || swapA === swapB}
+                  disabled={locked || !swapA || !swapB || swapA === swapB}
                 >
                   {t("swap", "Swap")}
                 </Button>
               </Group>
               <Group gap="xs">
-                <Button color="red" variant="outline" onClick={regenerateAll}>
+                <Button
+                  color="red"
+                  variant="outline"
+                  onClick={regenerateAll}
+                  disabled={locked}
+                >
                   {t("regenerate_all", "Regenerate All")}
                 </Button>
                 <Button variant="default" onClick={cancel}>
                   {t("cancel")}
                 </Button>
-                <Button loading={saving} onClick={save}>
+                <Button loading={saving} onClick={save} disabled={locked}>
                   {t("save")}
                 </Button>
               </Group>

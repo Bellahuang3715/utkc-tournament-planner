@@ -1,5 +1,8 @@
 from typing import List, Optional
 
+from fastapi import HTTPException
+from starlette import status
+
 from project.database import database
 from project.models.db.bracket_cell import (
     BracketCell,
@@ -7,6 +10,11 @@ from project.models.db.bracket_cell import (
     DivisionBracketCellsItem,
 )
 from project.utils.id_types import BracketId, DivisionId
+
+DIVISION_LOCKED_DETAIL = (
+    "Scorekeeping has started for this division. "
+    "Unlock from Scores by clearing all recorded scores before changing roster or seeding."
+)
 
 
 async def sql_list_bracket_cells(bracket_id: BracketId) -> List[BracketCell]:
@@ -54,6 +62,46 @@ async def sql_list_division_bracket_cells(division_id: DivisionId) -> List[Brack
         {"division_id": division_id},
     )
     return [BracketCell.model_validate(dict(r._mapping)) for r in rows]
+
+
+async def sql_division_is_locked(division_id: DivisionId) -> bool:
+    """True when any group has scores or advanced winners (scorekeeping started)."""
+    row = await database.fetch_one(
+        """
+        SELECT EXISTS (
+          SELECT 1
+          FROM bracket_cells bc
+          INNER JOIN brackets b ON b.id = bc.bracket_id
+          WHERE b.division_id = :division_id
+            AND (
+              TRIM(COALESCE(bc.score, '')) <> ''
+              OR (bc.slot_idx >= b.num_players AND bc.player_id IS NOT NULL)
+            )
+        ) AS locked
+        """,
+        {"division_id": division_id},
+    )
+    return bool(row and row["locked"])
+
+
+async def sql_ensure_division_unlocked(division_id: DivisionId) -> None:
+    if await sql_division_is_locked(division_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=DIVISION_LOCKED_DETAIL,
+        )
+
+
+async def sql_clear_division_bracket_cells(division_id: DivisionId) -> None:
+    await database.execute(
+        """
+        DELETE FROM bracket_cells
+        WHERE bracket_id IN (
+          SELECT id FROM brackets WHERE division_id = :division_id
+        )
+        """,
+        {"division_id": division_id},
+    )
 
 
 async def sql_replace_bracket_cells(

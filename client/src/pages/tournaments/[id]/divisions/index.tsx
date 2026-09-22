@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   Accordion,
   ActionIcon,
+  Alert,
   Badge,
   Button,
   Center,
@@ -28,7 +29,7 @@ import DivisionDetailsModal from "../../../../components/modals/division_details
 // import BracketExportModal from "../../../../components/modals/bracket_export_modal";
 import DivisionPlayersTable from "../../../../components/tables/division_players";
 import DivisionTeamsTable from "../../../../components/tables/division_teams";
-import { getDivisions, getClubs } from "../../../../services/adapter";
+import { getDivisions, getClubs, getDivisionLock } from "../../../../services/adapter";
 import RequestErrorAlert from "../../../../components/utils/error_alert";
 import { deleteDivision } from "../../../../services/division";
 import {
@@ -70,6 +71,51 @@ interface GroupModel {
   overtimeDuration: number; // minutes
   totalPlayers: number;
   brackets: BracketData[];
+}
+
+function EditTreesControls({
+  tournamentId,
+  divisionId,
+}: {
+  tournamentId: number;
+  divisionId: number;
+}) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const swrLock = getDivisionLock(divisionId);
+  const locked = Boolean(swrLock.data?.data?.locked);
+
+  return (
+    <Stack gap="sm">
+      {locked && (
+        <Alert color="orange" title={t("division_locked", "Locked")}>
+          {t(
+            "division_locked_roster_alert",
+            "Scorekeeping has started — roster and seeding are locked. Unlock from Scores by clearing all scores.",
+          )}
+        </Alert>
+      )}
+      <Group justify="space-between" align="center" wrap="wrap">
+        <Text c="dimmed" size="sm" maw={420}>
+          {t(
+            "trees_note",
+            "Preview booklet or poster layout for this division’s trees.",
+          )}
+        </Text>
+        <Button
+          variant="light"
+          size="sm"
+          leftSection={<IconPencil size={16} />}
+          disabled={locked}
+          onClick={() =>
+            router.push(`/tournaments/${tournamentId}/divisions/${divisionId}/edit`)
+          }
+        >
+          {t("edit_trees", "Edit trees")}
+        </Button>
+      </Group>
+    </Stack>
+  );
 }
 
 export default function BracketsPage() {
@@ -428,26 +474,10 @@ export default function BracketsPage() {
 
                       <Tabs.Panel value="trees" pt="md">
                         <Stack gap="md">
-                          <Group justify="space-between" align="center" wrap="wrap">
-                            <Text c="dimmed" size="sm" maw={420}>
-                              {t(
-                                "trees_note",
-                                "Preview booklet or poster layout for this division’s trees.",
-                              )}
-                            </Text>
-                            <Button
-                              variant="light"
-                              size="sm"
-                              leftSection={<IconPencil size={16} />}
-                              onClick={() =>
-                                router.push(
-                                  `/tournaments/${tournamentData.id}/divisions/${group.id}/edit`,
-                                )
-                              }
-                            >
-                              {t("edit_trees", "Edit trees")}
-                            </Button>
-                          </Group>
+                          <EditTreesControls
+                            tournamentId={tournamentData.id}
+                            divisionId={group.id}
+                          />
 
                           <SegmentedControl
                             value={viewMode}

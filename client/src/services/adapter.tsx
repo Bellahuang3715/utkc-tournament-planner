@@ -305,6 +305,15 @@ export function getDivisionBrackets(division_id: number): SWRResponse {
   );
 }
 
+export function getDivisionLock(division_id: number | null): SWRResponse {
+  return useSWR(
+    division_id != null && Number.isFinite(division_id)
+      ? `divisions/${division_id}/lock`
+      : null,
+    fetcher
+  );
+}
+
 export function getAvailableStageItemInputs(tournament_id: number): SWRResponse {
   return useSWR(`tournaments/${tournament_id}/available_inputs`, fetcher);
 }
