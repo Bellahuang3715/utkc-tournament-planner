@@ -9,6 +9,7 @@ from project.database import database
 from project.logic.dashboard_access import (
     can_access_participant_dashboard,
     new_dashboard_preview_token,
+    new_scorekeeper_token,
     slugify_dashboard_endpoint,
     to_public_tournament,
 )
@@ -23,9 +24,13 @@ from project.models.db.tournament import (
 )
 from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated
-from project.routes.authorization import require_tournament_owner
+from project.routes.authorization import (
+    require_tournament_owner,
+    require_tournament_score_access,
+)
 from project.routes.models import (
     DashboardPreviewTokenResponse,
+    ScorekeeperTokenResponse,
     SuccessResponse,
     TournamentPublicResponse,
     TournamentResponse,
@@ -44,6 +49,7 @@ from project.sql.tournaments import (
     sql_get_tournament_by_endpoint_name,
     sql_get_tournaments,
     sql_set_dashboard_preview_token,
+    sql_set_scorekeeper_token,
     sql_update_tournament,
 )
 from project.utils.errors import (
@@ -65,7 +71,7 @@ forbidden_dashboard_exception = HTTPException(
 @router.get("/tournaments/{tournament_id}", response_model=TournamentResponse)
 async def get_tournament(
     tournament_id: TournamentId,
-    tournament: Tournament = Depends(require_tournament_owner),
+    tournament: Tournament = Depends(require_tournament_score_access),
 ) -> TournamentResponse:
     return TournamentResponse(data=tournament)
 
@@ -138,6 +144,48 @@ async def rotate_dashboard_preview_token(
     token = new_dashboard_preview_token()
     await sql_set_dashboard_preview_token(tournament_id, token)
     return DashboardPreviewTokenResponse(dashboard_preview_token=token)
+
+
+@router.get(
+    "/tournaments/{tournament_id}/scorekeeper-token",
+    response_model=ScorekeeperTokenResponse,
+)
+async def get_scorekeeper_token(
+    tournament: Tournament = Depends(require_tournament_owner),
+) -> ScorekeeperTokenResponse:
+    if not tournament.scorekeeper_token:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No scorekeeper access code yet",
+        )
+    return ScorekeeperTokenResponse(scorekeeper_token=tournament.scorekeeper_token)
+
+
+@router.post(
+    "/tournaments/{tournament_id}/scorekeeper-token",
+    response_model=ScorekeeperTokenResponse,
+)
+async def rotate_scorekeeper_token(
+    tournament_id: TournamentId,
+    _: Tournament = Depends(require_tournament_owner),
+) -> ScorekeeperTokenResponse:
+    """Create or rotate the shareable scorekeeper access code."""
+    token = new_scorekeeper_token()
+    await sql_set_scorekeeper_token(tournament_id, token)
+    return ScorekeeperTokenResponse(scorekeeper_token=token)
+
+
+@router.delete(
+    "/tournaments/{tournament_id}/scorekeeper-token",
+    response_model=SuccessResponse,
+)
+async def clear_scorekeeper_token(
+    tournament_id: TournamentId,
+    _: Tournament = Depends(require_tournament_owner),
+) -> SuccessResponse:
+    """Disable the shareable code (existing memberships remain)."""
+    await sql_set_scorekeeper_token(tournament_id, None)
+    return SuccessResponse()
 
 
 @router.delete("/tournaments/{tournament_id}", response_model=SuccessResponse)

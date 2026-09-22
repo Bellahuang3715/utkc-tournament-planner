@@ -14,7 +14,7 @@ import {
 import { DateTimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { MdDelete } from "react-icons/md";
-import { IconCalendar, IconCalendarTime, IconCopy, IconRefresh } from "@tabler/icons-react";
+import { IconCalendar, IconCalendarTime, IconCopy, IconRefresh, IconTrash } from "@tabler/icons-react";
 import assert from "assert";
 import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
@@ -37,8 +37,10 @@ import {
   removeTournamentLogo,
 } from "../../../services/adapter";
 import {
+  clearScorekeeperToken,
   deleteTournament,
   rotateDashboardPreviewToken,
+  rotateScorekeeperToken,
   updateTournament,
 } from "../../../services/tournament";
 import TournamentLayout from "../_tournament_layout";
@@ -236,7 +238,62 @@ function GeneralTournamentForm({
         <Text size="xs" c="dimmed" mt={6}>
           Regenerating invalidates the previous preview link immediately.
         </Text>
+      </Fieldset>
 
+      <Fieldset legend="Scorekeeper access" mt="lg" radius="md">
+        <Text fz="sm" mb="xs">
+          Share this code with volunteers. They enter it at /scorekeeping to
+          open the scores page only (no account required).
+        </Text>
+        <Group grow align="flex-end">
+          <CopyButton value={tournament.scorekeeper_token ?? ""}>
+            {({ copied, copy }) => (
+              <Button
+                disabled={!tournament.scorekeeper_token}
+                leftSection={<IconCopy size="1.1rem" stroke={1.5} />}
+                color={copied ? "teal" : "indigo"}
+                variant="light"
+                onClick={copy}
+              >
+                {copied
+                  ? t("copied_url_button")
+                  : tournament.scorekeeper_token
+                    ? "Copy access code"
+                    : "No code yet"}
+              </Button>
+            )}
+          </CopyButton>
+          <Button
+            variant="outline"
+            color="orange"
+            leftSection={<IconRefresh size="1.1rem" stroke={1.5} />}
+            onClick={async () => {
+              await rotateScorekeeperToken(tournament.id);
+              await swrTournamentResponse.mutate();
+            }}
+          >
+            {tournament.scorekeeper_token ? "Rotate code" : "Generate code"}
+          </Button>
+          <Button
+            variant="outline"
+            color="red"
+            disabled={!tournament.scorekeeper_token}
+            leftSection={<IconTrash size="1.1rem" stroke={1.5} />}
+            onClick={async () => {
+              await clearScorekeeperToken(tournament.id);
+              await swrTournamentResponse.mutate();
+            }}
+          >
+            Disable
+          </Button>
+        </Group>
+        <Text size="xs" c="dimmed" mt={6}>
+          Rotating or disabling invalidates the code immediately. After the
+          tournament, disable or rotate so volunteers lose access.
+        </Text>
+      </Fieldset>
+
+      <Fieldset legend="Logo" mt="lg" radius="md">
         <DropzoneButton
           tournamentId={tournament.id}
           swrResponse={swrTournamentResponse}

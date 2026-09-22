@@ -1,8 +1,12 @@
+from typing import Literal
+
 from heliclockter import datetime_utc
 
 from project.models.db.shared import BaseModelORM
 from project.utils.id_types import TournamentId, UserId
 from project.utils.pydantic import EmptyStrToNone
+
+TournamentRole = Literal["organizer", "scorekeeper"]
 
 
 class TournamentInsertable(BaseModelORM):
@@ -15,6 +19,7 @@ class TournamentInsertable(BaseModelORM):
     dashboard_public: bool
     dashboard_endpoint: str | None = None
     dashboard_preview_token: str | None = None
+    scorekeeper_token: str | None = None
     logo_path: str | None = None
     players_can_be_in_multiple_teams: bool
     auto_assign_courts: bool
@@ -23,10 +28,12 @@ class TournamentInsertable(BaseModelORM):
 
 class Tournament(TournamentInsertable):
     id: TournamentId
+    # Computed for API responses; not a DB column.
+    my_role: TournamentRole | None = None
 
 
 class TournamentPublic(BaseModelORM):
-    """Participant-facing tournament payload (never includes preview token)."""
+    """Participant-facing tournament payload (never includes preview/scorekeeper tokens)."""
 
     id: TournamentId
     name: str
@@ -52,3 +59,14 @@ class TournamentBody(TournamentUpdateBody):
     organizer: str
     location: str | None = None
     description: str | None = None
+
+
+class ScorekeeperRedeemBody(BaseModelORM):
+    token: str
+
+
+class ScorekeeperRedeemResult(BaseModelORM):
+    tournament_id: TournamentId
+    name: str
+    role: Literal["scorekeeper"] = "scorekeeper"
+

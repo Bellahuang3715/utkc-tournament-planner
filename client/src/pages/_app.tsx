@@ -41,6 +41,7 @@ const App = ({ Component, pageProps }: any) => {
   const isPublicRoute =
     router.pathname === "/welcome" ||
     router.pathname === "/join" ||
+    router.pathname === "/scorekeeping" ||
     router.pathname === "/login" ||
     router.pathname === "/register" ||
     router.pathname === "/password_reset" ||

@@ -102,13 +102,19 @@ export function getBaseLinks() {
     .map((link) => <MainLinkMobile key={link.label} item={link} pathName={pathName} />);
 }
 
-export function TournamentLinks({ tournament_id }: any) {
+export function TournamentLinks({
+  tournament_id,
+  role,
+}: {
+  tournament_id: number;
+  role?: "organizer" | "scorekeeper" | null;
+}) {
   const router = useRouter();
   const { t } = useTranslation();
   const tm_prefix = `/tournaments/${tournament_id}`;
-  const pathName = router.pathname.replace('[id]', tournament_id).replace(/\/+$/, '');
+  const pathName = router.pathname.replace('[id]', String(tournament_id)).replace(/\/+$/, '');
 
-  const data = [
+  const allLinks = [
     {
       icon: IconUsers,
       label: capitalize(t('participants_title')),
@@ -119,11 +125,11 @@ export function TournamentLinks({ tournament_id }: any) {
       label: capitalize(t('divisions_title')),
       link: `${tm_prefix}/divisions`,
     },
-    // {
-    //   icon: IconCalendar,
-    //   label: capitalize(t('schedule_title')),
-    //   link: `${tm_prefix}/schedule`,
-    // },
+    {
+      icon: IconCalendar,
+      label: capitalize(t('schedule_title')),
+      link: `${tm_prefix}/schedule`,
+    },
     {
       icon: IconScoreboard,
       label: capitalize(t('scores_title')),
@@ -140,6 +146,11 @@ export function TournamentLinks({ tournament_id }: any) {
       link: `${tm_prefix}/settings`,
     },
   ];
+
+  const data =
+    role === 'scorekeeper'
+      ? allLinks.filter((link) => link.link.endsWith('/scores'))
+      : allLinks;
 
   const links = data.map((link) => <MainLink key={link.label} item={link} pathName={pathName} />);
   return (

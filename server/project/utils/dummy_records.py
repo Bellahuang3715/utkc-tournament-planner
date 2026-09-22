@@ -46,6 +46,7 @@ DUMMY_TOURNAMENT = TournamentInsertable(
     dashboard_public=True,
     dashboard_endpoint="endpoint-test",
     dashboard_preview_token="preview-token-test",
+    scorekeeper_token=None,
     logo_path=None,
     players_can_be_in_multiple_teams=True,
     auto_assign_courts=True,

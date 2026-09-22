@@ -15,7 +15,8 @@ from project.routes.auth import firebase_user_authenticated
 from project.routes.authorization import (
     assert_user_owns_tournament,
     require_division_owner,
-    require_tournament_owner,
+    require_division_score_access,
+    require_tournament_score_access,
 )
 from project.routes.models import (
     DivisionResponse,
@@ -50,7 +51,7 @@ router = APIRouter()
 @router.get("/tournaments/{tournament_id}/divisions", response_model=DivisionsResponse)
 async def list_divisions_for_tournament(
     tournament_id: TournamentId,
-    _: Tournament = Depends(require_tournament_owner),
+    _: Tournament = Depends(require_tournament_score_access),
 ) -> DivisionsResponse:
     items = await get_divisions_for_tournament(tournament_id)
     return DivisionsResponse(data=items)
@@ -97,7 +98,7 @@ async def list_division_players(
 @router.get("/divisions/{division_id}/lock", response_model=DivisionLockResponse)
 async def get_division_lock_status(
     division_id: DivisionId,
-    _: Division = Depends(require_division_owner),
+    _: Division = Depends(require_division_score_access),
 ) -> DivisionLockResponse:
     locked = await sql_division_is_locked(division_id)
     return DivisionLockResponse(data=DivisionLockStatus(locked=locked))

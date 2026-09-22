@@ -10,6 +10,10 @@ def new_dashboard_preview_token() -> str:
     return secrets.token_urlsafe(24)
 
 
+def new_scorekeeper_token() -> str:
+    return secrets.token_urlsafe(24)
+
+
 def slugify_dashboard_endpoint(name: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
     return (slug[:48] or "tournament").rstrip("-")

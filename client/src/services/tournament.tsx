@@ -1,6 +1,7 @@
 import { getTournamentEndpointFromRouter } from "../components/utils/util";
 import {
   createAxios,
+  createPublicAxios,
   getTournamentByEndpointName,
   handleRequestError,
 } from "./adapter";
@@ -69,6 +70,52 @@ export async function rotateDashboardPreviewToken(tournament_id: number) {
     return await axiosInstance.post(
       `tournaments/${tournament_id}/dashboard_preview_token`
     );
+  } catch (error: any) {
+    handleRequestError(error);
+    throw error;
+  }
+}
+
+export async function getScorekeeperToken(tournament_id: number) {
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.get(
+      `tournaments/${tournament_id}/scorekeeper-token`
+    );
+  } catch (error: any) {
+    handleRequestError(error);
+    throw error;
+  }
+}
+
+export async function rotateScorekeeperToken(tournament_id: number) {
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.post(
+      `tournaments/${tournament_id}/scorekeeper-token`
+    );
+  } catch (error: any) {
+    handleRequestError(error);
+    throw error;
+  }
+}
+
+export async function clearScorekeeperToken(tournament_id: number) {
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.delete(
+      `tournaments/${tournament_id}/scorekeeper-token`
+    );
+  } catch (error: any) {
+    handleRequestError(error);
+    throw error;
+  }
+}
+
+export async function redeemScorekeeperCode(token: string) {
+  try {
+    const axiosInstance = await createPublicAxios();
+    return await axiosInstance.post('scorekeeping/redeem', { token });
   } catch (error: any) {
     handleRequestError(error);
     throw error;

@@ -1,7 +1,8 @@
-import { Grid, Title } from "@mantine/core";
+import { Button, Grid, Group, Title } from "@mantine/core";
 import { GetStaticProps } from "next";
 import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
+import Link from "next/link";
 
 import TournamentsCardTable from "../components/card_tables/tournaments";
 import TournamentModal from "../components/modals/tournament_modal";
@@ -16,12 +17,17 @@ export default function HomePage() {
 
   return (
     <Layout>
-      <Grid justify="space-between">
+      <Grid justify="space-between" align="center">
         <Grid.Col span="auto">
           <Title>{capitalize(t("tournaments_title"))}</Title>
         </Grid.Col>
         <Grid.Col span="content" className={classes.fullWithMobile}>
-          <TournamentModal swrTournamentsResponse={swrTournamentsResponse} />
+          <Group gap="sm">
+            <Button component={Link} href="/scorekeeping" variant="light">
+              Enter scorekeeper code
+            </Button>
+            <TournamentModal swrTournamentsResponse={swrTournamentsResponse} />
+          </Group>
         </Grid.Col>
       </Grid>
       <TournamentsCardTable swrTournamentsResponse={swrTournamentsResponse} />

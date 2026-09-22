@@ -1,7 +1,12 @@
 from fastapi import APIRouter, Depends, Query
 
 from project.models.db.division import Division
-from project.routes.authorization import require_bracket_owner, require_division_owner
+from project.routes.authorization import (
+    require_bracket_owner,
+    require_bracket_score_access,
+    require_division_owner,
+    require_division_score_access,
+)
 from project.models.db.bracket import DivisionBracketsCreateBody, DivisionTeamBracketsCreateBody
 from project.models.db.bracket_cell import (
     BracketCellsReplaceBody,
@@ -48,7 +53,7 @@ router = APIRouter()
 @router.get("/divisions/{division_id}/brackets", response_model=BracketsResponse)
 async def list_division_brackets(
     division_id: DivisionId,
-    _: Division = Depends(require_division_owner),
+    _: Division = Depends(require_division_score_access),
 ) -> BracketsResponse:
     return BracketsResponse(data=await sql_list_division_brackets(division_id))
 
@@ -56,7 +61,7 @@ async def list_division_brackets(
 @router.get("/divisions/{division_id}/brackets/with-players", response_model=BracketsWithPlayersResponse)
 async def list_division_brackets_with_players(
     division_id: DivisionId,
-    _: Division = Depends(require_division_owner),
+    _: Division = Depends(require_division_score_access),
 ) -> BracketsWithPlayersResponse:
     return BracketsWithPlayersResponse(data=await sql_list_division_brackets_with_players(division_id))
 
@@ -64,7 +69,7 @@ async def list_division_brackets_with_players(
 @router.get("/divisions/{division_id}/brackets/with-teams", response_model=BracketsWithTeamsResponse)
 async def list_division_brackets_with_teams(
     division_id: DivisionId,
-    _: Division = Depends(require_division_owner),
+    _: Division = Depends(require_division_score_access),
 ) -> BracketsWithTeamsResponse:
     return BracketsWithTeamsResponse(data=await sql_list_division_brackets_with_teams(division_id))
 
@@ -72,7 +77,7 @@ async def list_division_brackets_with_teams(
 @router.get("/divisions/{division_id}/bracket-cells", response_model=BracketCellsResponse)
 async def list_division_bracket_cells(
     division_id: DivisionId,
-    _: Division = Depends(require_division_owner),
+    _: Division = Depends(require_division_score_access),
 ) -> BracketCellsResponse:
     """Player bracket cells (scores + advances)."""
     return BracketCellsResponse(data=await sql_list_division_bracket_cells(division_id))
@@ -82,7 +87,7 @@ async def list_division_bracket_cells(
 async def replace_division_bracket_cells(
     division_id: DivisionId,
     body: DivisionBracketCellsReplaceBody,
-    _: Division = Depends(require_division_owner),
+    _: Division = Depends(require_division_score_access),
 ) -> SuccessResponse:
     await sql_replace_division_bracket_cells(division_id, body.brackets)
     return SuccessResponse()
@@ -91,7 +96,7 @@ async def replace_division_bracket_cells(
 @router.delete("/divisions/{division_id}/bracket-cells", response_model=SuccessResponse)
 async def clear_division_bracket_cells(
     division_id: DivisionId,
-    _: Division = Depends(require_division_owner),
+    _: Division = Depends(require_division_score_access),
 ) -> SuccessResponse:
     """Clear all recorded scores/advances for the division (player + team; unlocks roster/seeding)."""
     await sql_clear_division_bracket_cells(division_id)
@@ -104,7 +109,7 @@ async def clear_division_bracket_cells(
 )
 async def list_division_team_bracket_cells(
     division_id: DivisionId,
-    _: Division = Depends(require_division_owner),
+    _: Division = Depends(require_division_score_access),
 ) -> TeamBracketCellsResponse:
     """Team bracket cells (advances only)."""
     return TeamBracketCellsResponse(
@@ -116,7 +121,7 @@ async def list_division_team_bracket_cells(
 async def replace_division_team_bracket_cells(
     division_id: DivisionId,
     body: DivisionTeamBracketCellsReplaceBody,
-    _: Division = Depends(require_division_owner),
+    _: Division = Depends(require_division_score_access),
 ) -> SuccessResponse:
     await sql_replace_division_team_bracket_cells(division_id, body.brackets)
     return SuccessResponse()
@@ -128,7 +133,7 @@ async def replace_division_team_bracket_cells(
 )
 async def clear_division_team_bracket_cells(
     division_id: DivisionId,
-    _: Division = Depends(require_division_owner),
+    _: Division = Depends(require_division_score_access),
 ) -> SuccessResponse:
     """Clear team advances for the division (also clears player cells; unlocks roster/seeding)."""
     await sql_clear_division_bracket_cells(division_id)
@@ -138,7 +143,7 @@ async def clear_division_team_bracket_cells(
 @router.get("/brackets/{bracket_id}/cells", response_model=BracketCellsResponse)
 async def list_bracket_cells(
     bracket_id: BracketId,
-    _: TournamentId = Depends(require_bracket_owner),
+    _: TournamentId = Depends(require_bracket_score_access),
 ) -> BracketCellsResponse:
     return BracketCellsResponse(data=await sql_list_bracket_cells(bracket_id))
 
@@ -147,7 +152,7 @@ async def list_bracket_cells(
 async def replace_bracket_cells(
     bracket_id: BracketId,
     body: BracketCellsReplaceBody,
-    _: TournamentId = Depends(require_bracket_owner),
+    _: TournamentId = Depends(require_bracket_score_access),
 ) -> SuccessResponse:
     await sql_replace_bracket_cells(bracket_id, body.cells)
     return SuccessResponse()
@@ -156,7 +161,7 @@ async def replace_bracket_cells(
 @router.get("/brackets/{bracket_id}/team-cells", response_model=TeamBracketCellsResponse)
 async def list_team_bracket_cells(
     bracket_id: BracketId,
-    _: TournamentId = Depends(require_bracket_owner),
+    _: TournamentId = Depends(require_bracket_score_access),
 ) -> TeamBracketCellsResponse:
     return TeamBracketCellsResponse(data=await sql_list_team_bracket_cells(bracket_id))
 
@@ -165,11 +170,10 @@ async def list_team_bracket_cells(
 async def replace_team_bracket_cells(
     bracket_id: BracketId,
     body: TeamBracketCellsReplaceBody,
-    _: TournamentId = Depends(require_bracket_owner),
+    _: TournamentId = Depends(require_bracket_score_access),
 ) -> SuccessResponse:
     await sql_replace_team_bracket_cells(bracket_id, body.cells)
     return SuccessResponse()
-
 
 @router.post("/divisions/{division_id}/brackets", response_model=BracketsResponse)
 async def create_division_brackets(
@@ -199,7 +203,7 @@ async def create_division_brackets_teams(
 async def get_or_create_finals_bracket(
     division_id: DivisionId,
     num_players: int = Query(..., ge=2, description="Opening slot count for finals (= number of groups)"),
-    _: Division = Depends(require_division_owner),
+    _: Division = Depends(require_division_score_access),
 ) -> BracketResponse:
     return BracketResponse(
         data=await sql_get_or_create_finals_bracket(division_id, num_players),

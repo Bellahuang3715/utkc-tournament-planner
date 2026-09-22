@@ -128,6 +128,31 @@ async def sql_set_dashboard_preview_token(
     )
 
 
+async def sql_set_scorekeeper_token(
+    tournament_id: TournamentId, token: str | None
+) -> None:
+    query = """
+        UPDATE tournaments
+        SET scorekeeper_token = :token
+        WHERE id = :tournament_id
+        """
+    await database.execute(
+        query=query,
+        values={"tournament_id": tournament_id, "token": token},
+    )
+
+
+async def sql_get_tournament_by_scorekeeper_token(token: str) -> Tournament | None:
+    query = """
+        SELECT *
+        FROM tournaments
+        WHERE scorekeeper_token = :token
+        """
+    result = await database.fetch_one(query=query, values={"token": token})
+    return Tournament.model_validate(result) if result is not None else None
+
+
+
 async def sql_create_tournament(
     tournament: TournamentBody,
     *,
