@@ -22,8 +22,10 @@ import { getDivisions } from "../../../../services/adapter";
 import {
   fetchDivisionBracketCells,
   fetchDivisionBrackets,
+  fetchDivisionTeamBracketCells,
   isFinalsBracket,
   type BracketCell,
+  type TeamBracketCell,
 } from "../../../../services/bracket";
 import {
   aggregateScoreStatuses,
@@ -90,9 +92,13 @@ export default function ScoresPage() {
       const entries = await Promise.all(
         divisionIds.map(async (divisionId) => {
           try {
+            const division = divisionOptions.find((d) => d.id === divisionId);
+            const isTeams = division?.division_type === "TEAMS";
             const [bracketsRes, cellsRes] = await Promise.all([
               fetchDivisionBrackets(divisionId),
-              fetchDivisionBracketCells(divisionId),
+              isTeams
+                ? fetchDivisionTeamBracketCells(divisionId)
+                : fetchDivisionBracketCells(divisionId),
             ]);
             const brackets = (bracketsRes.data?.data ?? []) as Array<{
               id: number;
@@ -100,8 +106,10 @@ export default function ScoresPage() {
               num_players: number;
               title?: string | null;
             }>;
-            const cells = (cellsRes.data?.data ?? []) as BracketCell[];
-            const cellsByBracket = new Map<number, BracketCell[]>();
+            const cells = (cellsRes.data?.data ?? []) as Array<
+              BracketCell | TeamBracketCell
+            >;
+            const cellsByBracket = new Map<number, Array<BracketCell | TeamBracketCell>>();
             for (const cell of cells) {
               const list = cellsByBracket.get(cell.bracket_id) ?? [];
               list.push(cell);
@@ -147,7 +155,7 @@ export default function ScoresPage() {
     return () => {
       cancelled = true;
     };
-  }, [tournamentIdValid, divisionIdsKey]);
+  }, [tournamentIdValid, divisionIdsKey, divisionOptions]);
 
   if (swrDivisions.error) return <RequestErrorAlert error={swrDivisions.error} />;
 

@@ -11,6 +11,12 @@ import type { TeamBracketGroup } from "../components/utils/seeding_teams";
 type BracketUIPlayer = { id: string; name: string; club?: string | null };
 export type BracketUITeam = { id: string; name: string };
 
+/** Slot shape for tournament-brackets-ui Expanded.Teams (fillable / advances). */
+export type BracketUITeamSlot = {
+  id: string;
+  noShow?: boolean;
+};
+
 /**
  * tournament-brackets-ui (CollapsedLeft/Right 12-person) uses a non-sequential index mapping.
  * Our bracket_idx 0..11 must be reordered to match the component's expected visual order.
@@ -88,6 +94,13 @@ export function toUITeams(b: BracketWithTeams): BracketUITeam[] {
 /** Team names in bracket order for tournament-brackets-ui (expects string[], not objects). */
 export function toUITeamNames(b: BracketWithTeams): string[] {
   return toUITeams(b).map((t) => t.name);
+}
+
+/** Opening team slots as `{ id }` objects (display code) for fillable Expanded.Teams. */
+export function toUITeamSlots(b: BracketWithTeams): BracketUITeamSlot[] {
+  return toUITeamNames(b).map((name) => ({
+    id: name === "TBD" || name === "—" ? "" : name,
+  }));
 }
 
 function seededToBracketPayload(
@@ -259,6 +272,17 @@ export type BracketCell = {
   code?: string | null;
 };
 
+/** Team advance cells (no score column). */
+export type TeamBracketCell = {
+  id?: number;
+  bracket_id: number;
+  slot_idx: number;
+  team_id: number | null;
+  code?: string | null;
+  name?: string | null;
+  club?: string | null;
+};
+
 export type BracketUIPlayerSlot = {
   id: string;
   name: string;
@@ -299,6 +323,36 @@ export function uiPlayersToBracketCells(
   }));
 }
 
+/** Map display team code / numeric id string → team_id for saving cells. */
+export function buildTeamIdResolver(brackets: BracketWithTeams[]) {
+  const byCode = new Map<string, number>();
+  const byNumericId = new Map<string, number>();
+  for (const b of brackets) {
+    for (const slot of b.teams ?? []) {
+      byNumericId.set(String(slot.team_id), slot.team_id);
+      if (slot.name) byCode.set(slot.name, slot.team_id);
+    }
+  }
+  return (displayId: string | undefined | null): number | null => {
+    const raw = (displayId ?? "").trim();
+    if (!raw || raw === "—" || raw === "TBD") return null;
+    if (byNumericId.has(raw)) return byNumericId.get(raw)!;
+    if (byCode.has(raw)) return byCode.get(raw)!;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  };
+}
+
+export function uiTeamsToBracketCells(
+  teams: BracketUITeamSlot[],
+  resolveTeamId: (displayId: string | undefined | null) => number | null,
+) {
+  return teams.map((t, slot_idx) => ({
+    slot_idx,
+    team_id: resolveTeamId(t.id),
+  }));
+}
+
 export async function fetchDivisionBracketCells(division_id: number) {
   const axios = await createAxios();
   return axios.get(`divisions/${division_id}/bracket-cells`);
@@ -306,11 +360,43 @@ export async function fetchDivisionBracketCells(division_id: number) {
 
 export async function putDivisionBracketCells(
   division_id: number,
-  brackets: { bracket_id: number; cells: { slot_idx: number; player_id: number | null; score: string }[] }[],
+  brackets: {
+    bracket_id: number;
+    cells: {
+      slot_idx: number;
+      player_id: number | null;
+      score: string;
+    }[];
+  }[],
 ) {
   try {
     const axios = await createAxios();
     return await axios.put(`divisions/${division_id}/bracket-cells`, { brackets });
+  } catch (err: any) {
+    return handleRequestError(err);
+  }
+}
+
+export async function fetchDivisionTeamBracketCells(division_id: number) {
+  const axios = await createAxios();
+  return axios.get(`divisions/${division_id}/team-bracket-cells`);
+}
+
+export async function putDivisionTeamBracketCells(
+  division_id: number,
+  brackets: {
+    bracket_id: number;
+    cells: {
+      slot_idx: number;
+      team_id: number | null;
+    }[];
+  }[],
+) {
+  try {
+    const axios = await createAxios();
+    return await axios.put(`divisions/${division_id}/team-bracket-cells`, {
+      brackets,
+    });
   } catch (err: any) {
     return handleRequestError(err);
   }
@@ -392,6 +478,35 @@ export function mergeCellsIntoUiPlayers(
         club,
         score: cell.score ?? "",
       };
+    }
+  }
+  return out;
+}
+
+/** Merge saved cells into an Expanded teams[] array (opening size + later slots). */
+export function mergeCellsIntoUiTeams(
+  openingTeams: BracketUITeamSlot[],
+  cells: TeamBracketCell[],
+): BracketUITeamSlot[] {
+  const maxIdx = cells.reduce((m, c) => Math.max(m, c.slot_idx), openingTeams.length - 1);
+  const len = Math.max(openingTeams.length, maxIdx + 1);
+  const out: BracketUITeamSlot[] = Array.from({ length: len }, (_, i) => {
+    const base = openingTeams[i];
+    return base ? { ...base } : { id: "" };
+  });
+
+  for (const cell of cells) {
+    const displayId =
+      cell.code ??
+      (cell.team_id != null ? String(cell.team_id) : "");
+    const existing = out[cell.slot_idx];
+    if (existing && existing.id) {
+      out[cell.slot_idx] = {
+        ...existing,
+        id: existing.id || displayId,
+      };
+    } else {
+      out[cell.slot_idx] = { id: displayId };
     }
   }
   return out;

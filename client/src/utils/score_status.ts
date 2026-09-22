@@ -4,6 +4,7 @@ export type ScoreStatus = "not_started" | "in_progress" | "completed";
 export type ScoreStatusCell = {
   slot_idx: number;
   player_id?: number | null;
+  team_id?: number | null;
   score?: string | null;
 };
 
@@ -17,9 +18,13 @@ export function championSlotIndex(numPlayers: number): number {
   return Math.max(0, 2 * numPlayers - 2);
 }
 
+function cellHasEntity(c: ScoreStatusCell): boolean {
+  return c.player_id != null || c.team_id != null;
+}
+
 /**
  * Derive group status from saved bracket cells.
- * - completed: champion slot has a player (final winner picked)
+ * - completed: champion slot has a player/team (final winner picked)
  * - in_progress: any score entered, or any later-round advance filled
  * - not_started: otherwise
  */
@@ -31,19 +36,19 @@ export function computeBracketScoreStatus(
 
   const champIdx = championSlotIndex(numPlayers);
   const hasChampion = cells.some(
-    (c) => c.slot_idx === champIdx && c.player_id != null,
+    (c) => c.slot_idx === champIdx && cellHasEntity(c),
   );
   if (hasChampion) return "completed";
 
   const hasScore = cells.some((c) => (c.score ?? "").trim().length > 0);
   const hasAdvance = cells.some(
-    (c) => c.slot_idx >= numPlayers && c.player_id != null,
+    (c) => c.slot_idx >= numPlayers && cellHasEntity(c),
   );
   if (hasScore || hasAdvance) return "in_progress";
   return "not_started";
 }
 
-/** True when any score is entered or a later-round player is filled. */
+/** True when any score is entered or a later-round player/team is filled. */
 export function isBracketScorekeepingStarted(
   numPlayers: number,
   cells: ScoreStatusCell[],
@@ -76,10 +81,9 @@ export function payloadStartsScorekeeping(
   return payload.some((item) => {
     const numPlayers = numPlayersById.get(item.bracket_id);
     if (numPlayers == null) {
-      // Unknown bracket (e.g. newly created finals) — any score or filled player starts.
+      // Unknown bracket (e.g. newly created finals) — any score or filled entity starts.
       return item.cells.some(
-        (c) =>
-          (c.score ?? "").trim().length > 0 || c.player_id != null,
+        (c) => (c.score ?? "").trim().length > 0 || cellHasEntity(c),
       );
     }
     return isBracketScorekeepingStarted(numPlayers, item.cells);

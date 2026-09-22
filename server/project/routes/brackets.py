@@ -6,12 +6,15 @@ from project.models.db.bracket import DivisionBracketsCreateBody, DivisionTeamBr
 from project.models.db.bracket_cell import (
     BracketCellsReplaceBody,
     DivisionBracketCellsReplaceBody,
+    DivisionTeamBracketCellsReplaceBody,
+    TeamBracketCellsReplaceBody,
 )
 from project.routes.models import (
     BracketsResponse,
     BracketsWithPlayersResponse,
     BracketsWithTeamsResponse,
     BracketCellsResponse,
+    TeamBracketCellsResponse,
     BracketResponse,
     SuccessResponse,
 )
@@ -31,8 +34,12 @@ from project.sql.bracket_cells import (
     sql_ensure_division_unlocked,
     sql_list_bracket_cells,
     sql_list_division_bracket_cells,
+    sql_list_division_team_bracket_cells,
+    sql_list_team_bracket_cells,
     sql_replace_bracket_cells,
     sql_replace_division_bracket_cells,
+    sql_replace_division_team_bracket_cells,
+    sql_replace_team_bracket_cells,
 )
 
 router = APIRouter()
@@ -67,6 +74,7 @@ async def list_division_bracket_cells(
     division_id: DivisionId,
     _: UserPublic = Depends(firebase_user_authenticated),
 ) -> BracketCellsResponse:
+    """Player bracket cells (scores + advances)."""
     return BracketCellsResponse(data=await sql_list_division_bracket_cells(division_id))
 
 
@@ -85,7 +93,44 @@ async def clear_division_bracket_cells(
     division_id: DivisionId,
     _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
-    """Clear all recorded scores for the division (unlocks roster/seeding edits)."""
+    """Clear all recorded scores/advances for the division (player + team; unlocks roster/seeding)."""
+    await sql_clear_division_bracket_cells(division_id)
+    return SuccessResponse()
+
+
+@router.get(
+    "/divisions/{division_id}/team-bracket-cells",
+    response_model=TeamBracketCellsResponse,
+)
+async def list_division_team_bracket_cells(
+    division_id: DivisionId,
+    _: UserPublic = Depends(firebase_user_authenticated),
+) -> TeamBracketCellsResponse:
+    """Team bracket cells (advances only)."""
+    return TeamBracketCellsResponse(
+        data=await sql_list_division_team_bracket_cells(division_id)
+    )
+
+
+@router.put("/divisions/{division_id}/team-bracket-cells", response_model=SuccessResponse)
+async def replace_division_team_bracket_cells(
+    division_id: DivisionId,
+    body: DivisionTeamBracketCellsReplaceBody,
+    _: UserPublic = Depends(firebase_user_authenticated),
+) -> SuccessResponse:
+    await sql_replace_division_team_bracket_cells(division_id, body.brackets)
+    return SuccessResponse()
+
+
+@router.delete(
+    "/divisions/{division_id}/team-bracket-cells",
+    response_model=SuccessResponse,
+)
+async def clear_division_team_bracket_cells(
+    division_id: DivisionId,
+    _: UserPublic = Depends(firebase_user_authenticated),
+) -> SuccessResponse:
+    """Clear team advances for the division (also clears player cells; unlocks roster/seeding)."""
     await sql_clear_division_bracket_cells(division_id)
     return SuccessResponse()
 
@@ -105,6 +150,24 @@ async def replace_bracket_cells(
     _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     await sql_replace_bracket_cells(bracket_id, body.cells)
+    return SuccessResponse()
+
+
+@router.get("/brackets/{bracket_id}/team-cells", response_model=TeamBracketCellsResponse)
+async def list_team_bracket_cells(
+    bracket_id: BracketId,
+    _: UserPublic = Depends(firebase_user_authenticated),
+) -> TeamBracketCellsResponse:
+    return TeamBracketCellsResponse(data=await sql_list_team_bracket_cells(bracket_id))
+
+
+@router.put("/brackets/{bracket_id}/team-cells", response_model=SuccessResponse)
+async def replace_team_bracket_cells(
+    bracket_id: BracketId,
+    body: TeamBracketCellsReplaceBody,
+    _: UserPublic = Depends(firebase_user_authenticated),
+) -> SuccessResponse:
+    await sql_replace_team_bracket_cells(bracket_id, body.cells)
     return SuccessResponse()
 
 

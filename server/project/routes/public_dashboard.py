@@ -17,9 +17,13 @@ from project.routes.models import (
     DivisionsResponse,
     PaginatedPlayers,
     PlayersResponse,
+    TeamBracketCellsResponse,
     TournamentScheduleResponse,
 )
-from project.sql.bracket_cells import sql_list_division_bracket_cells
+from project.sql.bracket_cells import (
+    sql_list_division_bracket_cells,
+    sql_list_division_team_bracket_cells,
+)
 from project.sql.brackets import (
     sql_list_division_brackets,
     sql_list_division_brackets_with_players,
@@ -227,3 +231,18 @@ async def public_division_bracket_cells(
 ) -> BracketCellsResponse:
     await _resolve_division_in_tournament(endpoint_name, division_id, preview)
     return BracketCellsResponse(data=await sql_list_division_bracket_cells(division_id))
+
+
+@router.get(
+    "/public/tournaments/{endpoint_name}/divisions/{division_id}/team-bracket-cells",
+    response_model=TeamBracketCellsResponse,
+)
+async def public_division_team_bracket_cells(
+    endpoint_name: str,
+    division_id: DivisionId,
+    preview: str | None = None,
+) -> TeamBracketCellsResponse:
+    await _resolve_division_in_tournament(endpoint_name, division_id, preview)
+    return TeamBracketCellsResponse(
+        data=await sql_list_division_team_bracket_cells(division_id)
+    )
