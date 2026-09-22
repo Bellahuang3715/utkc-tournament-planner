@@ -11,6 +11,7 @@ from project.models.db.stage_item_inputs import (
 from project.models.db.user import UserPublic
 from project.models.db.util import StageItemWithRounds
 from project.routes.auth import firebase_user_authenticated
+from project.routes.authorization import require_tournament_owner
 from project.routes.models import SuccessResponse
 from project.routes.util import stage_item_dependency
 from project.sql.stage_item_inputs import get_stage_item_input_by_id
@@ -24,7 +25,7 @@ from project.utils.errors import (
 )
 from project.utils.id_types import StageItemId, StageItemInputId, TournamentId
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_tournament_owner)])
 
 
 async def validate_stage_item_update(

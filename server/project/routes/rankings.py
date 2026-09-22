@@ -9,6 +9,7 @@ from project.models.db.ranking import RankingBody, RankingCreateBody
 from project.models.db.stage_item import StageType
 from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated
+from project.routes.authorization import require_tournament_owner
 from project.routes.models import (
     RankingsResponse,
     SuccessResponse,
@@ -23,7 +24,7 @@ from project.sql.stage_item_inputs import get_stage_item_input_ids_by_ranking_id
 from project.sql.stage_items import get_stage_item
 from project.utils.id_types import RankingId, TournamentId
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_tournament_owner)])
 
 
 @router.get("/tournaments/{tournament_id}/rankings")

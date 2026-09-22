@@ -3,12 +3,13 @@ from fastapi import APIRouter, Depends
 from project.database import database
 from project.schema import players_field
 from project.routes.auth import firebase_user_authenticated
+from project.routes.authorization import require_tournament_owner
 from project.models.db.user import UserPublic
 from project.utils.id_types import TournamentId
 from project.models.db.player_fields import FieldInsertable, SaveFieldsInsertable
 from project.routes.models import SuccessResponse
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_tournament_owner)])
 
 @router.put("/tournaments/{tournament_id}/player_fields")
 async def update_player_fields(

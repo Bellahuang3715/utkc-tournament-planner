@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 
 from project.models.db.division import (
+    Division,
     DivisionCreateBody,
     DivisionUpdateBody,
     DivisionPlayersAttachBody,
@@ -8,8 +9,14 @@ from project.models.db.division import (
     DivisionPlayersDetachBody,
     DivisionTeamsDetachBody,
 )
+from project.models.db.tournament import Tournament
 from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated
+from project.routes.authorization import (
+    assert_user_owns_tournament,
+    require_division_owner,
+    require_tournament_owner,
+)
 from project.routes.models import (
     DivisionResponse,
     DivisionsResponse,
@@ -43,7 +50,7 @@ router = APIRouter()
 @router.get("/tournaments/{tournament_id}/divisions", response_model=DivisionsResponse)
 async def list_divisions_for_tournament(
     tournament_id: TournamentId,
-    _: UserPublic = Depends(firebase_user_authenticated),
+    _: Tournament = Depends(require_tournament_owner),
 ) -> DivisionsResponse:
     items = await get_divisions_for_tournament(tournament_id)
     return DivisionsResponse(data=items)
@@ -52,8 +59,9 @@ async def list_divisions_for_tournament(
 @router.post("/divisions", response_model=DivisionResponse)
 async def create_new_division(
     body: DivisionCreateBody,
-    _: UserPublic = Depends(firebase_user_authenticated),
+    user: UserPublic = Depends(firebase_user_authenticated),
 ) -> DivisionResponse:
+    await assert_user_owns_tournament(user, body.tournament_id)
     created = await create_division(body)
     return DivisionResponse(data=created)
 
@@ -62,7 +70,7 @@ async def create_new_division(
 async def update_division(
     division_id: DivisionId,
     body: DivisionUpdateBody,
-    _: UserPublic = Depends(firebase_user_authenticated),
+    _: Division = Depends(require_division_owner),
 ) -> DivisionResponse:
     updated = await sql_update_division(division_id, body)
     return DivisionResponse(data=updated)
@@ -71,7 +79,7 @@ async def update_division(
 @router.delete("/divisions/{division_id}", response_model=SuccessResponse)
 async def delete_division(
     division_id: DivisionId,
-    _: UserPublic = Depends(firebase_user_authenticated),
+    _: Division = Depends(require_division_owner),
 ) -> SuccessResponse:
     await sql_delete_division(division_id)
     return SuccessResponse()
@@ -80,7 +88,7 @@ async def delete_division(
 @router.get("/divisions/{division_id}/players", response_model=DivisionPlayersResponse)
 async def list_division_players(
     division_id: DivisionId,
-    _: UserPublic = Depends(firebase_user_authenticated),
+    _: Division = Depends(require_division_owner),
 ) -> DivisionPlayersResponse:
     players = await sql_get_players_for_division(division_id)
     return DivisionPlayersResponse(players=players)
@@ -89,7 +97,7 @@ async def list_division_players(
 @router.get("/divisions/{division_id}/lock", response_model=DivisionLockResponse)
 async def get_division_lock_status(
     division_id: DivisionId,
-    _: UserPublic = Depends(firebase_user_authenticated),
+    _: Division = Depends(require_division_owner),
 ) -> DivisionLockResponse:
     locked = await sql_division_is_locked(division_id)
     return DivisionLockResponse(data=DivisionLockStatus(locked=locked))
@@ -99,7 +107,7 @@ async def get_division_lock_status(
 async def attach_players_to_division(
     division_id: DivisionId,
     body: DivisionPlayersAttachBody,
-    _: UserPublic = Depends(firebase_user_authenticated),
+    _: Division = Depends(require_division_owner),
 ) -> SuccessResponse:
     await sql_ensure_division_unlocked(division_id)
     await sql_attach_players_to_division(division_id, body.player_ids, body.bias_player_ids or [])
@@ -110,7 +118,7 @@ async def attach_players_to_division(
 async def detach_players_from_division(
     division_id: DivisionId,
     body: DivisionPlayersDetachBody,
-    _: UserPublic = Depends(firebase_user_authenticated),
+    _: Division = Depends(require_division_owner),
 ) -> SuccessResponse:
     await sql_ensure_division_unlocked(division_id)
     await sql_detach_players_from_division(division_id, body.player_ids)
@@ -120,7 +128,7 @@ async def detach_players_from_division(
 @router.get("/divisions/{division_id}/teams", response_model=DivisionTeamsResponse)
 async def list_division_teams(
     division_id: DivisionId,
-    _: UserPublic = Depends(firebase_user_authenticated),
+    _: Division = Depends(require_division_owner),
 ) -> DivisionTeamsResponse:
     teams = await sql_get_teams_for_division(division_id)
     return DivisionTeamsResponse(teams=teams)
@@ -130,7 +138,7 @@ async def list_division_teams(
 async def attach_teams_to_division(
     division_id: DivisionId,
     body: DivisionTeamsAttachBody,
-    _: UserPublic = Depends(firebase_user_authenticated),
+    _: Division = Depends(require_division_owner),
 ) -> SuccessResponse:
     await sql_ensure_division_unlocked(division_id)
     await sql_attach_teams_to_division(
@@ -143,7 +151,7 @@ async def attach_teams_to_division(
 async def detach_teams_from_division(
     division_id: DivisionId,
     body: DivisionTeamsDetachBody,
-    _: UserPublic = Depends(firebase_user_authenticated),
+    _: Division = Depends(require_division_owner),
 ) -> SuccessResponse:
     await sql_ensure_division_unlocked(division_id)
     await sql_detach_teams_from_division(division_id, body.team_ids)

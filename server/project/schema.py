@@ -63,6 +63,7 @@ tournaments = Table(
     Column("dashboard_preview_token", String, nullable=True, index=True, unique=True),
     Column("players_can_be_in_multiple_teams", Boolean, nullable=False, server_default="f"),
     Column("auto_assign_courts", Boolean, nullable=False, server_default="f"),
+    Column("creator_id", BigInteger, ForeignKey("users.id"), index=True, nullable=False),
 )
 
 players = Table(

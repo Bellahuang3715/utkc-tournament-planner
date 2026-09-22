@@ -902,6 +902,8 @@ export default function DivisionScoresEditorPage() {
                             theme={bracketTheme}
                             teamIDFontFamily={DEFAULT_BOOKLET.playerId.fontFamily}
                             teamIDFontSize={DEFAULT_BOOKLET.playerId.fontSize}
+                            scoreInputTransform={tournamentMkdtScoreInput}
+                            formatScoreDisplay={circledScoreDisplay}
                             onTeamsChange={(teams: BracketUITeamSlot[]) => {
                               setDraftTeamsByBracketId((prev) => ({
                                 ...prev,
@@ -1009,6 +1011,8 @@ export default function DivisionScoresEditorPage() {
                         theme={bracketTheme}
                         teamIDFontFamily={DEFAULT_BOOKLET.playerId.fontFamily}
                         teamIDFontSize={DEFAULT_BOOKLET.playerId.fontSize}
+                        scoreInputTransform={tournamentMkdtScoreInput}
+                        formatScoreDisplay={circledScoreDisplay}
                         onTeamsChange={(teams: BracketUITeamSlot[]) => {
                           setFinalsTeamsDraft(teams);
                         }}

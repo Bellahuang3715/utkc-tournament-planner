@@ -27,6 +27,7 @@ from project.models.db.match import (
 from project.models.db.stage_item import StageType
 from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated
+from project.routes.authorization import require_tournament_owner
 from project.routes.models import SingleMatchResponse, SuccessResponse, UpcomingMatchesResponse
 from project.routes.util import match_dependency
 from project.sql.courts import get_all_courts_in_tournament
@@ -39,7 +40,7 @@ from project.sql.validation import check_foreign_keys_belong_to_tournament
 from project.utils.id_types import MatchId, StageItemId, TournamentId
 from project.utils.types import assert_some
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_tournament_owner)])
 
 
 @router.get(

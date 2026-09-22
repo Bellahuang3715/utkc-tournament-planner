@@ -139,7 +139,16 @@ export default function BracketsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("booklet");
 
   const swrDivisions = getDivisions(tournamentIdValid ? tournamentData.id : null);
-  const groups = swrDivisions.data?.data ?? [];
+  const groups = useMemo(() => {
+    const list = swrDivisions.data?.data ?? [];
+    return list
+      .slice()
+      .sort((a: any, b: any) =>
+        String(a.name ?? "").localeCompare(String(b.name ?? ""), undefined, {
+          sensitivity: "base",
+        }),
+      );
+  }, [swrDivisions.data?.data]);
   const swrClubs = getClubs();
   const clubs = swrClubs.data?.data ?? [];
   const clubAbbrevByName = useMemo(() => {

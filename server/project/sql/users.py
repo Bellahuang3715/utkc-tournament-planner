@@ -3,7 +3,7 @@ from project.logic.tournaments import sql_delete_tournament_completely
 from project.models.db.account import UserAccountType
 from project.models.db.user import User, UserInDB, UserInsertable, UserPublic, UserToUpdate
 from project.schema import users
-from project.sql.clubs import get_clubs_for_user_id, sql_delete_club
+from project.sql.clubs import get_clubs_owned_by_user_id, sql_delete_club
 from project.sql.tournaments import sql_get_tournaments
 from project.utils.db import fetch_one_parsed
 from project.utils.id_types import ClubId, TournamentId, UserId
@@ -12,23 +12,25 @@ from project.utils.types import assert_some
 
 async def get_user_access_to_tournament(tournament_id: TournamentId, user_id: UserId) -> bool:
     query = """
-        SELECT DISTINCT t.id
-        FROM users_x_clubs
-        JOIN tournaments t ON t.club_id = users_x_clubs.club_id
-        WHERE user_id = :user_id
+        SELECT id
+        FROM tournaments
+        WHERE id = :tournament_id
+          AND creator_id = :user_id
         """
-    result = await database.fetch_all(query=query, values={"user_id": user_id})
-    return tournament_id in {tournament.id for tournament in result}  # type: ignore[attr-defined]
+    result = await database.fetch_one(
+        query=query, values={"tournament_id": tournament_id, "user_id": user_id}
+    )
+    return result is not None
 
 
 async def get_which_clubs_has_user_access_to(user_id: UserId) -> set[ClubId]:
     query = """
-        SELECT club_id
-        FROM users_x_clubs
-        WHERE user_id = :user_id
+        SELECT id AS club_id
+        FROM clubs
+        WHERE creator_id = :user_id
         """
     result = await database.fetch_all(query=query, values={"user_id": user_id})
-    return {club.club_id for club in result}  # type: ignore[attr-defined]
+    return {ClubId(row["club_id"]) for row in result}
 
 
 async def get_user_access_to_club(club_id: ClubId, user_id: UserId) -> bool:
@@ -147,10 +149,10 @@ async def get_user(email: str) -> UserInDB | None:
 
 
 async def delete_user_and_owned_clubs(user_id: UserId) -> None:
-    for club in await get_clubs_for_user_id(user_id):
-        for tournament in await sql_get_tournaments((club.id,), None):
-            await sql_delete_tournament_completely(tournament.id)
+    for tournament in await sql_get_tournaments(creator_id=user_id):
+        await sql_delete_tournament_completely(tournament.id)
 
+    for club in await get_clubs_owned_by_user_id(user_id):
         await sql_delete_club(club.id)
 
     await delete_user(user_id)

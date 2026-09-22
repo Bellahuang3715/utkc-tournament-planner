@@ -12,6 +12,7 @@ from project.models.db.team import (
 )
 from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated
+from project.routes.authorization import require_tournament_owner
 from project.routes.models import (
     PaginatedTeams,
     SingleTeamResponse,
@@ -32,7 +33,7 @@ from project.utils.errors import ForeignKey, check_foreign_key_violation
 from project.utils.id_types import PlayerId, TeamId, TournamentId
 from project.utils.types import assert_some
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_tournament_owner)])
 
 
 def _position_to_enum(value: str) -> str | None:

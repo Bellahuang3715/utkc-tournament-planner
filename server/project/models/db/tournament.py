@@ -1,8 +1,7 @@
 from heliclockter import datetime_utc
-from pydantic import Field
 
 from project.models.db.shared import BaseModelORM
-from project.utils.id_types import TournamentId
+from project.utils.id_types import TournamentId, UserId
 from project.utils.pydantic import EmptyStrToNone
 
 
@@ -19,6 +18,7 @@ class TournamentInsertable(BaseModelORM):
     logo_path: str | None = None
     players_can_be_in_multiple_teams: bool
     auto_assign_courts: bool
+    creator_id: UserId
 
 
 class Tournament(TournamentInsertable):

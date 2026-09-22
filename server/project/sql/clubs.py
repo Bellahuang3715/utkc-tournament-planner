@@ -39,6 +39,16 @@ async def create_club(club: ClubCreateBody, creator_id: UserId) -> Club:
     return club_created
 
 
+async def sql_get_club(club_id: ClubId) -> Club | None:
+    query = """
+        SELECT *
+        FROM clubs
+        WHERE id = :club_id
+        """
+    result = await database.fetch_one(query=query, values={"club_id": club_id})
+    return Club.model_validate(dict(result._mapping)) if result is not None else None
+
+
 async def sql_update_club(club_id: ClubId, club: ClubUpdateBody) -> Club | None:
     query = """
         UPDATE clubs
@@ -72,13 +82,23 @@ async def sql_delete_club(club_id: ClubId) -> None:
 
 
 async def get_clubs_for_user_id(user_id: UserId) -> list[Club]:
+    """Shared club directory — all organizers can read; mutate is owner-checked in routes."""
+    _ = user_id
     query = """
         SELECT clubs.* FROM clubs
+        ORDER BY clubs.name ASC, clubs.id ASC
         """
-        #         SELECT clubs.* FROM clubs
-        # WHERE clubs.creator_id = :creator_id
-    # results = await database.fetch_all(query=query, values={"creator_id": user_id})
     results = await database.fetch_all(query=query)
+    return [Club.model_validate(dict(result._mapping)) for result in results]
+
+
+async def get_clubs_owned_by_user_id(user_id: UserId) -> list[Club]:
+    query = """
+        SELECT clubs.* FROM clubs
+        WHERE clubs.creator_id = :creator_id
+        ORDER BY clubs.name ASC, clubs.id ASC
+        """
+    results = await database.fetch_all(query=query, values={"creator_id": user_id})
     return [Club.model_validate(dict(result._mapping)) for result in results]
 
 

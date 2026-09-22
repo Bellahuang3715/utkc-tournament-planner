@@ -15,6 +15,7 @@ from project.models.db.round import (
 from project.models.db.user import UserPublic
 from project.models.db.util import RoundWithMatches
 from project.routes.auth import firebase_user_authenticated
+from project.routes.authorization import require_tournament_owner
 from project.routes.models import SuccessResponse
 from project.routes.util import (
     round_dependency,
@@ -33,7 +34,7 @@ from project.sql.validation import check_foreign_keys_belong_to_tournament
 from project.utils.id_types import RoundId, TournamentId
 from tests.integration_tests.mocks import MOCK_NOW
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_tournament_owner)])
 
 
 @router.delete("/tournaments/{tournament_id}/rounds/{round_id}", response_model=SuccessResponse)

@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends
 from project.models.db.schedule_timetable import TournamentScheduleBody
 from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated
+from project.routes.authorization import require_tournament_owner
 from project.routes.models import TournamentScheduleResponse
 from project.sql.schedule_timetable import (
     get_schedule_custom_blocks,
@@ -11,7 +12,7 @@ from project.sql.schedule_timetable import (
 )
 from project.utils.id_types import TournamentId
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_tournament_owner)])
 
 
 @router.get("/tournaments/{tournament_id}/schedule_timetable", response_model=TournamentScheduleResponse)

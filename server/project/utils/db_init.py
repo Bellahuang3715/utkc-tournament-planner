@@ -178,7 +178,9 @@ async def sql_create_dev_db() -> UserId:
         return id_type(record_id)
 
     user_id_1 = await insert_dummy(DUMMY_USER, UserId)
-    tournament_id_1 = await insert_dummy(DUMMY_TOURNAMENT, TournamentId)
+    tournament_id_1 = await insert_dummy(
+        DUMMY_TOURNAMENT, TournamentId, {"creator_id": user_id_1}
+    )
     club_id_1 = await insert_dummy(DUMMY_CLUB, ClubId, {"creator_id": user_id_1})
 
     stage_id_1 = await insert_dummy(DUMMY_STAGE1, StageId, {"tournament_id": tournament_id_1})

@@ -35,8 +35,8 @@ def can_access_participant_dashboard(
     user: UserPublic | None = None,
     preview_token: str | None = None,
 ) -> bool:
-    """Organizers (any authenticated user) always can; public or valid preview otherwise."""
-    if user is not None:
+    """Owner can always access; others need public dashboard or a valid preview token."""
+    if user is not None and tournament.creator_id == user.id:
         return True
     if tournament.dashboard_public:
         return True

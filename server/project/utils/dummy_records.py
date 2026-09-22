@@ -49,6 +49,7 @@ DUMMY_TOURNAMENT = TournamentInsertable(
     logo_path=None,
     players_can_be_in_multiple_teams=True,
     auto_assign_courts=True,
+    creator_id=UserId(DB_PLACEHOLDER_ID),
 )
 
 DUMMY_CLUB = ClubInsertable(

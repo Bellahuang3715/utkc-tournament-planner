@@ -5,6 +5,7 @@ from starlette import status
 from project.models.db.team_category import TeamCategoryBody, TeamCategoryInsertable
 from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated
+from project.routes.authorization import require_tournament_owner
 from project.routes.models import SingleTeamCategoryResponse, SuccessResponse, TeamCategoriesResponse
 from project.sql.team_categories import (
     sql_count_teams_using_category,
@@ -19,7 +20,7 @@ from project.sql.validation import check_foreign_keys_belong_to_tournament
 from project.utils.id_types import TeamCategoryId, TournamentId
 from project.utils.types import assert_some
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_tournament_owner)])
 
 
 class _CategoryIdCheck(BaseModel):

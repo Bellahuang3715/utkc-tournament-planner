@@ -4,7 +4,7 @@ from fastapi import HTTPException
 
 from project.database import database
 from project.models.db.tournament import Tournament, TournamentBody, TournamentUpdateBody
-from project.utils.id_types import TournamentId
+from project.utils.id_types import BracketId, DivisionId, TournamentId, UserId
 
 
 async def sql_get_tournament(tournament_id: TournamentId) -> Tournament:
@@ -36,19 +36,54 @@ async def sql_get_tournament_by_endpoint_name(
     return Tournament.model_validate(result) if result is not None else None
 
 
-async def sql_get_tournaments(endpoint_name: str | None = None) -> list[Tournament]:
+async def sql_get_tournaments(
+    *,
+    creator_id: UserId | None = None,
+    endpoint_name: str | None = None,
+) -> list[Tournament]:
     query = """
         SELECT *
         FROM tournaments
         """
     params: dict[str, Any] = {}
+    clauses: list[str] = []
+
+    if creator_id is not None:
+        clauses.append("creator_id = :creator_id")
+        params["creator_id"] = creator_id
 
     if endpoint_name is not None:
-        query += " WHERE dashboard_endpoint = :endpoint_name"
+        clauses.append("dashboard_endpoint = :endpoint_name")
         params["endpoint_name"] = endpoint_name
+
+    if clauses:
+        query += " WHERE " + " AND ".join(clauses)
+
+    query += " ORDER BY name ASC, id ASC"
 
     result = await database.fetch_all(query=query, values=params)
     return [Tournament.model_validate(x) for x in result]
+
+
+async def sql_get_tournament_id_for_division(division_id: DivisionId) -> TournamentId | None:
+    query = """
+        SELECT tournament_id
+        FROM divisions
+        WHERE id = :division_id
+        """
+    result = await database.fetch_one(query=query, values={"division_id": division_id})
+    return TournamentId(result["tournament_id"]) if result is not None else None
+
+
+async def sql_get_tournament_id_for_bracket(bracket_id: BracketId) -> TournamentId | None:
+    query = """
+        SELECT d.tournament_id
+        FROM brackets b
+        JOIN divisions d ON d.id = b.division_id
+        WHERE b.id = :bracket_id
+        """
+    result = await database.fetch_one(query=query, values={"bracket_id": bracket_id})
+    return TournamentId(result["tournament_id"]) if result is not None else None
 
 
 async def sql_delete_tournament(tournament_id: TournamentId) -> None:
@@ -96,6 +131,7 @@ async def sql_set_dashboard_preview_token(
 async def sql_create_tournament(
     tournament: TournamentBody,
     *,
+    creator_id: UserId,
     dashboard_preview_token: str,
 ) -> TournamentId:
     query = """
@@ -110,7 +146,8 @@ async def sql_create_tournament(
             dashboard_preview_token,
             logo_path,
             players_can_be_in_multiple_teams,
-            auto_assign_courts
+            auto_assign_courts,
+            creator_id
         )
         VALUES (
             :name,
@@ -123,7 +160,8 @@ async def sql_create_tournament(
             :dashboard_preview_token,
             :logo_path,
             :players_can_be_in_multiple_teams,
-            :auto_assign_courts
+            :auto_assign_courts,
+            :creator_id
         )
         RETURNING id
         """
@@ -140,6 +178,7 @@ async def sql_create_tournament(
         "logo_path": None,
         "players_can_be_in_multiple_teams": tournament.players_can_be_in_multiple_teams,
         "auto_assign_courts": tournament.auto_assign_courts,
+        "creator_id": creator_id,
     }
     new_id = await database.fetch_val(query=query, values=values)
     return TournamentId(new_id)

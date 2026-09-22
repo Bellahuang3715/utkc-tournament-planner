@@ -84,7 +84,7 @@ async def get_divisions_for_tournament(
         SELECT *
         FROM divisions
         WHERE tournament_id = :tournament_id
-        ORDER BY created DESC, id DESC
+        ORDER BY name ASC, id ASC
     """
     results = await database.fetch_all(query=query, values={"tournament_id": tournament_id})
     return [Division.model_validate(dict(r._mapping)) for r in results]

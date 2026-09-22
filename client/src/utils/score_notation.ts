@@ -58,6 +58,8 @@ export function circledScoreDisplay(score: string) {
     .join(" ");
 }
 
+const MAX_SCORE_CHARS = 8;
+
 /** Allow M/K/D/T/H/I/`-` (circled + ▲ accepted); any two H → I — `scoreInputTransform`. */
 export function tournamentMkdtScoreInput(input = "") {
   const noSpaces = String(input).replace(/\s+/g, "");
@@ -70,5 +72,5 @@ export function tournamentMkdtScoreInput(input = "") {
     .map(normalizeChar)
     .filter((ch) => ALLOWED.has(ch))
     .join("");
-  return collapseDoubleHansoku(first + rest);
+  return collapseDoubleHansoku(first + rest).slice(0, MAX_SCORE_CHARS);
 }

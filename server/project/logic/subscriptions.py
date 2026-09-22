@@ -83,7 +83,9 @@ async def setup_demo_account(user_id: UserId) -> None:
         auto_assign_courts=True,
     )
     tournament_id = await sql_create_tournament(
-        tournament, dashboard_preview_token=new_dashboard_preview_token()
+        tournament,
+        creator_id=user_id,
+        dashboard_preview_token=new_dashboard_preview_token(),
     )
 
     ranking = RankingCreateBody()

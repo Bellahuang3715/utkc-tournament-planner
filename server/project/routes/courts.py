@@ -7,6 +7,7 @@ from project.logic.subscriptions import check_requirement
 from project.models.db.court import Court, CourtBody, CourtToInsert
 from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated
+from project.routes.authorization import require_tournament_owner
 from project.routes.models import CourtsResponse, SingleCourtResponse, SuccessResponse
 from project.schema import courts
 from project.sql.courts import get_all_courts_in_tournament, sql_delete_court, update_court
@@ -15,7 +16,7 @@ from project.utils.db import fetch_one_parsed
 from project.utils.id_types import CourtId, TournamentId
 from project.utils.types import assert_some
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_tournament_owner)])
 
 
 @router.get("/tournaments/{tournament_id}/courts", response_model=CourtsResponse)

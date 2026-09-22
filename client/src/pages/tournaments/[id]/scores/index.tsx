@@ -57,13 +57,17 @@ export default function ScoresPage() {
 
   const divisionOptions = useMemo(
     () =>
-      divisions.map((d: any) => ({
-        id: d.id as number,
-        name: d.name as string,
-        prefix: (d as any).prefix as string | null | undefined,
-        division_type: d.division_type as string,
-        totalPlayers: (d as any).totalPlayers as number | undefined,
-      })),
+      divisions
+        .map((d: any) => ({
+          id: d.id as number,
+          name: d.name as string,
+          prefix: (d as any).prefix as string | null | undefined,
+          division_type: d.division_type as string,
+          totalPlayers: (d as any).totalPlayers as number | undefined,
+        }))
+        .sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+        ),
     [divisions],
   );
 

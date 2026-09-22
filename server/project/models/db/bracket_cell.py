@@ -1,5 +1,7 @@
 from typing import Optional, List
 
+from pydantic import Field
+
 from project.models.db.shared import BaseModelORM
 from project.utils.id_types import BracketId, PlayerId, TeamId
 
@@ -22,7 +24,7 @@ class PlayerBracketCell(BaseModelORM):
 class PlayerBracketCellUpsert(BaseModelORM):
     slot_idx: int
     player_id: Optional[PlayerId] = None
-    score: str = ""
+    score: str = Field(default="", max_length=8)
 
 
 class PlayerBracketCellsReplaceBody(BaseModelORM):

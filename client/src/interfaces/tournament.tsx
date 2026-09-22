@@ -7,6 +7,7 @@ export interface Tournament {
   location?: string | null;
   description?: string | null;
   club_id?: number;
+  creator_id?: number;
   dashboard_public: boolean;
   dashboard_endpoint: string | null;
   dashboard_preview_token?: string | null;

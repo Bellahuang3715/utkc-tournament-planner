@@ -14,13 +14,16 @@ from project.logic.dashboard_access import (
 )
 from project.logic.planning.matches import update_start_times_of_matches
 from project.logic.tournaments import get_tournament_logo_path
+from project.models.db.account import UserAccountType
 from project.models.db.ranking import RankingCreateBody
 from project.models.db.tournament import (
+    Tournament,
     TournamentBody,
     TournamentUpdateBody,
 )
 from project.models.db.user import UserPublic
-from project.routes.auth import firebase_user_authenticated, firebase_user_optional
+from project.routes.auth import firebase_user_authenticated
+from project.routes.authorization import require_tournament_owner
 from project.routes.models import (
     DashboardPreviewTokenResponse,
     SuccessResponse,
@@ -53,11 +56,6 @@ from project.utils.id_types import TournamentId
 from project.utils.logging import logger
 
 router = APIRouter()
-unauthorized_exception = HTTPException(
-    status_code=status.HTTP_401_UNAUTHORIZED,
-    detail="You don't have access to this tournament",
-    headers={"WWW-Authenticate": "Bearer"},
-)
 forbidden_dashboard_exception = HTTPException(
     status_code=status.HTTP_403_FORBIDDEN,
     detail="This participant site is not published",
@@ -67,42 +65,33 @@ forbidden_dashboard_exception = HTTPException(
 @router.get("/tournaments/{tournament_id}", response_model=TournamentResponse)
 async def get_tournament(
     tournament_id: TournamentId,
-    user: UserPublic | None = Depends(firebase_user_optional),
-    preview: str | None = None,
+    tournament: Tournament = Depends(require_tournament_owner),
 ) -> TournamentResponse:
-    tournament = await sql_get_tournament(tournament_id)
-    if not can_access_participant_dashboard(tournament, user=user, preview_token=preview):
-        raise unauthorized_exception
-
     return TournamentResponse(data=tournament)
 
 
 @router.get("/tournaments", response_model=TournamentsResponse)
 async def get_tournaments(
-    user: UserPublic | None = Depends(firebase_user_optional),
+    user: UserPublic = Depends(firebase_user_authenticated),
     endpoint_name: str | None = None,
 ) -> TournamentsResponse:
-    match user, endpoint_name:
-        case None, None:
-            raise unauthorized_exception
+    if endpoint_name is not None:
+        tournament = await sql_get_tournament_by_endpoint_name(endpoint_name)
+        if tournament is None or not (
+            user.account_type == UserAccountType.ADMIN
+            or tournament.creator_id == user.id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Can't find this tournament",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return TournamentsResponse(data=[tournament])
 
-        case _, str(endpoint_name):
-            # Authenticated list-by-endpoint (legacy) or organizer lookup.
-            if user is None:
-                raise unauthorized_exception
-            tournament = await sql_get_tournament_by_endpoint_name(endpoint_name)
-            if tournament is None:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Can't find this tournament",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
-            return TournamentsResponse(data=[tournament])
+    if user.account_type == UserAccountType.ADMIN:
+        return TournamentsResponse(data=await sql_get_tournaments())
 
-        case _, _ if isinstance(user, UserPublic):
-            return TournamentsResponse(data=await sql_get_tournaments(endpoint_name))
-
-    raise RuntimeError()
+    return TournamentsResponse(data=await sql_get_tournaments(creator_id=user.id))
 
 
 @router.get(
@@ -128,7 +117,7 @@ async def get_public_tournament_by_endpoint(
 async def update_tournament_by_id(
     tournament_id: TournamentId,
     tournament_body: TournamentUpdateBody,
-    _: UserPublic = Depends(firebase_user_authenticated),
+    _: Tournament = Depends(require_tournament_owner),
 ) -> SuccessResponse:
     with check_unique_constraint_violation({UniqueIndex.ix_tournaments_dashboard_endpoint}):
         await sql_update_tournament(tournament_id, tournament_body)
@@ -143,11 +132,9 @@ async def update_tournament_by_id(
 )
 async def rotate_dashboard_preview_token(
     tournament_id: TournamentId,
-    _: UserPublic = Depends(firebase_user_authenticated),
+    _: Tournament = Depends(require_tournament_owner),
 ) -> DashboardPreviewTokenResponse:
     """Create or rotate the secret preview link token (invalidates previous preview URLs)."""
-    # Ensure tournament exists
-    await sql_get_tournament(tournament_id)
     token = new_dashboard_preview_token()
     await sql_set_dashboard_preview_token(tournament_id, token)
     return DashboardPreviewTokenResponse(dashboard_preview_token=token)
@@ -155,7 +142,8 @@ async def rotate_dashboard_preview_token(
 
 @router.delete("/tournaments/{tournament_id}", response_model=SuccessResponse)
 async def delete_tournament(
-    tournament_id: TournamentId, _: UserPublic = Depends(firebase_user_authenticated)
+    tournament_id: TournamentId,
+    _: Tournament = Depends(require_tournament_owner),
 ) -> SuccessResponse:
     for ranking in await get_all_rankings_in_tournament(tournament_id):
         await sql_delete_ranking(tournament_id, ranking.id)
@@ -176,7 +164,7 @@ async def delete_tournament(
 @router.post("/tournaments", response_model=SuccessResponse)
 async def create_tournament(
     tournament_to_insert: TournamentBody,
-    _: UserPublic = Depends(firebase_user_authenticated),
+    user: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
     # Default unpublished; always issue a preview token. Slug from name when missing.
     body = tournament_to_insert.model_copy(deep=True)
@@ -194,7 +182,9 @@ async def create_tournament(
     async with database.transaction():
         with check_unique_constraint_violation({UniqueIndex.ix_tournaments_dashboard_endpoint}):
             tournament_id = await sql_create_tournament(
-                body, dashboard_preview_token=preview_token
+                body,
+                creator_id=user.id,
+                dashboard_preview_token=preview_token,
             )
 
         ranking = RankingCreateBody()
@@ -207,7 +197,7 @@ async def create_tournament(
 async def upload_logo(
     tournament_id: TournamentId,
     file: UploadFile | None = None,
-    _: UserPublic = Depends(firebase_user_authenticated),
+    _: Tournament = Depends(require_tournament_owner),
 ) -> TournamentResponse:
     old_logo_path = await get_tournament_logo_path(tournament_id)
     filename: str | None = None

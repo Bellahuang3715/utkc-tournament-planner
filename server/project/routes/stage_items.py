@@ -30,6 +30,7 @@ from project.models.db.stage_item import (
 from project.models.db.user import UserPublic
 from project.models.db.util import StageItemWithRounds
 from project.routes.auth import firebase_user_authenticated
+from project.routes.authorization import require_tournament_owner
 from project.routes.models import SuccessResponse
 from project.routes.util import stage_item_dependency
 from project.sql.courts import get_all_courts_in_tournament
@@ -54,7 +55,7 @@ from project.utils.errors import (
 )
 from project.utils.id_types import StageItemId, TournamentId
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_tournament_owner)])
 
 
 @router.delete(
