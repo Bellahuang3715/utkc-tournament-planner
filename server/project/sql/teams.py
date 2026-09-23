@@ -1,9 +1,8 @@
 from typing import cast
 
 from project.database import database
-from project.logic.ranking.statistics import TeamStatistics
 from project.models.db.team import FullTeamWithPlayers, Team
-from project.utils.id_types import StageItemInputId, TeamId, TournamentId
+from project.utils.id_types import TeamId, TournamentId
 from project.utils.types import dict_without_none
 
 
@@ -126,34 +125,6 @@ async def get_team_count(
         """
     values = dict_without_none({"tournament_id": tournament_id})
     return cast(int, await database.fetch_val(query=query, values=values))
-
-
-async def update_team_stats(
-    tournament_id: TournamentId,
-    stage_item_input_id: StageItemInputId,
-    team_statistics: TeamStatistics,
-) -> None:
-    query = """
-        UPDATE stage_item_inputs
-        SET
-            wins = :wins,
-            draws = :draws,
-            losses = :losses,
-            points = :points
-        WHERE stage_item_inputs.tournament_id = :tournament_id
-        AND stage_item_inputs.id = :stage_item_input_id
-        """
-    await database.execute(
-        query=query,
-        values={
-            "tournament_id": tournament_id,
-            "stage_item_input_id": stage_item_input_id,
-            "wins": team_statistics.wins,
-            "draws": team_statistics.draws,
-            "losses": team_statistics.losses,
-            "points": float(team_statistics.points),
-        },
-    )
 
 
 async def sql_delete_team(tournament_id: TournamentId, team_id: TeamId) -> None:

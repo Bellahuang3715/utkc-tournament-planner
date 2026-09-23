@@ -5,84 +5,27 @@ from fastapi import HTTPException
 from pydantic import BaseModel
 from starlette import status
 
-from project.models.db.util import StageWithStageItems
+from project.database import database
 from project.sql.courts import get_all_courts_in_tournament
 from project.sql.players import get_all_players_in_tournament, get_player_by_id
-from project.sql.stages import get_full_tournament_details
-from project.database import database
 from project.sql.teams import get_team_by_id
 from project.utils.id_types import (
     CourtId,
-    MatchId,
     PlayerId,
-    RoundId,
-    StageId,
-    StageItemId,
-    StageItemInputId,
     TeamCategoryId,
     TeamId,
     TournamentId,
 )
 
-CheckCallableT = Callable[[Any, list[StageWithStageItems], TournamentId], Awaitable[bool]]
+CheckCallableT = Callable[[Any, TournamentId], Awaitable[bool]]
 
 
-async def check_stage_belongs_to_tournament(
-    stage_id: StageId, stages: list[StageWithStageItems], _: TournamentId
-) -> bool:
-    return any(stage.id == stage_id for stage in stages)
-
-
-async def check_team_belongs_to_tournament(
-    team_id: TeamId, _: list[StageWithStageItems], tournament_id: TournamentId
-) -> bool:
+async def check_team_belongs_to_tournament(team_id: TeamId, tournament_id: TournamentId) -> bool:
     return await get_team_by_id(team_id, tournament_id) is not None
 
 
-async def check_stage_item_belongs_to_tournament(
-    stage_item_id: StageItemId, stages: list[StageWithStageItems], _: TournamentId
-) -> bool:
-    return any(
-        stage_item.id == stage_item_id for stage in stages for stage_item in stage.stage_items
-    )
-
-
-async def check_stage_item_input_belongs_to_tournament(
-    stage_item_input_id: StageItemInputId, stages: list[StageWithStageItems], _: TournamentId
-) -> bool:
-    return any(
-        stage_item_input.id == stage_item_input_id
-        for stage in stages
-        for stage_item in stage.stage_items
-        for stage_item_input in stage_item.inputs
-    )
-
-
-async def check_round_belongs_to_tournament(
-    round_id: RoundId, stages: list[StageWithStageItems], _: TournamentId
-) -> bool:
-    return any(
-        round_.id == round_id
-        for stage in stages
-        for stage_item in stage.stage_items
-        for round_ in stage_item.rounds
-    )
-
-
-async def check_match_belongs_to_tournament(
-    match_id: MatchId, stages: list[StageWithStageItems], _: TournamentId
-) -> bool:
-    return any(
-        match.id == match_id
-        for stage in stages
-        for stage_item in stage.stage_items
-        for round_ in stage_item.rounds
-        for match in round_.matches
-    )
-
-
 async def check_player_belongs_to_tournament(
-    player_id: PlayerId, _: list[StageWithStageItems], tournament_id: TournamentId
+    player_id: PlayerId, tournament_id: TournamentId
 ) -> bool:
     return await get_player_by_id(player_id, tournament_id) is not None
 
@@ -96,13 +39,13 @@ async def check_players_belong_to_tournament(
 
 
 async def check_court_belongs_to_tournament(
-    court_id: CourtId, _: list[StageWithStageItems], tournament_id: TournamentId
+    court_id: CourtId, tournament_id: TournamentId
 ) -> bool:
     return any(court_id == court.id for court in await get_all_courts_in_tournament(tournament_id))
 
 
 async def check_team_category_belongs_to_tournament(
-    category_id: TeamCategoryId, _: list[StageWithStageItems], tournament_id: TournamentId
+    category_id: TeamCategoryId, tournament_id: TournamentId
 ) -> bool:
     row = await database.fetch_one(
         """
@@ -128,17 +71,10 @@ async def check_foreign_keys_belong_to_tournament(
     is indeed part of the tournament. This prohibits e.g. adding players from another tournament to
     a certain team.
     """
-    stages = await get_full_tournament_details(tournament_id)
-
     check_lookup: dict[type[Any], CheckCallableT] = {
-        StageId: check_stage_belongs_to_tournament,
         TeamId: check_team_belongs_to_tournament,
         TeamCategoryId: check_team_category_belongs_to_tournament,
-        StageItemId: check_stage_item_belongs_to_tournament,
-        StageItemInputId: check_stage_item_input_belongs_to_tournament,
-        RoundId: check_round_belongs_to_tournament,
         PlayerId: check_player_belongs_to_tournament,
-        MatchId: check_match_belongs_to_tournament,
         CourtId: check_court_belongs_to_tournament,
     }
 
@@ -164,6 +100,6 @@ async def check_foreign_keys_belong_to_tournament(
             for possible_type in possible_types:
                 check_callable = check_lookup.get(possible_type)
                 if check_callable is not None and not await check_callable(
-                    field_value, stages, tournament_id
+                    field_value, tournament_id
                 ):
                     raise_exception(possible_type, field_value)

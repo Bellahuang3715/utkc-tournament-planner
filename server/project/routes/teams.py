@@ -29,7 +29,6 @@ from project.sql.teams import (
     sql_delete_team,
 )
 from project.sql.validation import check_foreign_keys_belong_to_tournament
-from project.utils.errors import ForeignKey, check_foreign_key_violation
 from project.utils.id_types import PlayerId, TeamId, TournamentId
 from project.utils.types import assert_some
 
@@ -120,15 +119,7 @@ async def delete_team(
     _: UserPublic = Depends(firebase_user_authenticated),
     team: FullTeamWithPlayers = Depends(team_with_players_dependency),
 ) -> SuccessResponse:
-    with check_foreign_key_violation(
-        {
-            ForeignKey.stage_item_inputs_team_id_fkey,
-            ForeignKey.matches_stage_item_input1_id_fkey,
-            ForeignKey.matches_stage_item_input2_id_fkey,
-        }
-    ):
-        await sql_delete_team(tournament_id, team.id)
-
+    await sql_delete_team(tournament_id, team.id)
     return SuccessResponse()
 
 

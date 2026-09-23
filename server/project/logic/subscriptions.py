@@ -7,9 +7,7 @@ from heliclockter import datetime_utc
 from pydantic import BaseModel
 
 from project.models.db.account import UserAccountType
-from project.models.db.ranking import RankingCreateBody
 from project.models.db.tournament import TournamentBody
-from project.sql.rankings import sql_create_ranking
 from project.logic.dashboard_access import new_dashboard_preview_token
 from project.sql.tournaments import sql_create_tournament
 from project.utils.id_types import UserId
@@ -24,10 +22,6 @@ class Subscription(BaseModel):
     max_clubs: int
     max_tournaments: int
     max_courts: int
-    max_stages: int
-    max_stage_items: int
-    max_rounds: int
-    max_rankings: int
 
 
 demo_subscription = Subscription(
@@ -36,10 +30,6 @@ demo_subscription = Subscription(
     max_clubs=1,
     max_tournaments=2,
     max_courts=4,
-    max_stages=4,
-    max_stage_items=6,
-    max_rounds=6,
-    max_rankings=2,
 )
 
 
@@ -49,10 +39,6 @@ regular_subscription = Subscription(
     max_clubs=32,
     max_tournaments=64,
     max_courts=32,
-    max_stages=16,
-    max_stage_items=64,
-    max_rounds=64,
-    max_rankings=16,
 )
 
 subscription_lookup = {
@@ -82,11 +68,8 @@ async def setup_demo_account(user_id: UserId) -> None:
         players_can_be_in_multiple_teams=False,
         auto_assign_courts=True,
     )
-    tournament_id = await sql_create_tournament(
+    await sql_create_tournament(
         tournament,
         creator_id=user_id,
         dashboard_preview_token=new_dashboard_preview_token(),
     )
-
-    ranking = RankingCreateBody()
-    await sql_create_ranking(tournament_id=tournament_id, ranking_body=ranking, position=0)

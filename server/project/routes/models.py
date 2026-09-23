@@ -2,27 +2,18 @@ from typing import Generic, TypeVar
 
 from pydantic import BaseModel
 
-from project.logic.scheduling.handle_stage_activation import StageItemInputUpdate
 from project.models.db.club import Club
 from project.models.db.division import Division
 from project.models.db.court import Court
-from project.models.db.match import Match, SuggestedMatch
 from project.models.db.player import Player, PlayerInDivision
 from project.models.db.bracket import Bracket, BracketWithPlayers, BracketWithTeams
 from project.models.db.bracket_cell import BracketCell, TeamBracketCell
 from project.models.db.bracket_edit_lock import BracketEditLock
-from project.models.db.ranking import Ranking
-from project.models.db.stage_item_inputs import (
-    StageItemInputOptionFinal,
-    StageItemInputOptionTentative,
-)
 from project.models.db.team import FullTeamWithPlayers, Team, TeamInDivision
 from project.models.db.team_category import TeamCategory
 from project.models.db.tournament import Tournament, TournamentPublic, ScorekeeperRedeemResult
 from project.models.db.user import UserPublic
-from project.models.db.util import StageWithStageItems
 from project.models.db.schedule_timetable import TournamentScheduleBody
-from project.utils.id_types import StageId, StageItemId
 
 DataT = TypeVar("DataT")
 
@@ -143,18 +134,6 @@ class BracketEditLocksResponse(DataResponse[list[BracketEditLock]]):
     pass
 
 
-class StagesWithStageItemsResponse(DataResponse[list[StageWithStageItems]]):
-    pass
-
-
-class UpcomingMatchesResponse(DataResponse[list[SuggestedMatch]]):
-    pass
-
-
-class SingleMatchResponse(DataResponse[Match]):
-    pass
-
-
 class PaginatedTeams(BaseModel):
     count: int
     teams: list[FullTeamWithPlayers]
@@ -189,18 +168,4 @@ class SingleCourtResponse(DataResponse[Court]):
 
 
 class TournamentScheduleResponse(DataResponse[TournamentScheduleBody]):
-    pass
-
-
-class RankingsResponse(DataResponse[list[Ranking]]):
-    pass
-
-
-class StageItemInputOptionsResponse(
-    DataResponse[dict[StageId, list[StageItemInputOptionTentative | StageItemInputOptionFinal]]]
-):
-    pass
-
-
-class StageRankingResponse(DataResponse[dict[StageItemId, list[StageItemInputUpdate]]]):
     pass

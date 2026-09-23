@@ -1,11 +1,8 @@
 import { showNotification } from '@mantine/notifications';
 import type Axios from 'axios';
 import { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
-import { useRouter } from 'next/router';
 import useSWR, { SWRResponse } from 'swr';
 
-import { SchedulerSettings } from '../interfaces/match';
-import { RoundInterface } from '../interfaces/round';
 import { getAuth } from 'firebase/auth';
 import {
   getEditSessionIdForRequests,
@@ -127,13 +124,6 @@ export async function awaitRequestAndHandleError(
   return response;
 }
 
-function getTimeState() {
-  // Used to force a refresh on SWRResponse, even when the response stays the same.
-  // For example, when the page layout depends on time, but the response contains
-  // timestamps that don't change, this is necessary.
-  return { time: new Date() };
-}
-
 const fetcher = async (url: string) => {
   const axiosInstance = await createAxios();
   return axiosInstance.get(url).then((res: { data: any }) => res.data);
@@ -142,13 +132,6 @@ const fetcher = async (url: string) => {
 const publicFetcher = async (url: string) => {
   const axiosInstance = await createPublicAxios();
   return axiosInstance.get(url).then((res: { data: any }) => res.data);
-};
-
-const fetcherWithTimestamp = async (url: string) => {
-  const axiosInstance = await createAxios();
-  return axiosInstance
-    .get(url)
-    .then((res: { data: any }) => ({ ...res.data, ...getTimeState() }));
 };
 
 export function getClubs(): SWRResponse {
@@ -338,40 +321,6 @@ export function getDivisionLock(division_id: number | null): SWRResponse {
   );
 }
 
-export function getAvailableStageItemInputs(tournament_id: number): SWRResponse {
-  return useSWR(`tournaments/${tournament_id}/available_inputs`, fetcher);
-}
-
-export function getStages(
-  tournament_id: number | null,
-  no_draft_rounds: boolean = false
-): SWRResponse {
-  return useSWR(
-    tournament_id == null || tournament_id === -1
-      ? null
-      : `tournaments/${tournament_id}/stages?no_draft_rounds=${no_draft_rounds}`,
-    fetcher
-  );
-}
-
-export function getStagesLive(tournament_id: number | null): SWRResponse {
-  return useSWR(
-    tournament_id == null ? null : `tournaments/${tournament_id}/stages?no_draft_rounds=true`,
-    fetcherWithTimestamp,
-    {
-      refreshInterval: 5_000,
-    }
-  );
-}
-
-export function getRankings(tournament_id: number): SWRResponse {
-  return useSWR(`tournaments/${tournament_id}/rankings`, fetcher);
-}
-
-export function getRankingsPerStageItem(tournament_id: number): SWRResponse {
-  return useSWR(`tournaments/${tournament_id}/next_stage_rankings`, fetcher);
-}
-
 export function getCourts(tournament_id: number): SWRResponse {
   return useSWR(`tournaments/${tournament_id}/courts`, fetcher);
 }
@@ -384,20 +333,6 @@ export function getCourtsLive(tournament_id: number): SWRResponse {
 
 export function getScheduleTimetable(tournament_id: number): SWRResponse {
   return useSWR(`tournaments/${tournament_id}/schedule_timetable`, fetcher);
-}
-
-export function getUpcomingMatches(
-  tournament_id: number,
-  stage_item_id: number,
-  draftRound: RoundInterface | null,
-  schedulerSettings: SchedulerSettings
-): SWRResponse {
-  return useSWR(
-    stage_item_id == null || draftRound == null
-      ? null
-      : `tournaments/${tournament_id}/stage_items/${stage_item_id}/upcoming_matches?elo_diff_threshold=${schedulerSettings.eloThreshold}&only_recommended=${schedulerSettings.onlyRecommended}&limit=${schedulerSettings.limit}&iterations=${schedulerSettings.iterations}`,
-    fetcher
-  );
 }
 
 export async function uploadTournamentLogo(tournament_id: number, file: any) {
@@ -441,4 +376,3 @@ export function checkForAuthError(response: any) {
   //     });
   // }
 }
-

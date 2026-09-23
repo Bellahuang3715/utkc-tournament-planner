@@ -13,10 +13,8 @@ from project.logic.dashboard_access import (
     slugify_dashboard_endpoint,
     to_public_tournament,
 )
-from project.logic.planning.matches import update_start_times_of_matches
 from project.logic.tournaments import get_tournament_logo_path
 from project.models.db.account import UserAccountType
-from project.models.db.ranking import RankingCreateBody
 from project.models.db.tournament import (
     Tournament,
     TournamentBody,
@@ -37,11 +35,6 @@ from project.routes.models import (
     TournamentsResponse,
 )
 from project.schema import tournaments
-from project.sql.rankings import (
-    get_all_rankings_in_tournament,
-    sql_create_ranking,
-    sql_delete_ranking,
-)
 from project.sql.tournaments import (
     sql_create_tournament,
     sql_delete_tournament,
@@ -128,7 +121,6 @@ async def update_tournament_by_id(
     with check_unique_constraint_violation({UniqueIndex.ix_tournaments_dashboard_endpoint}):
         await sql_update_tournament(tournament_id, tournament_body)
 
-    await update_start_times_of_matches(tournament_id)
     return SuccessResponse()
 
 
@@ -193,12 +185,8 @@ async def delete_tournament(
     tournament_id: TournamentId,
     _: Tournament = Depends(require_tournament_owner),
 ) -> SuccessResponse:
-    for ranking in await get_all_rankings_in_tournament(tournament_id):
-        await sql_delete_ranking(tournament_id, ranking.id)
-
     with check_foreign_key_violation(
         {
-            ForeignKey.stages_tournament_id_fkey,
             ForeignKey.teams_tournament_id_fkey,
             ForeignKey.players_tournament_id_fkey,
             ForeignKey.courts_tournament_id_fkey,
@@ -227,16 +215,12 @@ async def create_tournament(
 
     preview_token = new_dashboard_preview_token()
 
-    async with database.transaction():
-        with check_unique_constraint_violation({UniqueIndex.ix_tournaments_dashboard_endpoint}):
-            tournament_id = await sql_create_tournament(
-                body,
-                creator_id=user.id,
-                dashboard_preview_token=preview_token,
-            )
-
-        ranking = RankingCreateBody()
-        await sql_create_ranking(tournament_id, ranking, position=0)
+    with check_unique_constraint_violation({UniqueIndex.ix_tournaments_dashboard_endpoint}):
+        await sql_create_tournament(
+            body,
+            creator_id=user.id,
+            dashboard_preview_token=preview_token,
+        )
 
     return SuccessResponse()
 

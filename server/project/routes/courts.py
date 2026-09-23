@@ -1,6 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from heliclockter import datetime_utc
-from starlette import status
 
 from project.database import database
 from project.logic.subscriptions import check_requirement
@@ -11,7 +10,6 @@ from project.routes.authorization import require_tournament_owner
 from project.routes.models import CourtsResponse, SingleCourtResponse, SuccessResponse
 from project.schema import courts
 from project.sql.courts import get_all_courts_in_tournament, sql_delete_court, update_court
-from project.sql.stages import get_full_tournament_details
 from project.utils.db import fetch_one_parsed
 from project.utils.id_types import CourtId, TournamentId
 from project.utils.types import assert_some
@@ -58,21 +56,6 @@ async def delete_court(
     court_id: CourtId,
     _: UserPublic = Depends(firebase_user_authenticated),
 ) -> SuccessResponse:
-    stages = await get_full_tournament_details(tournament_id, no_draft_rounds=False)
-    used_in_matches_count = 0
-    for stage in stages:
-        for stage_item in stage.stage_items:
-            for round_ in stage_item.rounds:
-                for match in round_.matches:
-                    if match.court_id == court_id:
-                        used_in_matches_count += 1
-
-    if used_in_matches_count > 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Could not delete court since it's used by {used_in_matches_count} matches",
-        )
-
     await sql_delete_court(tournament_id, court_id)
     return SuccessResponse()
 

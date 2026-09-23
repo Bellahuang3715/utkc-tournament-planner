@@ -4,7 +4,6 @@ import {
   IconBrackets,
   IconCalendarEvent,
   IconHome,
-  IconScoreboard,
   IconSearch,
   IconSettings,
   IconTrophy,
@@ -96,13 +95,6 @@ export function BracketSpotlight() {
       description: t('tournament_setting_spotlight_description'),
       onClick: () => router.push(`/tournaments/${tournamentId}/settings`),
       leftSection: <IconSettings size="1.2rem" />,
-    },
-    {
-      id: 'rankings',
-      title: t('rankings_title'),
-      description: t('rankings_spotlight_description'),
-      onClick: () => router.push(`/tournaments/${tournamentId}/rankings`),
-      leftSection: <IconScoreboard size="1.2rem" />,
     },
   ];
   const allActions = tournamentId >= 0 ? actions.concat(tournamentActions) : actions;
