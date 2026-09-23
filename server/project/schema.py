@@ -209,6 +209,21 @@ brackets = Table(
     Column("title", String, nullable=True), # title of the bracket, optional
 )
 
+bracket_edit_locks = Table(
+    "bracket_edit_locks",
+    metadata,
+    Column(
+        "bracket_id",
+        BigInteger,
+        ForeignKey("brackets.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column("holder_session_id", String, nullable=False),
+    Column("holder_name", String, nullable=False),
+    Column("updated_at", DateTimeTZ, nullable=False, server_default=func.now()),
+    Index("ix_bracket_edit_locks_updated_at", "updated_at"),
+)
+
 players_x_brackets = Table(
     "players_x_brackets",
     metadata,

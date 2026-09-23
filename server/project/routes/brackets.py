@@ -1,5 +1,9 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
+from project.models.db.bracket_edit_lock import (
+    BracketEditLockClaimBody,
+    BracketEditLockReleaseBody,
+)
 from project.models.db.division import Division
 from project.routes.authorization import (
     require_bracket_owner,
@@ -15,6 +19,8 @@ from project.models.db.bracket_cell import (
     TeamBracketCellsReplaceBody,
 )
 from project.routes.models import (
+    BracketEditLockResponse,
+    BracketEditLocksResponse,
     BracketsResponse,
     BracketsWithPlayersResponse,
     BracketsWithTeamsResponse,
@@ -22,6 +28,14 @@ from project.routes.models import (
     TeamBracketCellsResponse,
     BracketResponse,
     SuccessResponse,
+)
+from project.sql.bracket_edit_locks import (
+    assert_session_can_write_bracket,
+    assert_session_can_write_brackets,
+    sql_claim_edit_lock,
+    sql_heartbeat_edit_lock,
+    sql_list_active_edit_locks,
+    sql_release_edit_lock,
 )
 from project.sql.brackets import (
     sql_list_division_brackets,
@@ -48,6 +62,13 @@ from project.sql.bracket_cells import (
 )
 
 router = APIRouter()
+
+EDIT_SESSION_HEADER = "X-Edit-Session-Id"
+
+
+def _edit_session_id(request: Request) -> str | None:
+    raw = request.headers.get(EDIT_SESSION_HEADER)
+    return raw.strip() if raw and raw.strip() else None
 
 
 @router.get("/divisions/{division_id}/brackets", response_model=BracketsResponse)
@@ -87,8 +108,13 @@ async def list_division_bracket_cells(
 async def replace_division_bracket_cells(
     division_id: DivisionId,
     body: DivisionBracketCellsReplaceBody,
+    request: Request,
     _: Division = Depends(require_division_score_access),
 ) -> SuccessResponse:
+    await assert_session_can_write_brackets(
+        [item.bracket_id for item in body.brackets],
+        session_id=_edit_session_id(request),
+    )
     await sql_replace_division_bracket_cells(division_id, body.brackets)
     return SuccessResponse()
 
@@ -121,8 +147,13 @@ async def list_division_team_bracket_cells(
 async def replace_division_team_bracket_cells(
     division_id: DivisionId,
     body: DivisionTeamBracketCellsReplaceBody,
+    request: Request,
     _: Division = Depends(require_division_score_access),
 ) -> SuccessResponse:
+    await assert_session_can_write_brackets(
+        [item.bracket_id for item in body.brackets],
+        session_id=_edit_session_id(request),
+    )
     await sql_replace_division_team_bracket_cells(division_id, body.brackets)
     return SuccessResponse()
 
@@ -152,8 +183,12 @@ async def list_bracket_cells(
 async def replace_bracket_cells(
     bracket_id: BracketId,
     body: BracketCellsReplaceBody,
+    request: Request,
     _: TournamentId = Depends(require_bracket_score_access),
 ) -> SuccessResponse:
+    await assert_session_can_write_bracket(
+        bracket_id, session_id=_edit_session_id(request)
+    )
     await sql_replace_bracket_cells(bracket_id, body.cells)
     return SuccessResponse()
 
@@ -170,9 +205,69 @@ async def list_team_bracket_cells(
 async def replace_team_bracket_cells(
     bracket_id: BracketId,
     body: TeamBracketCellsReplaceBody,
+    request: Request,
     _: TournamentId = Depends(require_bracket_score_access),
 ) -> SuccessResponse:
+    await assert_session_can_write_bracket(
+        bracket_id, session_id=_edit_session_id(request)
+    )
     await sql_replace_team_bracket_cells(bracket_id, body.cells)
+    return SuccessResponse()
+
+
+@router.get(
+    "/divisions/{division_id}/edit-locks",
+    response_model=BracketEditLocksResponse,
+)
+async def list_division_edit_locks(
+    division_id: DivisionId,
+    _: Division = Depends(require_division_score_access),
+) -> BracketEditLocksResponse:
+    return BracketEditLocksResponse(
+        data=await sql_list_active_edit_locks(division_id)
+    )
+
+
+@router.post(
+    "/brackets/{bracket_id}/edit-lock",
+    response_model=BracketEditLockResponse,
+)
+async def claim_bracket_edit_lock(
+    bracket_id: BracketId,
+    body: BracketEditLockClaimBody,
+    _: TournamentId = Depends(require_bracket_score_access),
+) -> BracketEditLockResponse:
+    lock = await sql_claim_edit_lock(
+        bracket_id,
+        session_id=body.session_id,
+        holder_name=body.holder_name,
+    )
+    return BracketEditLockResponse(data=lock)
+
+
+@router.post(
+    "/brackets/{bracket_id}/edit-lock/heartbeat",
+    response_model=BracketEditLockResponse,
+)
+async def heartbeat_bracket_edit_lock(
+    bracket_id: BracketId,
+    body: BracketEditLockReleaseBody,
+    _: TournamentId = Depends(require_bracket_score_access),
+) -> BracketEditLockResponse:
+    lock = await sql_heartbeat_edit_lock(bracket_id, session_id=body.session_id)
+    return BracketEditLockResponse(data=lock)
+
+
+@router.delete(
+    "/brackets/{bracket_id}/edit-lock",
+    response_model=SuccessResponse,
+)
+async def release_bracket_edit_lock(
+    bracket_id: BracketId,
+    session_id: str = Query(..., min_length=1),
+    _: TournamentId = Depends(require_bracket_score_access),
+) -> SuccessResponse:
+    await sql_release_edit_lock(bracket_id, session_id=session_id)
     return SuccessResponse()
 
 @router.post("/divisions/{division_id}/brackets", response_model=BracketsResponse)

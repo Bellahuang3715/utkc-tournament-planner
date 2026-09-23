@@ -7,7 +7,10 @@ import useSWR, { SWRResponse } from 'swr';
 import { SchedulerSettings } from '../interfaces/match';
 import { RoundInterface } from '../interfaces/round';
 import { getAuth } from 'firebase/auth';
-import { getScorekeeperTokenForCurrentPath } from '../utils/scorekeeper_access';
+import {
+  getEditSessionIdForRequests,
+  getScorekeeperTokenForCurrentPath,
+} from '../utils/scorekeeper_access';
 
 // TODO: This is a workaround for the fact that axios is not properly typed.
 const axios: typeof Axios = require('axios').default;
@@ -61,12 +64,16 @@ export function createAxios() {
   const auth = getAuth();
   const user = auth.currentUser;
   const scorekeeperToken = getScorekeeperTokenForCurrentPath();
+  const editSessionId = getEditSessionIdForRequests();
 
   const headers: Record<string, string> = {
     Accept: 'application/json',
   };
   if (scorekeeperToken) {
     headers['X-Scorekeeper-Token'] = scorekeeperToken;
+  }
+  if (editSessionId) {
+    headers['X-Edit-Session-Id'] = editSessionId;
   }
 
   if (user) {

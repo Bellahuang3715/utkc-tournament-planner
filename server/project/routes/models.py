@@ -10,6 +10,7 @@ from project.models.db.match import Match, SuggestedMatch
 from project.models.db.player import Player, PlayerInDivision
 from project.models.db.bracket import Bracket, BracketWithPlayers, BracketWithTeams
 from project.models.db.bracket_cell import BracketCell, TeamBracketCell
+from project.models.db.bracket_edit_lock import BracketEditLock
 from project.models.db.ranking import Ranking
 from project.models.db.stage_item_inputs import (
     StageItemInputOptionFinal,
@@ -132,6 +133,14 @@ class BracketCellsResponse(BaseModel):
 
 class TeamBracketCellsResponse(BaseModel):
     data: list[TeamBracketCell]
+
+
+class BracketEditLockResponse(DataResponse[BracketEditLock]):
+    pass
+
+
+class BracketEditLocksResponse(DataResponse[list[BracketEditLock]]):
+    pass
 
 
 class StagesWithStageItemsResponse(DataResponse[list[StageWithStageItems]]):

@@ -10,7 +10,6 @@ import {
   Loader,
   Paper,
   Popover,
-  SegmentedControl,
   Stack,
   Title,
   Text,
@@ -33,20 +32,25 @@ import ScoreStatusBadge from "../../../../../components/scores/ScoreStatusBadge"
 import {
   buildPlayerIdResolver,
   buildTeamIdResolver,
+  claimBracketEditLock,
   clearDivisionBracketCells,
   ensureFinalsBracket,
   fetchDivisionBracketCells,
   fetchDivisionBracketsWithPlayers,
   fetchDivisionBracketsWithTeams,
+  fetchDivisionEditLocks,
   fetchDivisionTeamBracketCells,
+  heartbeatBracketEditLock,
   isFinalsBracket,
   mergeCellsIntoUiPlayers,
   mergeCellsIntoUiTeams,
   putDivisionBracketCells,
   putDivisionTeamBracketCells,
+  releaseBracketEditLock,
   toUIPlayersWithClubAbbrev,
   toUITeamSlots,
   type BracketCell,
+  type BracketEditLock,
   type BracketUIPlayerSlot,
   type BracketUITeamSlot,
   type TeamBracketCell,
@@ -67,8 +71,13 @@ import {
   type ScoreStatus,
 } from "../../../../../utils/score_status";
 import { useSWRConfig } from "swr";
+import { useAuth } from "../../../../../context/AuthContext";
+import {
+  getOrCreateEditSessionId,
+  getScorekeeperDisplayName,
+} from "../../../../../utils/scorekeeper_access";
+import { getBaseApiUrl } from "../../../../../services/adapter";
 
-type PageMode = "view" | "edit";
 type BracketUiMode = "view" | "fillable";
 type ExpandedSize = (typeof EXPANDED_SIZES_INDIVIDUALS)[number];
 
@@ -130,6 +139,7 @@ function isPlayoffTab(tab: string) {
 export default function DivisionScoresEditorPage() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { user, getUser } = useAuth();
   const colorScheme = useComputedColorScheme("light", {
     getInitialValueInEffect: true,
   });
@@ -152,6 +162,17 @@ export default function DivisionScoresEditorPage() {
   const { mutate } = useSWRConfig();
   const { id: tournamentId, tournamentData } = getTournamentIdFromRouter();
   const tournamentIdValid = Number.isFinite(tournamentId);
+
+  const editorDisplayName = useMemo(() => {
+    if (tournamentIdValid) {
+      const skName = getScorekeeperDisplayName(tournamentData.id);
+      if (skName) return skName;
+    }
+    const accountName = getUser()?.name?.trim();
+    if (accountName) return accountName;
+    if (user?.displayName?.trim()) return user.displayName.trim();
+    return "Editor";
+  }, [tournamentIdValid, tournamentData.id, getUser, user]);
 
   const divisionIdParam = router.query.division_id;
   const divisionId = useMemo(() => {
@@ -204,11 +225,25 @@ export default function DivisionScoresEditorPage() {
 
   /** `group-{id}` for a pool bracket, or `playoff-{size}` for knockout stages. */
   const [activeTab, setActiveTab] = useState<string | null>(null);
-  const [pageMode, setPageMode] = useState<PageMode>("view");
+  /** Bracket ids currently being edited by this session. */
+  const [editingBracketIds, setEditingBracketIds] = useState<number[]>([]);
+  /** Active locks from other editors (and self), polled. */
+  const [editLocksByBracketId, setEditLocksByBracketId] = useState<
+    Record<number, BracketEditLock>
+  >({});
   /** Bumped on Cancel so fillable brackets remount from saved props. */
   const [bracketRevision, setBracketRevision] = useState(0);
 
-  const bracketUiMode: BracketUiMode = pageMode === "edit" ? "fillable" : "view";
+  const [sessionId, setSessionId] = useState("");
+
+  useEffect(() => {
+    setSessionId(getOrCreateEditSessionId());
+  }, []);
+
+  const isEditingBracket = (bracketId: number | null | undefined) =>
+    bracketId != null && editingBracketIds.includes(bracketId);
+
+  const anyEditing = editingBracketIds.length > 0;
 
   const confirmDiscardEdits = () =>
     window.confirm(
@@ -218,31 +253,112 @@ export default function DivisionScoresEditorPage() {
       ),
     );
 
-  const enterEdit = () => {
-    setDraftByBracketId({});
-    setDraftTeamsByBracketId({});
-    setFinalsDraft(null);
-    setFinalsTeamsDraft(null);
-    setPageMode("edit");
+  const lockHeldByOther = (bracketId: number | null | undefined) => {
+    if (bracketId == null) return null;
+    const lock = editLocksByBracketId[bracketId];
+    if (!lock) return null;
+    if (lock.holder_session_id === sessionId) return null;
+    return lock;
   };
-  const cancelEdit = () => {
-    setDraftByBracketId({});
-    setDraftTeamsByBracketId({});
-    setFinalsDraft(null);
-    setFinalsTeamsDraft(null);
+
+  const releaseLocalEdit = (bracketId: number) => {
+    setEditingBracketIds((prev) => prev.filter((id) => id !== bracketId));
+    setDraftByBracketId((prev) => {
+      const next = { ...prev };
+      delete next[bracketId];
+      return next;
+    });
+    setDraftTeamsByBracketId((prev) => {
+      const next = { ...prev };
+      delete next[bracketId];
+      return next;
+    });
+    if (finalsBracketId === bracketId) {
+      setFinalsDraft(null);
+      setFinalsTeamsDraft(null);
+    }
     setBracketRevision((n) => n + 1);
-    setPageMode("view");
   };
-  const tryExitEdit = (): boolean => {
-    if (pageMode !== "edit") return true;
-    if (!confirmDiscardEdits()) return false;
-    cancelEdit();
+
+  const claimAndEditBracket = async (bracketId: number) => {
+    const sid = sessionId || getOrCreateEditSessionId();
+    if (!sessionId) setSessionId(sid);
+    if (!sid) {
+      showNotification({
+        color: "red",
+        title: t("error", "Error"),
+        message: t(
+          "edit_session_missing",
+          "Could not start an edit session. Refresh and try again.",
+        ),
+      });
+      return false;
+    }
+    const res = await claimBracketEditLock(
+      bracketId,
+      editorDisplayName,
+      sid,
+    );
+    if (!res || !requestSucceeded(res as any)) {
+      const detail = (res as any)?.response?.data?.detail;
+      const holder =
+        detail && typeof detail === "object" ? detail.holder_name : null;
+      showNotification({
+        color: "orange",
+        title: t("edit_locked_title", "Group in use"),
+        message: holder
+          ? t("edit_locked_by", "Being edited by {{name}}", { name: holder })
+          : t(
+              "edit_locked_generic",
+              "Someone else is editing this group.",
+            ),
+      });
+      return false;
+    }
+    setEditingBracketIds((prev) =>
+      prev.includes(bracketId) ? prev : [...prev, bracketId],
+    );
     return true;
+  };
+
+  const enterEditGroup = async (bracketId: number) => {
+    const other = lockHeldByOther(bracketId);
+    if (other) {
+      showNotification({
+        color: "orange",
+        title: t("edit_locked_title", "Group in use"),
+        message: t("edit_locked_by", "Being edited by {{name}}", {
+          name: other.holder_name,
+        }),
+      });
+      return;
+    }
+    await claimAndEditBracket(bracketId);
+  };
+
+  const enterEditFinals = async (finalsSize: number) => {
+    if (!divisionId) return;
+    let finalsId = finalsBracketId;
+    if (finalsId == null) {
+      const created = await ensureFinalsBracket(divisionId, finalsSize);
+      if (!created || !requestSucceeded(created as any)) return;
+      finalsId =
+        (created as any).data?.data?.id ?? (created as any).data?.id ?? null;
+      if (finalsId == null) return;
+      setFinalsBracketId(Number(finalsId));
+      finalsId = Number(finalsId);
+    }
+    await enterEditGroup(finalsId);
+  };
+
+  const cancelEditBracket = async (bracketId: number) => {
+    if (!confirmDiscardEdits()) return;
+    await releaseBracketEditLock(bracketId, sessionId);
+    releaseLocalEdit(bracketId);
   };
 
   const saveEdit = async () => {
     if (!divisionId || !selectedDivision) {
-      setPageMode("view");
       return;
     }
 
@@ -252,7 +368,6 @@ export default function DivisionScoresEditorPage() {
       : Object.entries(draftByBracketId);
     const hasFinalsDraft = isTeams ? finalsTeamsDraft != null : finalsDraft != null;
     if (!draftEntries.length && !hasFinalsDraft) {
-      setPageMode("view");
       return;
     }
 
@@ -277,27 +392,9 @@ export default function DivisionScoresEditorPage() {
           cells: uiTeamsToBracketCells(teams as BracketUITeamSlot[], resolve),
         }));
 
-        if (hasFinalsDraft && finalsTeamsDraft) {
-          const finalsSize = playoffStages[0]?.size ?? finalsTeamsDraft.length;
-          let finalsId = finalsBracketId;
-          if (finalsId == null) {
-            const created = await ensureFinalsBracket(divisionId, finalsSize);
-            if (!created || !requestSucceeded(created as any)) {
-              return;
-            }
-            finalsId = (created as any).data?.data?.id ?? (created as any).data?.id;
-            if (finalsId == null) {
-              showNotification({
-                color: "red",
-                title: t("error", "Error"),
-                message: t("scores_save_failed", "Failed to save scores."),
-              });
-              return;
-            }
-            setFinalsBracketId(Number(finalsId));
-          }
+        if (hasFinalsDraft && finalsTeamsDraft && finalsBracketId != null) {
           payload.push({
-            bracket_id: Number(finalsId),
+            bracket_id: Number(finalsBracketId),
             cells: uiTeamsToBracketCells(finalsTeamsDraft, resolve),
           });
         }
@@ -338,27 +435,9 @@ export default function DivisionScoresEditorPage() {
           cells: uiPlayersToBracketCells(players as BracketUIPlayerSlot[], resolve),
         }));
 
-        if (hasFinalsDraft && finalsDraft) {
-          const finalsSize = playoffStages[0]?.size ?? finalsDraft.length;
-          let finalsId = finalsBracketId;
-          if (finalsId == null) {
-            const created = await ensureFinalsBracket(divisionId, finalsSize);
-            if (!created || !requestSucceeded(created as any)) {
-              return;
-            }
-            finalsId = (created as any).data?.data?.id ?? (created as any).data?.id;
-            if (finalsId == null) {
-              showNotification({
-                color: "red",
-                title: t("error", "Error"),
-                message: t("scores_save_failed", "Failed to save scores."),
-              });
-              return;
-            }
-            setFinalsBracketId(Number(finalsId));
-          }
+        if (hasFinalsDraft && finalsDraft && finalsBracketId != null) {
           payload.push({
-            bracket_id: Number(finalsId),
+            bracket_id: Number(finalsBracketId),
             cells: uiPlayersToBracketCells(finalsDraft, resolve),
           });
         }
@@ -394,12 +473,14 @@ export default function DivisionScoresEditorPage() {
         setCellsByBracketId(byBracket);
       }
 
+      const held = [...editingBracketIds];
+      await Promise.all(held.map((id) => releaseBracketEditLock(id, sessionId)));
+      setEditingBracketIds([]);
       setDraftByBracketId({});
       setDraftTeamsByBracketId({});
       setFinalsDraft(null);
       setFinalsTeamsDraft(null);
       setBracketRevision((n) => n + 1);
-      setPageMode("view");
       await mutate(`divisions/${divisionId}/lock`);
       showNotification({
         color: "green",
@@ -426,7 +507,13 @@ export default function DivisionScoresEditorPage() {
       ),
     );
     if (!ok) return;
-    if (pageMode === "edit" && !tryExitEdit()) return;
+    if (anyEditing) {
+      if (!confirmDiscardEdits()) return;
+      await Promise.all(
+        editingBracketIds.map((id) => releaseBracketEditLock(id, sessionId)),
+      );
+      setEditingBracketIds([]);
+    }
 
     setUnlocking(true);
     try {
@@ -460,15 +547,31 @@ export default function DivisionScoresEditorPage() {
     }
   };
 
+  const editingBracketIdsRef = React.useRef(editingBracketIds);
+  editingBracketIdsRef.current = editingBracketIds;
+
   useEffect(() => {
-    if (pageMode !== "edit") return;
+    if (!anyEditing || !sessionId) return;
 
     const leaveMessage = t(
       "scores_unsaved_leave_prompt",
       "Are you sure you want to leave? You will lose all unsaved progress.",
     );
 
+    const releaseBeacon = () => {
+      const base = getBaseApiUrl().replace(/\/$/, "");
+      for (const id of editingBracketIdsRef.current) {
+        const url = `${base}/brackets/${id}/edit-lock?session_id=${encodeURIComponent(sessionId)}`;
+        try {
+          void fetch(url, { method: "DELETE", keepalive: true });
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+
     const beforeUnload = (e: BeforeUnloadEvent) => {
+      releaseBeacon();
       e.preventDefault();
       e.returnValue = "";
     };
@@ -477,9 +580,13 @@ export default function DivisionScoresEditorPage() {
       const ok = window.confirm(leaveMessage);
       if (!ok) {
         router.events.emit("routeChangeError");
-        // Next.js pages router expects a throw to abort navigation.
         throw "Route change aborted.";
       }
+      void Promise.all(
+        editingBracketIdsRef.current.map((id) =>
+          releaseBracketEditLock(id, sessionId),
+        ),
+      );
     };
 
     window.addEventListener("beforeunload", beforeUnload);
@@ -488,14 +595,91 @@ export default function DivisionScoresEditorPage() {
       window.removeEventListener("beforeunload", beforeUnload);
       router.events.off("routeChangeStart", onRouteStart);
     };
-  }, [pageMode, router, t]);
+  }, [anyEditing, sessionId, router, t]);
+
+  // Heartbeat held locks (DB TTL is 45s; refresh every 15s).
+  useEffect(() => {
+    if (!anyEditing || !sessionId) return;
+    const tick = () => {
+      for (const id of editingBracketIds) {
+        void heartbeatBracketEditLock(id, sessionId);
+      }
+    };
+    // Slight delay so we don't race the claim write.
+    const initial = window.setTimeout(tick, 2000);
+    const timer = window.setInterval(tick, 15_000);
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(timer);
+    };
+  }, [anyEditing, editingBracketIds, sessionId]);
+
+  // Poll edit locks + saved cells for live view updates.
+  useEffect(() => {
+    if (!divisionId || !selectedDivision || !bracketsLoaded) return;
+
+    const refresh = async () => {
+      try {
+        const locksRes = await fetchDivisionEditLocks(divisionId);
+        const locks = (locksRes.data?.data ?? []) as BracketEditLock[];
+        const byId: Record<number, BracketEditLock> = {};
+        for (const lock of locks) {
+          byId[lock.bracket_id] = lock;
+        }
+        setEditLocksByBracketId(byId);
+
+        if (selectedDivision.division_type === "TEAMS") {
+          const cellsRes = await fetchDivisionTeamBracketCells(divisionId);
+          const cells = (cellsRes.data?.data ?? []) as TeamBracketCell[];
+          const byBracket: Record<number, TeamBracketCell[]> = {};
+          for (const cell of cells) {
+            (byBracket[cell.bracket_id] ??= []).push(cell);
+          }
+          setTeamCellsByBracketId((prev) => {
+            // Keep local drafts authoritative for brackets we are editing.
+            const next = { ...byBracket };
+            for (const id of editingBracketIds) {
+              if (prev[id]) next[id] = prev[id];
+            }
+            return next;
+          });
+        } else {
+          const cellsRes = await fetchDivisionBracketCells(divisionId);
+          const cells = (cellsRes.data?.data ?? []) as BracketCell[];
+          const byBracket: Record<number, BracketCell[]> = {};
+          for (const cell of cells) {
+            (byBracket[cell.bracket_id] ??= []).push(cell);
+          }
+          setCellsByBracketId((prev) => {
+            const next = { ...byBracket };
+            for (const id of editingBracketIds) {
+              if (prev[id]) next[id] = prev[id];
+            }
+            return next;
+          });
+        }
+      } catch {
+        /* ignore poll errors */
+      }
+    };
+
+    void refresh();
+    const timer = window.setInterval(refresh, 5_000);
+    return () => window.clearInterval(timer);
+  }, [
+    divisionId,
+    selectedDivision,
+    bracketsLoaded,
+    editingBracketIds,
+  ]);
 
   useEffect(() => {
     if (!divisionId || !selectedDivision) return;
     setLoadingBrackets(true);
     setBracketsLoaded(false);
     setActiveTab(null);
-    setPageMode("view");
+    setEditingBracketIds([]);
+    setEditLocksByBracketId({});
     setBracketRevision(0);
     setDraftByBracketId({});
     setDraftTeamsByBracketId({});
@@ -744,15 +928,10 @@ export default function DivisionScoresEditorPage() {
               {selectedDivision.prefix ? ` (${selectedDivision.prefix})` : ""}
             </Text>
             <Text size="sm" c="dimmed">
-              {pageMode === "edit"
-                ? t(
-                    "scores_editor_edit_hint",
-                    "Edit scores below, then Save or Cancel.",
-                  )
-                : t(
-                    "scores_editor_view_hint",
-                    "Viewing scores. Switch to Edit to make changes.",
-                  )}
+              {t(
+                "scores_editor_view_hint",
+                "Open Edit on a group to enter scores. Groups locked by someone else show their name.",
+              )}
             </Text>
           </Stack>
           <Group gap="sm" align="center" wrap="wrap">
@@ -778,17 +957,6 @@ export default function DivisionScoresEditorPage() {
                 </Button>
               </>
             )}
-            <SegmentedControl
-              value={pageMode}
-              onChange={(v) => {
-                if (v === "edit") enterEdit();
-                else tryExitEdit();
-              }}
-              data={[
-                { label: t("view", "View"), value: "view" },
-                { label: t("edit", "Edit"), value: "edit" },
-              ]}
-            />
             <Popover width={220} position="bottom-end" withArrow shadow="md">
               <Popover.Target>
                 <ActionIcon
@@ -866,25 +1034,53 @@ export default function DivisionScoresEditorPage() {
               <Tabs.Panel key={b.id} value={groupTabValue(b.id)} pt="md">
                 {selectedDivision.division_type === "TEAMS" ? (
                   <Paper withBorder radius="md" p="md">
-                    <Group justify="space-between" mb="sm">
+                    <Group justify="space-between" mb="sm" wrap="wrap">
                       <Group gap="xs">
                         <Badge variant="light">
-                          {pageMode === "edit"
+                          {isEditingBracket(b.id)
                             ? t("editing_group", "Editing: Group {{n}}", { n: b.index })
                             : t("viewing_group", "Viewing: Group {{n}}", { n: b.index })}
                         </Badge>
                         <ScoreStatusBadge
                           status={groupStatusById.get(b.id) ?? "not_started"}
                         />
+                        {lockHeldByOther(b.id) && (
+                          <Badge color="orange" variant="light">
+                            {t("editing_by", "Editing: {{name}}", {
+                              name: lockHeldByOther(b.id)!.holder_name,
+                            })}
+                          </Badge>
+                        )}
                       </Group>
-                      {pageMode === "edit" && (
-                        <Text size="sm" c="dimmed">
-                          {t(
-                            "scores_edit_hint",
-                            "Edit scores below, then Save to persist.",
-                          )}
-                        </Text>
-                      )}
+                      <Group gap="xs">
+                        {isEditingBracket(b.id) ? (
+                          <>
+                            <Button
+                              variant="default"
+                              size="xs"
+                              disabled={saving}
+                              onClick={() => void cancelEditBracket(b.id)}
+                            >
+                              {t("cancel", "Cancel")}
+                            </Button>
+                            <Button
+                              size="xs"
+                              loading={saving}
+                              onClick={() => void saveEdit()}
+                            >
+                              {t("save", "Save")}
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            size="xs"
+                            disabled={!!lockHeldByOther(b.id)}
+                            onClick={() => void enterEditGroup(b.id)}
+                          >
+                            {t("edit", "Edit")}
+                          </Button>
+                        )}
+                      </Group>
                     </Group>
                     <Box style={{ maxWidth: "100%", overflowX: "auto", marginTop: 8 }}>
                       {(() => {
@@ -893,12 +1089,15 @@ export default function DivisionScoresEditorPage() {
                           opening,
                           teamCellsByBracketId[b.id] ?? [],
                         );
+                        const mode: BracketUiMode = isEditingBracket(b.id)
+                          ? "fillable"
+                          : "view";
                         return (
                           <Expanded.Teams
-                            key={`teams-${b.id}-${bracketRevision}-${bracketTheme}`}
+                            key={`teams-${b.id}-${bracketRevision}-${bracketTheme}-${mode}`}
                             size={b.num_players as ExpandedSize}
                             teams={teamsFillable as any}
-                            mode={bracketUiMode}
+                            mode={mode}
                             theme={bracketTheme}
                             teamIDFontFamily={DEFAULT_BOOKLET.playerId.fontFamily}
                             teamIDFontSize={DEFAULT_BOOKLET.playerId.fontSize}
@@ -917,25 +1116,53 @@ export default function DivisionScoresEditorPage() {
                   </Paper>
                 ) : (
                   <Paper withBorder radius="md" p="md">
-                    <Group justify="space-between" mb="sm">
+                    <Group justify="space-between" mb="sm" wrap="wrap">
                       <Group gap="xs">
                         <Badge variant="light">
-                          {pageMode === "edit"
+                          {isEditingBracket(b.id)
                             ? t("editing_group", "Editing: Group {{n}}", { n: b.index })
                             : t("viewing_group", "Viewing: Group {{n}}", { n: b.index })}
                         </Badge>
                         <ScoreStatusBadge
                           status={groupStatusById.get(b.id) ?? "not_started"}
                         />
+                        {lockHeldByOther(b.id) && (
+                          <Badge color="orange" variant="light">
+                            {t("editing_by", "Editing: {{name}}", {
+                              name: lockHeldByOther(b.id)!.holder_name,
+                            })}
+                          </Badge>
+                        )}
                       </Group>
-                      {pageMode === "edit" && (
-                        <Text size="sm" c="dimmed">
-                          {t(
-                            "scores_edit_hint",
-                            "Edit scores below, then Save to persist.",
-                          )}
-                        </Text>
-                      )}
+                      <Group gap="xs">
+                        {isEditingBracket(b.id) ? (
+                          <>
+                            <Button
+                              variant="default"
+                              size="xs"
+                              disabled={saving}
+                              onClick={() => void cancelEditBracket(b.id)}
+                            >
+                              {t("cancel", "Cancel")}
+                            </Button>
+                            <Button
+                              size="xs"
+                              loading={saving}
+                              onClick={() => void saveEdit()}
+                            >
+                              {t("save", "Save")}
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            size="xs"
+                            disabled={!!lockHeldByOther(b.id)}
+                            onClick={() => void enterEditGroup(b.id)}
+                          >
+                            {t("edit", "Edit")}
+                          </Button>
+                        )}
+                      </Group>
                     </Group>
                     <Box style={{ maxWidth: "100%", overflowX: "auto", marginTop: 8 }}>
                       {(() => {
@@ -948,12 +1175,15 @@ export default function DivisionScoresEditorPage() {
                           cellsByBracketId[b.id] ?? [],
                           clubAbbrevByName,
                         );
+                        const mode: BracketUiMode = isEditingBracket(b.id)
+                          ? "fillable"
+                          : "view";
                         return (
                           <Expanded.Individuals
-                            key={`individuals-${b.id}-${bracketRevision}-${bracketTheme}`}
+                            key={`individuals-${b.id}-${bracketRevision}-${bracketTheme}-${mode}`}
                             size={b.num_players}
                             players={playersFillable as any}
-                            mode={bracketUiMode}
+                            mode={mode}
                             theme={bracketTheme}
                             textStyles={bracketTextStyles}
                             scoreInputTransform={tournamentMkdtScoreInput}
@@ -973,31 +1203,63 @@ export default function DivisionScoresEditorPage() {
               </Tabs.Panel>
             ))}
 
-            {playoffStages.map((stage) => (
+            {playoffStages.map((stage) => {
+              const finalsEditing = isEditingBracket(finalsBracketId);
+              const finalsOther = lockHeldByOther(finalsBracketId);
+              const finalsMode: BracketUiMode = finalsEditing ? "fillable" : "view";
+              return (
               <Tabs.Panel key={stage.key} value={stage.key} pt="md">
                 <Paper withBorder radius="md" p="md">
-                  <Group justify="space-between" mb="sm">
+                  <Group justify="space-between" mb="sm" wrap="wrap">
                     <Group gap="xs">
                       <Badge variant="light" color="grape">
-                        {pageMode === "edit"
+                        {finalsEditing
                           ? `${t("edit", "Edit")}: ${t(stage.labelKey, stage.labelDefault, { n: stage.size })}`
                           : `${t("view", "View")}: ${t(stage.labelKey, stage.labelDefault, { n: stage.size })}`}
                       </Badge>
                       <ScoreStatusBadge status={finalsStatus ?? "not_started"} />
+                      {finalsOther && (
+                        <Badge color="orange" variant="light">
+                          {t("editing_by", "Editing: {{name}}", {
+                            name: finalsOther.holder_name,
+                          })}
+                        </Badge>
+                      )}
                     </Group>
-                    {pageMode === "edit" && (
-                      <Text size="sm" c="dimmed">
-                        {t(
-                          "scores_edit_hint",
-                          "Edit scores below, then Save to persist.",
-                        )}
-                      </Text>
-                    )}
+                    <Group gap="xs">
+                      {finalsEditing && finalsBracketId != null ? (
+                        <>
+                          <Button
+                            variant="default"
+                            size="xs"
+                            disabled={saving}
+                            onClick={() => void cancelEditBracket(finalsBracketId)}
+                          >
+                            {t("cancel", "Cancel")}
+                          </Button>
+                          <Button
+                            size="xs"
+                            loading={saving}
+                            onClick={() => void saveEdit()}
+                          >
+                            {t("save", "Save")}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          size="xs"
+                          disabled={!!finalsOther}
+                          onClick={() => void enterEditFinals(stage.size)}
+                        >
+                          {t("edit", "Edit")}
+                        </Button>
+                      )}
+                    </Group>
                   </Group>
                   <Box style={{ maxWidth: "100%", overflowX: "auto", marginTop: 8 }}>
                     {selectedDivision.division_type === "TEAMS" ? (
                       <Expanded.Teams
-                        key={`playoff-teams-${stage.size}-${bracketRevision}-${bracketTheme}-${pageMode}-${finalsBracketId ?? "new"}`}
+                        key={`playoff-teams-${stage.size}-${bracketRevision}-${bracketTheme}-${finalsMode}-${finalsBracketId ?? "new"}`}
                         size={stage.size}
                         teams={
                           mergeCellsIntoUiTeams(
@@ -1007,7 +1269,7 @@ export default function DivisionScoresEditorPage() {
                               : [],
                           ) as any
                         }
-                        mode={bracketUiMode}
+                        mode={finalsMode}
                         theme={bracketTheme}
                         teamIDFontFamily={DEFAULT_BOOKLET.playerId.fontFamily}
                         teamIDFontSize={DEFAULT_BOOKLET.playerId.fontSize}
@@ -1019,7 +1281,7 @@ export default function DivisionScoresEditorPage() {
                       />
                     ) : (
                       <Expanded.Individuals
-                        key={`playoff-individuals-${stage.size}-${bracketRevision}-${bracketTheme}-${pageMode}-${finalsBracketId ?? "new"}`}
+                        key={`playoff-individuals-${stage.size}-${bracketRevision}-${bracketTheme}-${finalsMode}-${finalsBracketId ?? "new"}`}
                         size={stage.size}
                         players={
                           mergeCellsIntoUiPlayers(
@@ -1030,16 +1292,16 @@ export default function DivisionScoresEditorPage() {
                             clubAbbrevByName,
                           ) as any
                         }
-                        mode={bracketUiMode}
+                        mode={finalsMode}
                         theme={bracketTheme}
                         textStyles={bracketTextStyles}
                         scoreInputTransform={tournamentMkdtScoreInput}
                         formatScoreDisplay={circledScoreDisplay}
                         openingSlotLabels={
-                          pageMode === "edit" ? finalsOpeningSlotLabels : undefined
+                          finalsEditing ? finalsOpeningSlotLabels : undefined
                         }
                         playerOptions={
-                          pageMode === "edit" && finalsPlayerOptions.length
+                          finalsEditing && finalsPlayerOptions.length
                             ? finalsPlayerOptions
                             : undefined
                         }
@@ -1051,18 +1313,9 @@ export default function DivisionScoresEditorPage() {
                   </Box>
                 </Paper>
               </Tabs.Panel>
-            ))}
+              );
+            })}
           </Tabs>
-        )}
-        {pageMode === "edit" && (
-          <Group justify="flex-end" gap="xs">
-            <Button variant="default" onClick={() => tryExitEdit()} disabled={saving}>
-              {t("cancel", "Cancel")}
-            </Button>
-            <Button onClick={() => void saveEdit()} loading={saving}>
-              {t("save", "Save")}
-            </Button>
-          </Group>
         )}
         <Divider />
       </Stack>

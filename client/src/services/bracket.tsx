@@ -407,6 +407,74 @@ export async function fetchDivisionLock(division_id: number) {
   return axios.get<{ data: { locked: boolean } }>(`divisions/${division_id}/lock`);
 }
 
+export type BracketEditLock = {
+  bracket_id: number;
+  holder_session_id: string;
+  holder_name: string;
+  updated_at: string;
+};
+
+export async function fetchDivisionEditLocks(division_id: number) {
+  const axios = await createAxios();
+  return axios.get<{ data: BracketEditLock[] }>(
+    `divisions/${division_id}/edit-locks`,
+  );
+}
+
+export async function claimBracketEditLock(
+  bracket_id: number,
+  holder_name: string,
+  session_id: string,
+) {
+  try {
+    const axios = await createAxios();
+    return await axios.post(`brackets/${bracket_id}/edit-lock`, {
+      holder_name,
+      session_id,
+    });
+  } catch (err: any) {
+    // 409 is expected when another editor holds the lock — caller shows UI.
+    if (err?.response?.status !== 409) {
+      handleRequestError(err);
+    }
+    return err;
+  }
+}
+
+
+
+export async function heartbeatBracketEditLock(
+  bracket_id: number,
+  session_id: string,
+) {
+  try {
+    const axios = await createAxios();
+    return await axios.post(`brackets/${bracket_id}/edit-lock/heartbeat`, {
+      session_id,
+    });
+  } catch (err: any) {
+    // Expired/missing lock is handled by the editor; don't toast on every poll.
+    if (err?.response?.status !== 404 && err?.response?.status !== 409) {
+      handleRequestError(err);
+    }
+    return err;
+  }
+}
+
+export async function releaseBracketEditLock(
+  bracket_id: number,
+  session_id: string,
+) {
+  try {
+    const axios = await createAxios();
+    return await axios.delete(`brackets/${bracket_id}/edit-lock`, {
+      params: { session_id },
+    });
+  } catch (err: any) {
+    return handleRequestError(err);
+  }
+}
+
 /** Clear all recorded scores for the division (unlocks roster/seeding). */
 export async function clearDivisionBracketCells(division_id: number) {
   try {
