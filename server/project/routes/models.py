@@ -3,7 +3,7 @@ from typing import Generic, TypeVar
 from pydantic import BaseModel
 
 from project.models.db.club import Club
-from project.models.db.division import Division
+from project.models.db.division import Division, PlayerMatchAssignment, PlayerMatchDirectoryEntry
 from project.models.db.court import Court
 from project.models.db.player import Player, PlayerInDivision
 from project.models.db.bracket import Bracket, BracketWithPlayers, BracketWithTeams
@@ -66,6 +66,14 @@ class ScorekeeperRedeemResponse(DataResponse[ScorekeeperRedeemResult]):
 
 
 class DivisionsResponse(DataResponse[list[Division]]):
+    pass
+
+
+class PlayerMatchAssignmentsResponse(DataResponse[list[PlayerMatchAssignment]]):
+    pass
+
+
+class PlayerMatchDirectoryResponse(DataResponse[list[PlayerMatchDirectoryEntry]]):
     pass
 
 

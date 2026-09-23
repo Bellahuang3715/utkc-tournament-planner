@@ -205,6 +205,25 @@ export function getPublicPlayerDivisions(
   );
 }
 
+export function getPublicPlayerMatchAssignments(
+  endpoint: string | null | undefined,
+  preview: string | null | undefined,
+  playerId: number | null
+): SWRResponse {
+  const path = playerId != null ? `players/${playerId}/assignments` : '';
+  return useSWR(
+    playerId != null ? publicTournamentKey(endpoint, preview, path) : null,
+    publicFetcher
+  );
+}
+
+export function getPublicMatchDirectory(
+  endpoint: string | null | undefined,
+  preview: string | null | undefined
+): SWRResponse {
+  return useSWR(publicTournamentKey(endpoint, preview, 'match-directory'), publicFetcher);
+}
+
 export function getPublicDivisionBracketsWithPlayers(
   endpoint: string | null | undefined,
   preview: string | null | undefined,
@@ -237,6 +256,20 @@ export function getPublicDivisionBracketCells(
   divisionId: number | null
 ): SWRResponse {
   const path = divisionId != null ? `divisions/${divisionId}/bracket-cells` : '';
+  return useSWR(
+    divisionId != null ? publicTournamentKey(endpoint, preview, path) : null,
+    publicFetcher,
+    { refreshInterval: 10_000 }
+  );
+}
+
+export function getPublicDivisionTeamBracketCells(
+  endpoint: string | null | undefined,
+  preview: string | null | undefined,
+  divisionId: number | null
+): SWRResponse {
+  const path =
+    divisionId != null ? `divisions/${divisionId}/team-bracket-cells` : '';
   return useSWR(
     divisionId != null ? publicTournamentKey(endpoint, preview, path) : null,
     publicFetcher,

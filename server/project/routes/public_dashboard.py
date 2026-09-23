@@ -16,6 +16,8 @@ from project.routes.models import (
     DivisionTeamsResponse,
     DivisionsResponse,
     PaginatedPlayers,
+    PlayerMatchAssignmentsResponse,
+    PlayerMatchDirectoryResponse,
     PlayersResponse,
     TeamBracketCellsResponse,
     TournamentScheduleResponse,
@@ -34,6 +36,8 @@ from project.sql.divisions import (
     get_divisions_for_tournament,
     sql_get_division,
     sql_get_divisions_for_player,
+    sql_get_match_assignments_for_player,
+    sql_get_match_directory_for_tournament,
     sql_get_players_for_division,
     sql_get_teams_for_division,
 )
@@ -81,6 +85,19 @@ async def public_list_players(
             count=await get_player_count(tournament.id),
         )
     )
+
+
+@router.get(
+    "/public/tournaments/{endpoint_name}/match-directory",
+    response_model=PlayerMatchDirectoryResponse,
+)
+async def public_match_directory(
+    endpoint_name: str,
+    preview: str | None = None,
+) -> PlayerMatchDirectoryResponse:
+    tournament = await _resolve_public_tournament(endpoint_name, preview)
+    items = await sql_get_match_directory_for_tournament(tournament.id)
+    return PlayerMatchDirectoryResponse(data=items)
 
 
 @router.get("/public/tournaments/{endpoint_name}/courts", response_model=CourtsResponse)
@@ -151,6 +168,20 @@ async def public_player_divisions(
     tournament = await _resolve_public_tournament(endpoint_name, preview)
     items = await sql_get_divisions_for_player(tournament.id, player_id)
     return DivisionsResponse(data=items)
+
+
+@router.get(
+    "/public/tournaments/{endpoint_name}/players/{player_id}/assignments",
+    response_model=PlayerMatchAssignmentsResponse,
+)
+async def public_player_match_assignments(
+    endpoint_name: str,
+    player_id: PlayerId,
+    preview: str | None = None,
+) -> PlayerMatchAssignmentsResponse:
+    tournament = await _resolve_public_tournament(endpoint_name, preview)
+    items = await sql_get_match_assignments_for_player(tournament.id, player_id)
+    return PlayerMatchAssignmentsResponse(data=items)
 
 
 @router.get(

@@ -1,6 +1,22 @@
-import { Accordion, Badge, Group, Stack, Text, UnstyledButton } from '@mantine/core';
+import {
+  Box,
+  Badge,
+  Group,
+  Paper,
+  Stack,
+  Text,
+  Title,
+  UnstyledButton,
+  useComputedColorScheme,
+} from '@mantine/core';
+import { IconList } from '@tabler/icons-react';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
 import React, { useMemo, useState } from 'react';
+import {
+  Expanded,
+  EXPANDED_SIZES_INDIVIDUALS,
+  EXPANDED_SIZES_TEAMS,
+} from 'tournament-brackets-ui';
 
 import ParticipantTournamentLayout, {
   useParticipantTournamentSlug,
@@ -8,23 +24,67 @@ import ParticipantTournamentLayout, {
 import {
   ParticipantEmpty,
   ParticipantLoading,
-  ParticipantPageTitle,
 } from '../../../components/participant/ParticipantUi';
+import { DEFAULT_BOOKLET } from '../../../components/utils/brackets_editor/shared';
 import { responseIsValid } from '../../../components/utils/util';
+import { BracketWithPlayers, BracketWithTeams } from '../../../interfaces/bracket';
+import { Player } from '../../../interfaces/player';
 import {
   getPublicDivisionBracketsWithPlayers,
   getPublicDivisionBracketsWithTeams,
   getPublicDivisions,
+  getPublicPlayers,
 } from '../../../services/adapter';
+import {
+  toUIPlayersWithClubAbbrev,
+  toUITeamSlots,
+} from '../../../services/bracket';
+
+type ExpandedSize = (typeof EXPANDED_SIZES_INDIVIDUALS)[number];
+
+function groupHeading(divisionName: string, bracket: { title?: string | null; index: number }) {
+  const group = bracket.title?.trim() || `Group ${bracket.index}`;
+  return `${divisionName} - ${group}`;
+}
 
 export default function ParticipantBracketsPage() {
   const { slug, preview } = useParticipantTournamentSlug();
   const [divisionId, setDivisionId] = useState<number | null>(null);
+  const colorScheme = useComputedColorScheme('light');
+  const bracketTheme = colorScheme === 'dark' ? 'dark' : 'light';
+
+  const bracketTextStyles = useMemo(
+    () => ({
+      playerId: {
+        fontFamily: DEFAULT_BOOKLET.playerId.fontFamily,
+        fontSize: DEFAULT_BOOKLET.playerId.fontSize,
+      },
+      playerText: {
+        fontFamily: DEFAULT_BOOKLET.playerText.fontFamily,
+        fontSize: DEFAULT_BOOKLET.playerText.fontSize,
+      },
+    }),
+    []
+  );
 
   const swrDivisions = getPublicDivisions(slug || null, preview);
+  const swrPlayersDirectory = getPublicPlayers(slug || null, preview);
   const divisions = responseIsValid(swrDivisions)
     ? swrDivisions.data.data ?? []
     : [];
+
+  const clubAbbrevByName = useMemo(() => {
+    const players: Player[] = responseIsValid(swrPlayersDirectory)
+      ? swrPlayersDirectory.data.data.players ?? []
+      : [];
+    const map = new Map<string, string>();
+    for (const p of players) {
+      if (p.club && p.club_abbreviation) {
+        map.set(p.club, p.club_abbreviation);
+      }
+    }
+    return map;
+  }, [swrPlayersDirectory]);
 
   const selected = divisions.find((d: any) => d.id === divisionId) ?? null;
   const isTeams = selected?.division_type === 'TEAMS';
@@ -41,10 +101,16 @@ export default function ParticipantBracketsPage() {
   );
 
   const brackets = useMemo(() => {
-    if (isTeams) {
-      return responseIsValid(swrTeams) ? swrTeams.data.data ?? [] : [];
-    }
-    return responseIsValid(swrPlayers) ? swrPlayers.data.data ?? [] : [];
+    const raw = isTeams
+      ? responseIsValid(swrTeams)
+        ? swrTeams.data.data ?? []
+        : []
+      : responseIsValid(swrPlayers)
+        ? swrPlayers.data.data ?? []
+        : [];
+    return [...raw]
+      .filter((b: any) => (b.title ?? '') !== 'Finals')
+      .sort((a: any, b: any) => a.index - b.index);
   }, [isTeams, swrPlayers, swrTeams]);
 
   const loadingDivisions = !swrDivisions.data && !swrDivisions.error;
@@ -55,11 +121,6 @@ export default function ParticipantBracketsPage() {
 
   return (
     <ParticipantTournamentLayout>
-      <ParticipantPageTitle
-        title="Brackets"
-        subtitle="Pick a division to see groups and seeding."
-      />
-
       {loadingDivisions && <ParticipantLoading />}
 
       {!loadingDivisions && divisions.length === 0 && (
@@ -67,40 +128,53 @@ export default function ParticipantBracketsPage() {
       )}
 
       {divisionId == null && divisions.length > 0 && (
-        <Stack gap="sm">
-          {divisions.map((d: any) => (
-            <UnstyledButton
-              key={d.id}
-              onClick={() => setDivisionId(d.id)}
-              style={{
-                display: 'block',
-                width: '100%',
-                borderRadius: 14,
-                padding: '16px',
-                border: '1px solid var(--mantine-color-default-border)',
-                textAlign: 'left',
-              }}
-            >
-              <Group justify="space-between" wrap="nowrap">
-                <div>
-                  <Text fw={700}>{d.name}</Text>
-                  {d.prefix && (
+        <Stack gap="md">
+          <Group gap="sm" wrap="nowrap" align="flex-start">
+            <IconList size={28} stroke={1.5} style={{ flexShrink: 0, marginTop: 2 }} />
+            <div>
+              <Title order={2} style={{ fontSize: '1.35rem' }}>
+                Brackets
+              </Title>
+              <Text size="sm" c="dimmed">
+                Seeding and groups · no scores
+              </Text>
+            </div>
+          </Group>
+
+          <Stack gap="sm">
+            {divisions.map((d: any) => (
+              <UnstyledButton
+                key={d.id}
+                onClick={() => setDivisionId(d.id)}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  borderRadius: 14,
+                  padding: '16px',
+                  border: '1px solid var(--mantine-color-default-border)',
+                  borderLeft: '4px solid var(--mantine-color-indigo-6)',
+                  textAlign: 'left',
+                }}
+              >
+                <Group justify="space-between" wrap="nowrap" align="flex-start">
+                  <div style={{ minWidth: 0 }}>
+                    <Text fw={700}>{d.name}</Text>
                     <Text size="sm" c="dimmed">
-                      Prefix {d.prefix}
+                      View bracket seeding
                     </Text>
-                  )}
-                </div>
-                <Badge variant="light">
-                  {d.division_type === 'TEAMS' ? 'Teams' : 'Individuals'}
-                </Badge>
-              </Group>
-            </UnstyledButton>
-          ))}
+                  </div>
+                  <Badge color="indigo" variant="light">
+                    {d.division_type === 'TEAMS' ? 'Teams' : 'Individuals'}
+                  </Badge>
+                </Group>
+              </UnstyledButton>
+            ))}
+          </Stack>
         </Stack>
       )}
 
       {selected && (
-        <Stack gap="md">
+        <Stack gap="lg">
           <UnstyledButton
             onClick={() => setDivisionId(null)}
             style={{ alignSelf: 'flex-start' }}
@@ -109,9 +183,6 @@ export default function ParticipantBracketsPage() {
               ← All divisions
             </Text>
           </UnstyledButton>
-          <Text fw={700} size="lg">
-            {selected.name}
-          </Text>
 
           {loadingBrackets && <ParticipantLoading />}
 
@@ -119,66 +190,62 @@ export default function ParticipantBracketsPage() {
             <ParticipantEmpty>No brackets generated for this division yet.</ParticipantEmpty>
           )}
 
-          {!loadingBrackets && brackets.length > 0 && (
-            <Accordion variant="separated" radius="md" multiple>
-              {brackets.map((b: any) => {
-                const title = b.title?.trim()
-                  ? b.title
-                  : `Group ${b.index}`;
-                const slots = isTeams ? b.teams ?? [] : b.players ?? [];
-                return (
-                  <Accordion.Item key={b.id} value={String(b.id)}>
-                    <Accordion.Control>
-                      <Text fw={600}>{title}</Text>
-                      <Text size="xs" c="dimmed">
-                        {slots.length} {isTeams ? 'teams' : 'players'}
-                      </Text>
-                    </Accordion.Control>
-                    <Accordion.Panel>
-                      <Stack gap={8}>
-                        {slots.length === 0 && (
-                          <Text size="sm" c="dimmed">
-                            Empty group
-                          </Text>
-                        )}
-                        {[...slots]
-                          .sort(
-                            (a: any, bSlot: any) =>
-                              (a.bracket_idx ?? 0) - (bSlot.bracket_idx ?? 0)
-                          )
-                          .map((slot: any, idx: number) => (
-                            <Group
-                              key={`${b.id}-${slot.player_id ?? slot.team_id ?? idx}`}
-                              justify="space-between"
-                              wrap="nowrap"
-                              gap="sm"
-                            >
-                              <div style={{ minWidth: 0 }}>
-                                <Text size="sm" fw={600} truncate>
-                                  {slot.name ||
-                                    slot.code ||
-                                    (isTeams ? `Team ${slot.team_id}` : 'TBD')}
-                                </Text>
-                                {!isTeams && slot.club && (
-                                  <Text size="xs" c="dimmed" truncate>
-                                    {slot.club}
-                                  </Text>
-                                )}
-                              </div>
-                              {(slot.code || slot.participant_number) && (
-                                <Badge variant="light" size="sm">
-                                  {slot.code || slot.participant_number}
-                                </Badge>
-                              )}
-                            </Group>
-                          ))}
-                      </Stack>
-                    </Accordion.Panel>
-                  </Accordion.Item>
-                );
-              })}
-            </Accordion>
-          )}
+          {!loadingBrackets &&
+            brackets.map((b: any) => {
+              const heading = groupHeading(selected.name, b);
+              const sizeOk = isTeams
+                ? (EXPANDED_SIZES_TEAMS as readonly number[]).includes(b.num_players)
+                : (EXPANDED_SIZES_INDIVIDUALS as readonly number[]).includes(b.num_players);
+
+              return (
+                <Paper
+                  key={b.id}
+                  withBorder
+                  radius="md"
+                  p="md"
+                  style={{
+                    borderLeft: '4px solid var(--mantine-color-indigo-6)',
+                  }}
+                >
+                  <Title order={3} mb="md" style={{ fontSize: '1.15rem' }}>
+                    {heading}
+                  </Title>
+                  {!sizeOk ? (
+                    <Text size="sm" c="dimmed">
+                      Bracket size {b.num_players} is not supported for display.
+                    </Text>
+                  ) : (
+                    <Box style={{ maxWidth: '100%', overflowX: 'auto' }}>
+                      {isTeams ? (
+                        <Expanded.Teams
+                          key={`teams-${b.id}-${bracketTheme}`}
+                          size={b.num_players as ExpandedSize}
+                          teams={toUITeamSlots(b as BracketWithTeams) as any}
+                          mode="view"
+                          theme={bracketTheme}
+                          teamIDFontFamily={DEFAULT_BOOKLET.playerId.fontFamily}
+                          teamIDFontSize={DEFAULT_BOOKLET.playerId.fontSize}
+                        />
+                      ) : (
+                        <Expanded.Individuals
+                          key={`individuals-${b.id}-${bracketTheme}`}
+                          size={b.num_players}
+                          players={
+                            toUIPlayersWithClubAbbrev(
+                              b as BracketWithPlayers,
+                              clubAbbrevByName
+                            ) as any
+                          }
+                          mode="view"
+                          theme={bracketTheme}
+                          textStyles={bracketTextStyles}
+                        />
+                      )}
+                    </Box>
+                  )}
+                </Paper>
+              );
+            })}
         </Stack>
       )}
     </ParticipantTournamentLayout>

@@ -5,6 +5,8 @@ export interface Player {
   club_id: number;
   /** Display name from clubs table (joined on reads). */
   club: string | null;
+  /** Club abbreviation from clubs table (joined on reads). */
+  club_abbreviation: string | null;
   code: string;
   created: string;
   wins: number;

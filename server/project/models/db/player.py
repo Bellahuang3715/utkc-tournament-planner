@@ -20,8 +20,9 @@ class PlayerInsertable(BaseModelORM):
 
 class Player(PlayerInsertable):
     id: PlayerId
-    # clubs.name via join on reads; omitted when inserting
+    # clubs.name / abbreviation via join on reads; omitted when inserting
     club: Optional[str] = None
+    club_abbreviation: Optional[str] = None
 
     def __hash__(self) -> int:
         return self.id

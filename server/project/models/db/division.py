@@ -60,3 +60,29 @@ class DivisionTeamsAttachBody(BaseModelORM):
 
 class DivisionTeamsDetachBody(BaseModelORM):
     team_ids: list[int]
+
+
+class PlayerMatchAssignment(BaseModelORM):
+    """One division/group placement for a participant (court TBD)."""
+
+    division_id: DivisionId
+    division_name: str
+    bracket_id: int | None = None
+    bracket_index: int | None = None
+    bracket_title: str | None = None
+    court_id: int | None = None
+
+
+class PlayerMatchDirectoryEntry(BaseModelORM):
+    """Searchable participant match row for the public /matches page."""
+
+    player_id: int
+    name: str
+    code: str | None = None
+    club: str | None = None
+    division_id: DivisionId | None = None
+    division_name: str | None = None
+    bracket_id: int | None = None
+    bracket_index: int | None = None
+    bracket_title: str | None = None
+    court_id: int | None = None

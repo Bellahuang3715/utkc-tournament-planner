@@ -1,5 +1,21 @@
-import { Alert, Anchor, Box, Group, Stack, Text, Title } from '@mantine/core';
 import {
+  Alert,
+  Anchor,
+  AppShell,
+  Burger,
+  Center,
+  Container,
+  Divider,
+  Group,
+  Stack,
+  Text,
+  Title,
+  Tooltip,
+  UnstyledButton,
+} from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
+import {
+  Icon,
   IconCalendar,
   IconHome,
   IconList,
@@ -15,24 +31,24 @@ import React, { ReactNode, useMemo } from 'react';
 
 import { TournamentPublic } from '../../interfaces/tournament';
 import { getPublicTournamentByEndpoint } from '../../services/adapter';
+import linkClasses from '../navbar/_main_links.module.css';
+import headerClasses from '../../pages/_layout.module.css';
 import { responseIsValid } from '../utils/util';
 
 /**
- * Participant-only shell. Intentionally separate from organizer Layout / TournamentLayout.
- * Mobile-first: bottom tab bar; desktop gets a simple top strip of the same links.
+ * Participant shell — same AppShell chrome as the organizer layout
+ * (header + left icon rail / mobile burger nav).
  */
-const NAV = [
-  { href: '', label: 'Home', short: 'Home', icon: IconHome },
-  { href: '/matches', label: 'Find matches', short: 'Find', icon: IconSearch },
-  { href: '/participants', label: 'Players', short: 'Players', icon: IconUsers },
-  { href: '/schedule', label: 'Schedule', short: 'Sched', icon: IconCalendar },
-  { href: '/courts', label: 'Courts', short: 'Courts', icon: IconMapPin },
-  { href: '/brackets', label: 'Brackets', short: 'Brackets', icon: IconList },
-  { href: '/scores', label: 'Scores', short: 'Scores', icon: IconScoreboard },
-  { href: '/results', label: 'Results', short: 'Results', icon: IconTrophy },
-] as const;
-
-const BOTTOM_PAD = 72;
+const NAV: { href: string; label: string; icon: Icon }[] = [
+  { href: '', label: 'Home', icon: IconHome },
+  { href: '/matches', label: 'Find matches', icon: IconSearch },
+  { href: '/participants', label: 'Players', icon: IconUsers },
+  { href: '/schedule', label: 'Schedule', icon: IconCalendar },
+  { href: '/courts', label: 'Courts', icon: IconMapPin },
+  { href: '/brackets', label: 'Brackets', icon: IconList },
+  { href: '/scores', label: 'Scores', icon: IconScoreboard },
+  { href: '/results', label: 'Results', icon: IconTrophy },
+];
 
 function previewQuery(preview: string | string[] | undefined): string {
   if (typeof preview === 'string' && preview.length > 0) {
@@ -52,6 +68,52 @@ export function useParticipantTournamentSlug() {
 /** @deprecated use useParticipantTournamentSlug */
 export const usePublicTournamentSlug = useParticipantTournamentSlug;
 
+function ParticipantNavLink({
+  href,
+  label,
+  icon: NavIcon,
+  active,
+  onNavigate,
+}: {
+  href: string;
+  label: string;
+  icon: Icon;
+  active: boolean;
+  onNavigate?: () => void;
+}) {
+  return (
+    <>
+      <Tooltip position="right" label={label} transitionProps={{ duration: 0 }}>
+        <UnstyledButton
+          visibleFrom="sm"
+          component={Link}
+          href={href}
+          className={linkClasses.link}
+          data-active={active || undefined}
+          onClick={onNavigate}
+        >
+          <NavIcon stroke={1.5} />
+        </UnstyledButton>
+      </Tooltip>
+      <UnstyledButton
+        hiddenFrom="sm"
+        component={Link}
+        href={href}
+        className={linkClasses.mobileLink}
+        style={{ width: '100%' }}
+        data-active={active || undefined}
+        onClick={onNavigate}
+      >
+        <Group className={linkClasses.mobileLinkGroup}>
+          <NavIcon stroke={1.5} />
+          <p style={{ marginLeft: '0.5rem' }}>{label}</p>
+        </Group>
+        <Divider />
+      </UnstyledButton>
+    </>
+  );
+}
+
 export default function ParticipantTournamentLayout({
   children,
   title,
@@ -60,6 +122,7 @@ export default function ParticipantTournamentLayout({
   title?: string;
 }) {
   const router = useRouter();
+  const [opened, { toggle, close }] = useDisclosure();
   const { slug, preview, previewQs } = useParticipantTournamentSlug();
   const swr = getPublicTournamentByEndpoint(slug || null, preview);
   const tournament: TournamentPublic | null = responseIsValid(swr)
@@ -80,87 +143,86 @@ export default function ParticipantTournamentLayout({
         const activePath = `${base}${item.href}`.replace(/\/+$/, '') || base;
         const active =
           path === activePath || (item.href === '' && path === base);
-        const Icon = item.icon;
-        return { ...item, href, active, Icon };
+        return { ...item, href, active };
       }),
     [base, path, previewQs]
   );
 
   return (
-    <Box
-      style={{
-        minHeight: '100dvh',
-        display: 'flex',
-        flexDirection: 'column',
-        background: 'var(--mantine-color-body)',
+    <AppShell
+      header={{ height: 60 }}
+      navbar={{
+        width: 80,
+        breakpoint: 'sm',
+        collapsed: { mobile: !opened },
       }}
+      padding="md"
     >
-      <Box
-        component="header"
-        px="md"
-        py="sm"
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 20,
-          borderBottom: '1px solid var(--mantine-color-default-border)',
-          background: 'var(--mantine-color-body)',
-        }}
-      >
-        <Group justify="space-between" align="flex-start" wrap="nowrap" gap="sm">
-          <div style={{ minWidth: 0 }}>
-            <Text size="xs" c="dimmed" lh={1.2}>
-              Participant
+      <AppShell.Header>
+        <Container className={headerClasses.inner} fluid>
+          <Center>
+            <Burger
+              opened={opened}
+              onClick={toggle}
+              hiddenFrom="sm"
+              size="sm"
+              mr="xs"
+              aria-label="Open navigation"
+            />
+            <Center mr="1rem">
+              <UnstyledButton component={Link} href={`${base}${previewQs}`}>
+                <Group>
+                  <Title style={{ height: '38px', marginBottom: '0.4rem' }}>
+                    Bracket
+                  </Title>
+                </Group>
+              </UnstyledButton>
+            </Center>
+            <Stack visibleFrom="md" gap={0} mt="0.1rem" justify="center">
+              <Text size="xs" c="dimmed" lh={1.1}>
+                Participant View
+              </Text>
+              <h2 style={{ margin: 0, lineHeight: 1.2 }}>
+                / {tournament?.name ?? title ?? 'Tournament'}
+              </h2>
+            </Stack>
+          </Center>
+          <Stack hiddenFrom="md" gap={0} align="flex-end" style={{ minWidth: 0 }}>
+            <Text size="xs" c="dimmed" lh={1.1}>
+              Participant View
             </Text>
-            <Title order={3} lh={1.25} lineClamp={2} style={{ fontSize: '1.15rem' }}>
+            <Text size="sm" fw={600} lineClamp={1} maw={160}>
               {tournament?.name ?? title ?? 'Tournament'}
-            </Title>
-          </div>
-          <Anchor
-            component={Link}
-            href="/join"
-            size="sm"
-            style={{ flexShrink: 0 }}
-          >
-            Change
-          </Anchor>
-        </Group>
+            </Text>
+          </Stack>
+        </Container>
+      </AppShell.Header>
+
+      <AppShell.Navbar p="md">
+        <AppShell.Section grow>
+          <Center hiddenFrom="sm">
+            <h2>Participant</h2>
+          </Center>
+          <Divider hiddenFrom="sm" />
+          {links.map((item) => (
+            <ParticipantNavLink
+              key={item.href}
+              href={item.href}
+              label={item.label}
+              icon={item.icon}
+              active={item.active}
+              onNavigate={close}
+            />
+          ))}
+        </AppShell.Section>
+      </AppShell.Navbar>
+
+      <AppShell.Main>
         {preview && (
-          <Alert color="yellow" mt="sm" py={6} px="sm">
+          <Alert color="yellow" mb="md" py={6} px="sm">
             Preview — not published yet
           </Alert>
         )}
-
-        {/* Desktop-only horizontal nav (organizer can ignore; participants mostly mobile) */}
-        <Group gap="md" mt="sm" visibleFrom="sm" wrap="wrap">
-          {links.map((item) => (
-            <Anchor
-              key={item.href}
-              component={Link}
-              href={item.href}
-              underline="never"
-              c={item.active ? 'blue' : 'dimmed'}
-              fw={item.active ? 700 : 500}
-              size="sm"
-            >
-              {item.label}
-            </Anchor>
-          ))}
-        </Group>
-      </Box>
-
-      <Box
-        component="main"
-        px="md"
-        pt="md"
-        style={{
-          flex: 1,
-          width: '100%',
-          maxWidth: 720,
-          margin: '0 auto',
-          paddingBottom: `calc(${BOTTOM_PAD}px + env(safe-area-inset-bottom, 0px))`,
-        }}
-      >
         {isMissing && (
           <Alert color="red" title="Not found">
             This tournament code is invalid.{' '}
@@ -177,54 +239,8 @@ export default function ParticipantTournamentLayout({
           </Alert>
         )}
         {!isMissing && !isForbidden && children}
-      </Box>
-
-      {/* Mobile bottom nav */}
-      <Box
-        component="nav"
-        hiddenFrom="sm"
-        style={{
-          position: 'fixed',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 30,
-          borderTop: '1px solid var(--mantine-color-default-border)',
-          background: 'var(--mantine-color-body)',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          overflowX: 'auto',
-          WebkitOverflowScrolling: 'touch',
-        }}
-      >
-        <Group gap={0} wrap="nowrap" px={4} justify="flex-start">
-          {links.map((item) => {
-            const Icon = item.Icon;
-            return (
-              <Anchor
-                key={item.href}
-                component={Link}
-                href={item.href}
-                underline="never"
-                c={item.active ? 'blue' : 'dimmed'}
-                style={{
-                  flex: '0 0 auto',
-                  minWidth: 64,
-                  padding: '8px 6px',
-                  textAlign: 'center',
-                }}
-              >
-                <Stack gap={2} align="center">
-                  <Icon size={20} stroke={item.active ? 2 : 1.5} />
-                  <Text size="10px" fw={item.active ? 700 : 500} lh={1.1}>
-                    {item.short}
-                  </Text>
-                </Stack>
-              </Anchor>
-            );
-          })}
-        </Group>
-      </Box>
-    </Box>
+      </AppShell.Main>
+    </AppShell>
   );
 }
 

@@ -3,6 +3,8 @@ from project.models.db.division import (
     Division,
     DivisionCreateBody,
     DivisionUpdateBody,
+    PlayerMatchAssignment,
+    PlayerMatchDirectoryEntry,
 )
 from project.utils.id_types import DivisionId, TeamId, TournamentId
 from project.models.db.player import PlayerInDivision
@@ -117,6 +119,83 @@ async def sql_get_divisions_for_player(
         values={"tournament_id": tournament_id, "player_id": player_id},
     )
     return [Division.model_validate(dict(r._mapping)) for r in results]
+
+
+async def sql_get_match_assignments_for_player(
+    tournament_id: TournamentId,
+    player_id: int,
+) -> list[PlayerMatchAssignment]:
+    """Division + bracket/group for a player. Court assignment not wired yet."""
+    query = """
+        SELECT
+            d.id AS division_id,
+            d.name AS division_name,
+            b.id AS bracket_id,
+            b."index" AS bracket_index,
+            b.title AS bracket_title,
+            NULL::bigint AS court_id
+        FROM divisions d
+        JOIN players_x_divisions pxd
+          ON pxd.division_id = d.id
+         AND pxd.player_id = :player_id
+        LEFT JOIN brackets b
+          ON b.division_id = d.id
+         AND (b.title IS DISTINCT FROM 'Finals')
+         AND EXISTS (
+            SELECT 1
+            FROM players_x_brackets pxb
+            WHERE pxb.bracket_id = b.id
+              AND pxb.player_id = :player_id
+         )
+        WHERE d.tournament_id = :tournament_id
+        ORDER BY d.name, d.id, b."index" NULLS LAST, b.id NULLS LAST
+    """
+    results = await database.fetch_all(
+        query=query,
+        values={"tournament_id": tournament_id, "player_id": player_id},
+    )
+    return [PlayerMatchAssignment.model_validate(dict(r._mapping)) for r in results]
+
+
+async def sql_get_match_directory_for_tournament(
+    tournament_id: TournamentId,
+) -> list[PlayerMatchDirectoryEntry]:
+    """All players with their division/group (one row per assignment; court TBD)."""
+    query = """
+        SELECT
+            p.id AS player_id,
+            p.name,
+            p.code,
+            c.name AS club,
+            d.id AS division_id,
+            d.name AS division_name,
+            b.id AS bracket_id,
+            b."index" AS bracket_index,
+            b.title AS bracket_title,
+            NULL::bigint AS court_id
+        FROM players p
+        JOIN clubs c ON c.id = p.club_id
+        LEFT JOIN players_x_divisions pxd ON pxd.player_id = p.id
+        LEFT JOIN divisions d
+          ON d.id = pxd.division_id
+         AND d.tournament_id = :tournament_id
+        LEFT JOIN brackets b
+          ON b.division_id = d.id
+         AND (b.title IS DISTINCT FROM 'Finals')
+         AND EXISTS (
+            SELECT 1
+            FROM players_x_brackets pxb
+            WHERE pxb.bracket_id = b.id
+              AND pxb.player_id = p.id
+         )
+        WHERE p.tournament_id = :tournament_id
+        ORDER BY p.name, p.id, d.name NULLS LAST, b."index" NULLS LAST
+    """
+    results = await database.fetch_all(
+        query=query,
+        values={"tournament_id": tournament_id},
+    )
+    return [PlayerMatchDirectoryEntry.model_validate(dict(r._mapping)) for r in results]
 
 
 async def sql_get_players_for_division(division_id: DivisionId) -> list[PlayerInDivision]:
