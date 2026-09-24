@@ -14,6 +14,7 @@ class ScheduleTimeblock(BaseModelORM):
     label: str
     division_id: DivisionId | None = None
     bracket_id: BracketId | None = None
+    color: str | None = None
 
 
 class ScheduleTimeblockBody(BaseModelORM):
@@ -25,6 +26,7 @@ class ScheduleTimeblockBody(BaseModelORM):
     label: str
     division_id: DivisionId | None = None
     bracket_id: BracketId | None = None
+    color: str | None = None
 
 
 class ScheduleCustomBlock(BaseModelORM):

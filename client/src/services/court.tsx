@@ -18,6 +18,17 @@ export async function updateCourt(tournament_id: number, court_id: number, name:
   }
 }
 
+export async function reorderCourts(tournament_id: number, court_ids: number[]) {
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.put(`tournaments/${tournament_id}/courts/reorder`, {
+      court_ids,
+    });
+  } catch (error: any) {
+    handleRequestError(error);
+  }
+}
+
 export async function deleteCourt(tournament_id: number, court_id: number) {
   try {
     const axiosInstance = await createAxios();

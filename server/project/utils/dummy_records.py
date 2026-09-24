@@ -245,10 +245,12 @@ DUMMY_COURT1 = CourtInsertable(
     name="Court 1",
     created=DUMMY_MOCK_TIME,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
+    display_order=0,
 )
 
 DUMMY_COURT2 = CourtInsertable(
     name="Court 2",
     created=DUMMY_MOCK_TIME,
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
+    display_order=1,
 )

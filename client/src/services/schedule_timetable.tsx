@@ -13,6 +13,7 @@ function toApiPayload(payload: TournamentSchedulePayload) {
       label: p.label,
       division_id: p.divisionId ?? null,
       bracket_id: p.bracketId ?? null,
+      color: p.color ?? null,
     })),
     custom_blocks: payload.customBlocks.map((b) => ({
       id: b.id,

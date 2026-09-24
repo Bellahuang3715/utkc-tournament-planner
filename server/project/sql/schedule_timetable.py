@@ -10,7 +10,7 @@ from project.utils.id_types import TournamentId
 
 async def get_schedule_placements(tournament_id: TournamentId) -> list[ScheduleTimeblock]:
     query = """
-        SELECT id, tournament_id, court_id, start_time, duration_mins, kind, label, division_id, bracket_id
+        SELECT id, tournament_id, court_id, start_time, duration_mins, kind, label, division_id, bracket_id, color
         FROM schedule_timeblocks
         WHERE tournament_id = :tournament_id
         ORDER BY start_time, id
@@ -48,9 +48,9 @@ async def replace_schedule(
         await database.execute(
             query="""
                 INSERT INTO schedule_timeblocks
-                    (tournament_id, court_id, start_time, duration_mins, kind, label, division_id, bracket_id)
+                    (tournament_id, court_id, start_time, duration_mins, kind, label, division_id, bracket_id, color)
                 VALUES
-                    (:tournament_id, :court_id, :start_time, :duration_mins, :kind, :label, :division_id, :bracket_id)
+                    (:tournament_id, :court_id, :start_time, :duration_mins, :kind, :label, :division_id, :bracket_id, :color)
             """,
             values={
                 "tournament_id": tournament_id,
@@ -61,6 +61,7 @@ async def replace_schedule(
                 "label": p.label,
                 "division_id": p.division_id,
                 "bracket_id": p.bracket_id,
+                "color": p.color,
             },
         )
 

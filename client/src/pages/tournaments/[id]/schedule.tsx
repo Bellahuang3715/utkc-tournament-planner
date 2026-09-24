@@ -1,21 +1,9 @@
-import interactionPlugin, { Draggable, EventReceiveArg } from '@fullcalendar/interaction';
-import FullCalendar from '@fullcalendar/react';
-import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid';
-import type {
-  DateSelectArg,
-  EventContentArg,
-  EventDropArg,
-  EventInput,
-} from '@fullcalendar/core';
-import type { EventResizeDoneArg } from '@fullcalendar/interaction';
-import type { ResourceInput } from '@fullcalendar/resource';
 import {
   ActionIcon,
   Box,
   Button,
   Card,
   Group,
-  Menu,
   Modal,
   NumberInput,
   Stack,
@@ -23,14 +11,19 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
-import { IconDots, IconPencil, IconTrash } from '@tabler/icons-react';
+import { showNotification } from '@mantine/notifications';
+import { IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'next-i18next/pages';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SWRResponse } from 'swr';
 import { v4 as uuidv4 } from 'uuid';
 
 import CourtModal from '../../../components/modals/create_court_modal';
+import CourtTimetable, {
+  PaletteDragPayload,
+  colorForDivision,
+} from '../../../components/schedule/CourtTimetable';
 import { getTournamentIdFromRouter, responseIsValid } from '../../../components/utils/util';
 import { Court } from '../../../interfaces/court';
 import type {
@@ -39,34 +32,27 @@ import type {
   SchedulePlacement,
   TimetableConfig,
 } from '../../../interfaces/schedule_timetable';
-import { getCourts, getScheduleTimetable, getTournamentById } from '../../../services/adapter';
-import { deleteCourt, updateCourt } from '../../../services/court';
+import {
+  getCourts,
+  getScheduleTimetable,
+  getTournamentById,
+  requestSucceeded,
+} from '../../../services/adapter';
+import { deleteCourt, reorderCourts, updateCourt } from '../../../services/court';
 import { fetchScheduleBlocks } from '../../../services/division';
 import { stringToColour } from '../../../services/lookups';
 import { saveScheduleTimetable } from '../../../services/schedule_timetable';
-import { getTimetableConfigKey, SNAP_GRID_MINS } from '../../../utils/schedule_timetable';
+import {
+  SNAP_GRID_MINS,
+  getTimetableConfigKey,
+  snapDurationMins,
+} from '../../../utils/schedule_timetable';
 import TournamentLayout from '../_tournament_layout';
 
 const DEFAULT_CONFIG: TimetableConfig = {
   startTime: '09:00',
   endTime: '17:00',
   intervalMins: 5,
-};
-
-/** Map Mantine palette names from stringToColour → hex for FullCalendar. */
-const COLOR_HEX: Record<string, string> = {
-  pink: '#e64980',
-  violet: '#7950f2',
-  green: '#40c057',
-  blue: '#228be6',
-  red: '#fa5252',
-  grape: '#be4bdb',
-  indigo: '#4c6ef5',
-  cyan: '#15aabf',
-  orange: '#fd7e14',
-  yellow: '#fab005',
-  teal: '#12b886',
-  gray: '#868e96',
 };
 
 function loadConfig(tournamentId: number): TimetableConfig {
@@ -90,46 +76,35 @@ function saveConfig(tournamentId: number, config: TimetableConfig) {
   localStorage.setItem(getTimetableConfigKey(tournamentId), JSON.stringify(config));
 }
 
-function toHhMmSs(hhmm: string): string {
-  const [h, m] = hhmm.split(':');
-  return `${h.padStart(2, '0')}:${(m ?? '00').padStart(2, '0')}:00`;
+type SavedSchedule = {
+  placements: SchedulePlacement[];
+  customBlocks: ScheduleCustomBlock[];
+};
+
+function parseSavedSchedule(data: any): SavedSchedule {
+  const placements: SchedulePlacement[] = (data?.placements ?? []).map((p: any) => ({
+    id: String(p.id ?? uuidv4()),
+    courtId: Number(p.court_id ?? p.courtId),
+    startTime: String(p.start_time ?? p.startTime),
+    kind: p.kind === 'custom' ? 'custom' : 'division',
+    divisionId: p.division_id ?? p.divisionId,
+    bracketId: p.bracket_id ?? p.bracketId,
+    label: String(p.label ?? 'Block'),
+    durationMins: Number(p.duration_mins ?? p.durationMins ?? 0),
+    color: p.color ?? null,
+  }));
+  const customBlocks: ScheduleCustomBlock[] = (data?.custom_blocks ?? data?.customBlocks ?? []).map(
+    (b: any) => ({
+      id: String(b.id ?? uuidv4()),
+      label: String(b.label ?? 'Custom'),
+      durationMins: Number(b.duration_mins ?? b.durationMins ?? 30),
+    })
+  );
+  return { placements, customBlocks };
 }
 
-function colorForPlacement(p: SchedulePlacement): string {
-  if (p.kind === 'division' && p.divisionId != null) {
-    return COLOR_HEX[stringToColour(String(p.divisionId))] ?? COLOR_HEX.blue;
-  }
-  return COLOR_HEX.gray;
-}
-
-function colorForBlock(divisionId: number): string {
-  return COLOR_HEX[stringToColour(String(divisionId))] ?? COLOR_HEX.blue;
-}
-
-function placementToEvent(p: SchedulePlacement): EventInput {
-  const start = new Date(p.startTime);
-  const end = new Date(start.getTime() + p.durationMins * 60 * 1000);
-  const color = colorForPlacement(p);
-  return {
-    id: p.id,
-    title: p.label,
-    start,
-    end,
-    resourceId: String(p.courtId),
-    backgroundColor: color,
-    borderColor: color,
-    extendedProps: {
-      kind: p.kind,
-      divisionId: p.divisionId,
-      bracketId: p.bracketId,
-      divisionName: p.divisionName,
-      bracketName: p.bracketName,
-    },
-  };
-}
-
-function durationMinsBetween(start: Date, end: Date): number {
-  return Math.max(1, Math.round((end.getTime() - start.getTime()) / 60000));
+function scheduleFingerprint(schedule: SavedSchedule): string {
+  return JSON.stringify(schedule);
 }
 
 function TimetableConfigForm({
@@ -206,44 +181,46 @@ function TimetableConfigForm({
 
 function ScheduleBlockCard({
   block,
+  onDragStart,
 }: {
   block: ScheduleBlock;
+  onDragStart: (payload: PaletteDragPayload) => void;
 }) {
   const color = stringToColour(String(block.divisionId));
-  const eventPayload = JSON.stringify({
-    title: `${block.divisionName} – ${block.bracketName}`,
-    duration: { minutes: block.estimatedMins },
-    create: true,
-    backgroundColor: colorForBlock(block.divisionId),
-    borderColor: colorForBlock(block.divisionId),
-    extendedProps: {
-      kind: 'division',
-      divisionId: block.divisionId,
-      bracketId: block.bracketId,
-      divisionName: block.divisionName,
-      bracketName: block.bracketName,
-    },
-  });
+  const durationMins = snapDurationMins(block.estimatedMins, SNAP_GRID_MINS);
   return (
-    <div data-event={eventPayload} style={{ cursor: 'grab' }}>
-      <Card
-        withBorder
-        padding="sm"
-        radius="md"
-        style={{
-          backgroundColor: `var(--mantine-color-${color}-1)`,
-          borderColor: `var(--mantine-color-${color}-3)`,
-          pointerEvents: 'none',
-        }}
-      >
-        <Text size="sm" fw={600}>
-          {block.divisionName} – {block.bracketName}
-        </Text>
-        <Text size="xs" c="dimmed">
-          {block.estimatedMins} mins ({block.numPlayers} players)
-        </Text>
-      </Card>
-    </div>
+    <Card
+      withBorder
+      padding="sm"
+      radius="md"
+      style={{
+        backgroundColor: `var(--mantine-color-${color}-1)`,
+        borderColor: `var(--mantine-color-${color}-3)`,
+        cursor: 'grab',
+      }}
+      onPointerDown={(e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        onDragStart({
+          source: 'palette',
+          kind: 'division',
+          label: `${block.divisionName} – ${block.bracketName}`,
+          durationMins,
+          divisionId: block.divisionId,
+          bracketId: block.bracketId,
+          divisionName: block.divisionName,
+          bracketName: block.bracketName,
+          color: colorForDivision(block.divisionId),
+        });
+      }}
+    >
+      <Text size="sm" fw={600}>
+        {block.divisionName} – {block.bracketName}
+      </Text>
+      <Text size="xs" c="dimmed">
+        {durationMins} mins ({block.numPlayers} players)
+      </Text>
+    </Card>
   );
 }
 
@@ -275,15 +252,14 @@ export default function SchedulePage() {
   const [customDuration, setCustomDuration] = useState<number>(30);
   const [configLoaded, setConfigLoaded] = useState(false);
   const [scheduleLoaded, setScheduleLoaded] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [savedSchedule, setSavedSchedule] = useState<SavedSchedule>({
+    placements: [],
+    customBlocks: [],
+  });
+  const [saving, setSaving] = useState(false);
   const [courtToRename, setCourtToRename] = useState<Court | null>(null);
   const [renameCourtName, setRenameCourtName] = useState('');
-
-  const sidebarRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [paletteDrag, setPaletteDrag] = useState<PaletteDragPayload | null>(null);
 
   useEffect(() => {
     setConfigState(loadConfig(tournamentData.id));
@@ -292,31 +268,13 @@ export default function SchedulePage() {
   }, [tournamentData.id]);
 
   useEffect(() => {
-    if (!responseIsValid(swrSchedule)) return;
-    const data = swrSchedule.data?.data;
-    const nextPlacements: SchedulePlacement[] = (data?.placements ?? []).map((p: any) => ({
-      id: String(p.id ?? uuidv4()),
-      courtId: Number(p.court_id ?? p.courtId),
-      startTime: String(p.start_time ?? p.startTime),
-      kind: p.kind === 'custom' ? 'custom' : 'division',
-      divisionId: p.division_id ?? p.divisionId,
-      bracketId: p.bracket_id ?? p.bracketId,
-      label: String(p.label ?? 'Block'),
-      durationMins: Number(p.duration_mins ?? p.durationMins ?? 0),
-    }));
-    const nextCustomBlocks: ScheduleCustomBlock[] = (
-      data?.custom_blocks ??
-      data?.customBlocks ??
-      []
-    ).map((b: any) => ({
-      id: String(b.id ?? uuidv4()),
-      label: String(b.label ?? 'Custom'),
-      durationMins: Number(b.duration_mins ?? b.durationMins ?? 30),
-    }));
-    setPlacements(nextPlacements);
-    setCustomBlocks(nextCustomBlocks);
+    if (scheduleLoaded || !responseIsValid(swrSchedule)) return;
+    const next = parseSavedSchedule(swrSchedule.data?.data);
+    setPlacements(next.placements);
+    setCustomBlocks(next.customBlocks);
+    setSavedSchedule(next);
     setScheduleLoaded(true);
-  }, [swrSchedule.data, swrSchedule.isValidating]);
+  }, [scheduleLoaded, swrSchedule.data, swrSchedule]);
 
   useEffect(() => {
     if (!tournamentData.id) return;
@@ -333,200 +291,69 @@ export default function SchedulePage() {
     [tournamentData.id, configLoaded]
   );
 
-  useEffect(() => {
-    if (!scheduleLoaded) return;
-    const timer = window.setTimeout(() => {
-      void saveScheduleTimetable(tournamentData.id, {
-        placements,
-        customBlocks,
-      });
-    }, 300);
-    return () => window.clearTimeout(timer);
-  }, [scheduleLoaded, tournamentData.id, placements, customBlocks]);
-
-  // External sidebar → calendar drag (FullCalendar Draggable)
-  useEffect(() => {
-    if (!mounted || !sidebarRef.current) return;
-    const draggable = new Draggable(sidebarRef.current, {
-      itemSelector: '[data-event]',
-      eventData(el) {
-        const raw = el.getAttribute('data-event');
-        if (!raw) return {};
-        try {
-          return JSON.parse(raw);
-        } catch {
-          return {};
-        }
-      },
-    });
-    return () => draggable.destroy();
-  }, [mounted, blocks, customBlocks]);
-
-  const resources: ResourceInput[] = useMemo(
-    () => courts.map((c) => ({ id: String(c.id), title: c.name })),
-    [courts]
+  const dirty = useMemo(
+    () =>
+      scheduleFingerprint({ placements, customBlocks }) !== scheduleFingerprint(savedSchedule),
+    [placements, customBlocks, savedSchedule]
   );
 
-  const events: EventInput[] = useMemo(() => placements.map(placementToEvent), [placements]);
+  const saveSchedule = useCallback(async () => {
+    setSaving(true);
+    try {
+      const next = { placements, customBlocks };
+      const result = await saveScheduleTimetable(tournamentData.id, next);
+      if (result && requestSucceeded(result)) {
+        setSavedSchedule(next);
+        showNotification({
+          color: 'green',
+          title: 'Schedule saved',
+          message: 'Time blocks were saved.',
+        });
+      }
+    } finally {
+      setSaving(false);
+    }
+  }, [customBlocks, placements, tournamentData.id]);
+
+  const cancelScheduleEdits = useCallback(() => {
+    setPlacements(savedSchedule.placements);
+    setCustomBlocks(savedSchedule.customBlocks);
+  }, [savedSchedule]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [dirty]);
 
   const removePlacement = useCallback((id: string) => {
     setPlacements((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
-  const handleEventReceive = useCallback(
-    (info: EventReceiveArg) => {
-      const resource = info.event.getResources()[0];
-      const courtId = resource ? Number(resource.id) : NaN;
-      const start = info.event.start;
-      const end = info.event.end;
-      if (!start || !end || Number.isNaN(courtId)) {
-        info.revert();
-        return;
-      }
-
-      const ext = info.event.extendedProps as Record<string, unknown>;
-      const kind = ext.kind === 'custom' ? 'custom' : 'division';
-      const durationMins = durationMinsBetween(start, end);
-      const id = uuidv4();
-
-      const placement: SchedulePlacement = {
-        id,
-        courtId,
-        startTime: start.toISOString(),
-        kind,
-        label: info.event.title || 'Block',
-        durationMins,
-        ...(kind === 'division'
-          ? {
-              divisionId: Number(ext.divisionId),
-              bracketId: Number(ext.bracketId),
-              divisionName: String(ext.divisionName ?? ''),
-              bracketName: String(ext.bracketName ?? ''),
-            }
-          : {}),
-      };
-
-      // Dropped event is temporary; React state is source of truth.
-      info.event.remove();
-      setPlacements((prev) => [...prev, placement]);
-    },
-    []
-  );
-
-  const handleEventDrop = useCallback((info: EventDropArg) => {
-    const resource = info.event.getResources()[0];
-    const courtId = resource ? Number(resource.id) : NaN;
-    const start = info.event.start;
-    const end = info.event.end;
-    if (!start || !end || Number.isNaN(courtId)) {
-      info.revert();
-      return;
-    }
-    const id = info.event.id;
-    setPlacements((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              courtId,
-              startTime: start.toISOString(),
-              durationMins: durationMinsBetween(start, end),
-            }
-          : p
-      )
-    );
-  }, []);
-
-  const handleEventResize = useCallback((info: EventResizeDoneArg) => {
-    const start = info.event.start;
-    const end = info.event.end;
-    if (!start || !end) {
-      info.revert();
-      return;
-    }
-    const id = info.event.id;
-    setPlacements((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              startTime: start.toISOString(),
-              durationMins: durationMinsBetween(start, end),
-            }
-          : p
-      )
-    );
-  }, []);
-
-  const handleSelect = useCallback((arg: DateSelectArg) => {
-    // Optional: create a quick custom block by dragging empty range
-    const courtId = arg.resource ? Number(arg.resource.id) : NaN;
-    if (Number.isNaN(courtId) || !arg.start || !arg.end) return;
-    const durationMins = durationMinsBetween(arg.start, arg.end);
-    setPlacements((prev) => [
-      ...prev,
-      {
-        id: uuidv4(),
-        courtId,
-        startTime: arg.start.toISOString(),
-        kind: 'custom',
-        label: 'Break / Buffer',
-        durationMins,
-      },
-    ]);
-  }, []);
-
-  const renderEventContent = useCallback(
-    (arg: EventContentArg) => {
-      const mins = arg.event.start && arg.event.end
-        ? durationMinsBetween(arg.event.start, arg.event.end)
-        : 0;
-      return (
-        <div
-          style={{
-            height: '100%',
-            padding: '2px 4px',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: 600, lineHeight: 1.2 }}>{arg.event.title}</span>
-            <button
-              type="button"
-              title="Remove"
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.stopPropagation();
-                removePlacement(arg.event.id);
-              }}
-              style={{
-                border: 'none',
-                background: 'transparent',
-                color: 'inherit',
-                cursor: 'pointer',
-                padding: 0,
-                lineHeight: 1,
-                opacity: 0.85,
-                fontSize: 12,
-              }}
-            >
-              ×
-            </button>
-          </div>
-          <span style={{ fontSize: 10, opacity: 0.85 }}>{mins} mins</span>
-        </div>
+  const moveCourt = useCallback(
+    async (courtId: number, direction: -1 | 1) => {
+      const index = courts.findIndex((c) => c.id === courtId);
+      const target = index + direction;
+      if (index < 0 || target < 0 || target >= courts.length) return;
+      const next = [...courts];
+      const [item] = next.splice(index, 1);
+      next.splice(target, 0, item);
+      await reorderCourts(
+        tournamentData.id,
+        next.map((c) => c.id)
       );
+      await swrCourts.mutate();
     },
-    [removePlacement]
+    [courts, tournamentData.id, swrCourts]
   );
 
   if (!responseIsValid(swrCourts)) return null;
 
   const hasCourts = courts.length > 0;
-  const snap = `00:${String(SNAP_GRID_MINS).padStart(2, '0')}:00`;
 
   return (
     <TournamentLayout tournament_id={tournamentData.id}>
@@ -588,110 +415,60 @@ export default function SchedulePage() {
 
             {hasCourts && (
               <>
-                <Group mb="sm" gap="xs" wrap="wrap">
-                  {courts.map((court) => (
-                    <Card key={court.id} withBorder padding="xs" radius="md">
-                      <Group gap={6} wrap="nowrap">
-                        <Text size="sm" fw={600}>
-                          {court.name}
-                        </Text>
-                        <Menu withinPortal position="bottom-end" shadow="sm">
-                          <Menu.Target>
-                            <ActionIcon variant="subtle" size="sm" color="gray">
-                              <IconDots size={14} />
-                            </ActionIcon>
-                          </Menu.Target>
-                          <Menu.Dropdown>
-                            <Menu.Item
-                              leftSection={<IconPencil size={14} />}
-                              onClick={() => {
-                                setCourtToRename(court);
-                                setRenameCourtName(court.name);
-                              }}
-                            >
-                              {t('rename_court')}
-                            </Menu.Item>
-                            <Menu.Item
-                              leftSection={<IconTrash size={14} />}
-                              color="red"
-                              onClick={async () => {
-                                setPlacements((prev) =>
-                                  prev.filter((p) => p.courtId !== court.id)
-                                );
-                                await deleteCourt(tournamentData.id, court.id);
-                                await swrCourts.mutate();
-                              }}
-                            >
-                              {t('delete_court_button')}
-                            </Menu.Item>
-                          </Menu.Dropdown>
-                        </Menu>
-                      </Group>
-                    </Card>
-                  ))}
-                  <CourtModal
-                    tournamentId={tournamentData.id}
-                    swrCourtsResponse={swrCourts as SWRResponse}
-                    buttonSize="xs"
-                  />
+                <Group mb="sm" justify="space-between" align="center">
+                  <Text size="sm" c={dirty ? 'orange' : 'dimmed'}>
+                    {dirty ? 'Unsaved time block changes' : 'Time blocks are saved'}
+                  </Text>
+                  <Group gap="xs">
+                    <Button
+                      variant="default"
+                      size="xs"
+                      disabled={!dirty || saving}
+                      onClick={cancelScheduleEdits}
+                    >
+                      Cancel
+                    </Button>
+                    <Button size="xs" disabled={!dirty} loading={saving} onClick={() => void saveSchedule()}>
+                      Save
+                    </Button>
+                    <CourtModal
+                      tournamentId={tournamentData.id}
+                      swrCourtsResponse={swrCourts as SWRResponse}
+                      buttonSize="xs"
+                    />
+                  </Group>
                 </Group>
 
-                <Box
-                  style={{
-                    border: '1px solid var(--mantine-color-default-border)',
-                    borderRadius: 8,
-                    overflow: 'hidden',
-                    minHeight: 560,
-                    background: 'var(--mantine-color-body)',
+                <CourtTimetable
+                  courts={courts}
+                  placements={placements}
+                  config={config}
+                  scheduleDate={scheduleDate}
+                  onPlacementsChange={setPlacements}
+                  onRemovePlacement={removePlacement}
+                  paletteDrag={paletteDrag}
+                  onPaletteDragEnd={() => setPaletteDrag(null)}
+                  onRenameCourt={(court) => {
+                    setCourtToRename(court);
+                    setRenameCourtName(court.name);
                   }}
-                >
-                  {mounted && (
-                    <FullCalendar
-                      key={`fc-${scheduleDate.toISOString()}-${config.startTime}-${config.endTime}`}
-                      schedulerLicenseKey="GPL-My-Project-Is-Open-Source"
-                      plugins={[resourceTimeGridPlugin, interactionPlugin]}
-                      initialView="resourceTimeGridDay"
-                      initialDate={scheduleDate}
-                      headerToolbar={false}
-                      height="auto"
-                      resources={resources}
-                      events={events}
-                      editable
-                      droppable
-                      selectable
-                      selectMirror
-                      eventResizableFromStart
-                      eventOverlap={false}
-                      slotEventOverlap={false}
-                      allDaySlot={false}
-                      nowIndicator
-                      slotMinTime={toHhMmSs(config.startTime)}
-                      slotMaxTime={toHhMmSs(config.endTime)}
-                      slotDuration="00:30:00"
-                      snapDuration={snap}
-                      slotLabelFormat={{
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        meridiem: 'short',
-                      }}
-                      eventContent={renderEventContent}
-                      eventReceive={handleEventReceive}
-                      eventDrop={handleEventDrop}
-                      eventResize={handleEventResize}
-                      select={handleSelect}
-                    />
-                  )}
-                </Box>
+                  onDeleteCourt={async (court) => {
+                    setPlacements((prev) => prev.filter((p) => p.courtId !== court.id));
+                    await deleteCourt(tournamentData.id, court.id);
+                    await swrCourts.mutate();
+                  }}
+                  onMoveCourt={moveCourt}
+                />
                 <Text size="xs" c="dimmed" mt="xs">
-                  Drag blocks from the sidebar onto a court. Drag edges to resize. Drag empty time
-                  to add a buffer. Click × on a block to remove it.
+                  Drag blocks from the sidebar onto a court. Click a block to set its start, end,
+                  and color (division color applies to every block in that division). Use ← → in
+                  the header to reorder courts. Drag edges to resize. Overlaps are blocked.
                 </Text>
               </>
             )}
           </Box>
 
           <Box
-            ref={sidebarRef}
             style={{
               width: 260,
               flexShrink: 0,
@@ -748,55 +525,85 @@ export default function SchedulePage() {
               </Card>
 
               {customBlocks.map((b) => (
-                <div
+                <Card
                   key={b.id}
-                  data-event={JSON.stringify({
-                    title: b.label,
-                    duration: { minutes: b.durationMins },
-                    create: true,
-                    extendedProps: { kind: 'custom' },
-                  })}
+                  withBorder
+                  padding="sm"
+                  radius="md"
                   style={{ cursor: 'grab' }}
+                  onPointerDown={(e) => {
+                    if (e.button !== 0) return;
+                    if ((e.target as HTMLElement).closest('button')) return;
+                    e.preventDefault();
+                    setPaletteDrag({
+                      source: 'palette',
+                      kind: 'custom',
+                      label: b.label,
+                      durationMins: snapDurationMins(b.durationMins, SNAP_GRID_MINS),
+                      color: '#868e96',
+                    });
+                  }}
                 >
-                  <Card withBorder padding="sm" radius="md" style={{ pointerEvents: 'none' }}>
-                    <Group justify="space-between" wrap="nowrap" style={{ pointerEvents: 'auto' }}>
-                      <div>
-                        <Text size="sm" fw={600} lineClamp={1}>
-                          {b.label}
-                        </Text>
-                        <Text size="xs" c="dimmed">
-                          {b.durationMins} mins
-                        </Text>
-                      </div>
-                      <ActionIcon
-                        size="sm"
-                        variant="subtle"
-                        color="red"
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCustomBlocks((prev) => prev.filter((x) => x.id !== b.id));
-                        }}
-                      >
-                        <IconTrash size={14} />
-                      </ActionIcon>
-                    </Group>
-                  </Card>
-                </div>
+                  <Group justify="space-between" wrap="nowrap">
+                    <div>
+                      <Text size="sm" fw={600} lineClamp={1}>
+                        {b.label}
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        {b.durationMins} mins
+                      </Text>
+                    </div>
+                    <ActionIcon
+                      size="sm"
+                      variant="subtle"
+                      color="red"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCustomBlocks((prev) => prev.filter((x) => x.id !== b.id));
+                      }}
+                    >
+                      <IconTrash size={14} />
+                    </ActionIcon>
+                  </Group>
+                </Card>
               ))}
 
-              {blocks.map((block) => (
-                <ScheduleBlockCard
-                  key={`${block.divisionId}-${block.bracketId}`}
-                  block={block}
-                />
-              ))}
+              {blocks
+                .filter(
+                  (block) =>
+                    !placements.some(
+                      (p) =>
+                        p.kind === 'division' &&
+                        p.divisionId === block.divisionId &&
+                        p.bracketId === block.bracketId
+                    )
+                )
+                .map((block) => (
+                  <ScheduleBlockCard
+                    key={`${block.divisionId}-${block.bracketId}`}
+                    block={block}
+                    onDragStart={setPaletteDrag}
+                  />
+                ))}
 
               {blocks.length === 0 && (
                 <Text size="xs" c="dimmed">
                   No divisions or brackets yet. Add them in Divisions.
                 </Text>
               )}
+              {blocks.length > 0 &&
+                blocks.every((block) =>
+                  placements.some(
+                    (p) =>
+                      p.kind === 'division' &&
+                      p.divisionId === block.divisionId &&
+                      p.bracketId === block.bracketId
+                  )
+                ) && (
+                  <Text size="xs" c="dimmed">
+                    Every group is on the schedule. Remove a block to place it again.
+                  </Text>
+                )}
             </Stack>
           </Box>
         </Group>

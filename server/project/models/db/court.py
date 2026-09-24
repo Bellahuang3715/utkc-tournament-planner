@@ -8,6 +8,7 @@ class CourtInsertable(BaseModelORM):
     name: str
     created: datetime_utc
     tournament_id: TournamentId
+    display_order: int = 0
 
 
 class Court(CourtInsertable):
@@ -21,3 +22,10 @@ class CourtBody(BaseModelORM):
 class CourtToInsert(CourtBody):
     created: datetime_utc
     tournament_id: TournamentId
+    display_order: int = 0
+
+
+class CourtReorderBody(BaseModelORM):
+    """Full ordered list of court ids for a tournament."""
+
+    court_ids: list[CourtId]

@@ -3,4 +3,5 @@ export interface Court {
   tournament_id: number;
   created: string;
   name: string;
+  display_order?: number;
 }

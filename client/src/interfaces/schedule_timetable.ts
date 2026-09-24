@@ -29,6 +29,8 @@ export interface SchedulePlacement {
   bracketName?: string;
   label: string;
   durationMins: number; // rendered height; for division placement equals estimatedMins
+  /** Hex color. Division blocks share one color across the division. */
+  color?: string | null;
 }
 
 export interface ScheduleCustomBlock {

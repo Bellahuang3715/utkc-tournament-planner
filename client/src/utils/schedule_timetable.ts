@@ -6,6 +6,9 @@ const CONFIG_KEY_SUFFIX = '_config';
 /** Internal placement/drag grid step (drops snap to these marks). */
 export const SNAP_GRID_MINS = 10;
 
+/** Vertical scale for the custom court timetable. */
+export const PX_PER_MIN = 1.6;
+
 export function getTimetableStorageKey(tournamentId: number): string {
   return `${STORAGE_KEY_PREFIX}${tournamentId}`;
 }
@@ -18,6 +21,84 @@ export function getTimetableConfigKey(tournamentId: number): string {
 export function snapToNearestMinutes(date: Date, snapMins: number): Date {
   const ms = snapMins * 60 * 1000;
   return new Date(Math.round(date.getTime() / ms) * ms);
+}
+
+/** Snap duration up/down to a positive multiple of snapMins. */
+export function snapDurationMins(durationMins: number, snapMins: number = SNAP_GRID_MINS): number {
+  return Math.max(snapMins, Math.round(durationMins / snapMins) * snapMins);
+}
+
+/** Day window start as a Date on `scheduleDate` for `HH:mm`. */
+export function dayWindowStart(scheduleDate: Date, startTimeHhMm: string): Date {
+  const [h, m] = startTimeHhMm.split(':').map(Number);
+  const d = new Date(scheduleDate);
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+export function dayWindowEnd(scheduleDate: Date, endTimeHhMm: string): Date {
+  const [h, m] = endTimeHhMm.split(':').map(Number);
+  const d = new Date(scheduleDate);
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+export function minutesBetween(a: Date, b: Date): number {
+  return (b.getTime() - a.getTime()) / 60000;
+}
+
+export function addMinutes(date: Date, mins: number): Date {
+  return new Date(date.getTime() + mins * 60 * 1000);
+}
+
+export type TimedBlock = {
+  id?: string;
+  courtId: number;
+  startTime: string;
+  durationMins: number;
+};
+
+/** True if two intervals on the same court overlap (touching edges OK). */
+export function intervalsOverlap(
+  aStart: Date,
+  aMins: number,
+  bStart: Date,
+  bMins: number
+): boolean {
+  const a0 = aStart.getTime();
+  const a1 = a0 + aMins * 60 * 1000;
+  const b0 = bStart.getTime();
+  const b1 = b0 + bMins * 60 * 1000;
+  return a0 < b1 && b0 < a1;
+}
+
+/** Hard-reject overlap check for a proposed placement. */
+export function hasCourtCollision(
+  placements: TimedBlock[],
+  candidate: TimedBlock,
+  excludeId?: string
+): boolean {
+  const start = new Date(candidate.startTime);
+  for (const p of placements) {
+    if (excludeId && p.id === excludeId) continue;
+    if (p.courtId !== candidate.courtId) continue;
+    if (intervalsOverlap(start, candidate.durationMins, new Date(p.startTime), p.durationMins)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Clamp a start so the whole block stays inside [windowStart, windowEnd]. */
+export function clampBlockToWindow(
+  start: Date,
+  durationMins: number,
+  windowStart: Date,
+  windowEnd: Date
+): Date {
+  const endCap = windowEnd.getTime() - durationMins * 60 * 1000;
+  const t = Math.min(Math.max(start.getTime(), windowStart.getTime()), endCap);
+  return new Date(t);
 }
 
 /** All :00 and :30 marks from config start (exclusive of end) up to end time. */

@@ -284,6 +284,7 @@ courts = Table(
     Column("name", Text, nullable=False),
     Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
     Column("tournament_id", BigInteger, ForeignKey("tournaments.id"), nullable=False, index=True),
+    Column("display_order", Integer, nullable=False, server_default="0"),
 )
 
 schedule_timeblocks = Table(
@@ -310,6 +311,7 @@ schedule_timeblocks = Table(
     Column("label", Text, nullable=False),
     Column("division_id", BigInteger, ForeignKey("divisions.id", ondelete="SET NULL"), nullable=True),
     Column("bracket_id", BigInteger, ForeignKey("brackets.id", ondelete="SET NULL"), nullable=True),
+    Column("color", String, nullable=True),
 )
 
 schedule_custom_blocks = Table(
