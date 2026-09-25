@@ -28,6 +28,26 @@ export function snapDurationMins(durationMins: number, snapMins: number = SNAP_G
   return Math.max(snapMins, Math.round(durationMins / snapMins) * snapMins);
 }
 
+/** Single-elimination matches in a group: 9 players → 8 matches. */
+export function eliminationMatchCount(count: number): number {
+  return Math.max(0, Math.floor(count) - 1);
+}
+
+/**
+ * Schedule block length: (match duration + margin) × elimination matches,
+ * snapped to the timetable grid.
+ */
+export function estimateBlockMins(
+  durationMins: number,
+  marginMins: number,
+  count: number,
+): number {
+  const matches = eliminationMatchCount(count);
+  if (matches === 0) return 0;
+  const raw = Math.max(0, durationMins + marginMins) * matches;
+  return snapDurationMins(raw, SNAP_GRID_MINS);
+}
+
 /** Day window start as a Date on `scheduleDate` for `HH:mm`. */
 export function dayWindowStart(scheduleDate: Date, startTimeHhMm: string): Date {
   const [h, m] = startTimeHhMm.split(':').map(Number);
@@ -70,6 +90,71 @@ export function intervalsOverlap(
   const b0 = bStart.getTime();
   const b1 = b0 + bMins * 60 * 1000;
   return a0 < b1 && b0 < a1;
+}
+
+/** True when applying these durations (start times unchanged) overlaps another block. */
+export function placementDurationsOverlap(
+  placements: TimedBlock[],
+  durationById: ReadonlyMap<string, number>,
+): boolean {
+  const proposed = placements.map((p) => {
+    if (!p.id) return p;
+    const durationMins = durationById.get(p.id);
+    return durationMins == null ? p : { ...p, durationMins };
+  });
+  for (const p of proposed) {
+    if (!p.id || !durationById.has(p.id)) continue;
+    if (hasCourtCollision(proposed, p, p.id)) return true;
+  }
+  return false;
+}
+
+/**
+ * Set durations for the given placement ids. When `pushLater` is set, slide
+ * each following block on the same court forward until nothing overlaps.
+ * Start times stay put unless a block would overlap the one before it.
+ */
+export function applyPlacementDurations<T extends TimedBlock & { id: string }>(
+  placements: T[],
+  durationById: ReadonlyMap<string, number>,
+  pushLater: boolean,
+): T[] {
+  const next = placements.map((p) => {
+    const durationMins = durationById.get(p.id);
+    return durationMins == null ? p : { ...p, durationMins };
+  });
+  if (!pushLater) return next;
+
+  const byCourt = new Map<number, T[]>();
+  for (const p of next) {
+    const list = byCourt.get(p.courtId) ?? [];
+    list.push({ ...p });
+    byCourt.set(p.courtId, list);
+  }
+
+  const startById = new Map<string, string>();
+  for (const list of byCourt.values()) {
+    list.sort(
+      (a, b) =>
+        new Date(a.startTime).getTime() - new Date(b.startTime).getTime() ||
+        a.id.localeCompare(b.id),
+    );
+    for (let i = 1; i < list.length; i++) {
+      const prev = list[i - 1];
+      const prevEnd = addMinutes(new Date(prev.startTime), prev.durationMins);
+      const cur = list[i];
+      if (new Date(cur.startTime).getTime() < prevEnd.getTime()) {
+        cur.startTime = prevEnd.toISOString();
+        startById.set(cur.id, cur.startTime);
+      }
+    }
+  }
+
+  if (startById.size === 0) return next;
+  return next.map((p) => {
+    const startTime = startById.get(p.id);
+    return startTime ? { ...p, startTime } : p;
+  });
 }
 
 /** Hard-reject overlap check for a proposed placement. */

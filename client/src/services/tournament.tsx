@@ -34,6 +34,19 @@ export async function createTournament(
   }
 }
 
+export async function setTournamentStatus(
+  tournament_id: number,
+  status: "active" | "archived",
+) {
+  try {
+    const axiosInstance = await createAxios();
+    return await axiosInstance.put(`tournaments/${tournament_id}/status`, { status });
+  } catch (error: any) {
+    handleRequestError(error);
+    throw error;
+  }
+}
+
 export async function deleteTournament(tournament_id: number) {
   const axiosInstance = await createAxios();
   return axiosInstance.delete(`tournaments/${tournament_id}`);

@@ -1,4 +1,4 @@
-import { Button, Card, Group, Image, Text, Badge } from '@mantine/core';
+import { Button, Card, Group, Image, Stack, Text, Title } from '@mantine/core';
 import { useTranslation } from 'next-i18next/pages';
 import Link from 'next/link';
 import React from 'react';
@@ -53,19 +53,25 @@ export default function TournamentsCardTable({
   const tournaments: Tournament[] =
     swrTournamentsResponse.data != null ? swrTournamentsResponse.data.data : [];
 
-  const rows = tournaments
-    .sort((t1: Tournament, t2: Tournament) => t1.name.localeCompare(t2.name))
-    .map((tournament) => (
+  const byName = (a: Tournament, b: Tournament) => a.name.localeCompare(b.name);
+  const active = tournaments
+    .filter((tournament) => (tournament.status ?? "active") === "active")
+    .sort(byName);
+  const archived = tournaments
+    .filter((tournament) => tournament.status === "archived")
+    .sort(byName);
+
+  const renderCards = (list: Tournament[]) =>
+    list.map((tournament) => (
       <Group key={tournament.id} className={classes.card}>
         <Card shadow="sm" padding="lg" radius="md" withBorder w="100%">
           <Card.Section>
             <TournamentLogo tournament={tournament} />
           </Card.Section>
 
-          <Group justify="space-between" mt="md" mb="xs">
-            <Text fw={500}>{tournament.name}</Text>
-            <Badge color="pink">Archived</Badge>
-          </Group>
+          <Text fw={500} mt="md" mb="xs">
+            {tournament.name}
+          </Text>
 
           <Card.Section className={classes.section}>
             <Stat title={t('start_time')} value={<DateTime datetime={tournament.start_time} />} />
@@ -79,18 +85,41 @@ export default function TournamentsCardTable({
               radius="md"
               href={`/tournaments/${tournament.id}/participants/players`}
             >
-              OPEN
+              {t("open_tournament", "OPEN")}
             </Button>
           </Card.Section>
         </Card>
       </Group>
     ));
 
-  if (rows.length < 1) return <EmptyTableInfo entity_name={t('tournaments_title')} />;
+  if (tournaments.length < 1) return <EmptyTableInfo entity_name={t('tournaments_title')} />;
 
   return (
-    <Group gap="sm" style={{ width: '100%' }}>
-      {rows}
-    </Group>
+    <Stack gap="xl" mt="md">
+      <Stack gap="sm">
+        <Title order={3}>{t("active", "Active")}</Title>
+        {active.length < 1 ? (
+          <Text size="sm" c="dimmed">
+            {t("no_active_tournaments", "No active tournaments.")}
+          </Text>
+        ) : (
+          <Group gap="sm" style={{ width: '100%' }}>
+            {renderCards(active)}
+          </Group>
+        )}
+      </Stack>
+      <Stack gap="sm">
+        <Title order={3}>{t("archived", "Archived")}</Title>
+        {archived.length < 1 ? (
+          <Text size="sm" c="dimmed">
+            {t("no_archived_tournaments", "No archived tournaments.")}
+          </Text>
+        ) : (
+          <Group gap="sm" style={{ width: '100%' }}>
+            {renderCards(archived)}
+          </Group>
+        )}
+      </Stack>
+    </Stack>
   );
 }

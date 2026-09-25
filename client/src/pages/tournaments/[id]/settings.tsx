@@ -20,7 +20,7 @@ import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import { useRouter } from "next/router";
 import React from "react";
-import { SWRResponse } from "swr";
+import { SWRResponse, mutate } from "swr";
 
 import NotFoundTitle from "../../404";
 import { DropzoneButton } from "../../../components/utils/file_upload";
@@ -41,6 +41,7 @@ import {
   deleteTournament,
   rotateDashboardPreviewToken,
   rotateScorekeeperToken,
+  setTournamentStatus,
   updateTournament,
 } from "../../../services/tournament";
 import TournamentLayout from "../_tournament_layout";
@@ -314,6 +315,42 @@ function GeneralTournamentForm({
           }}
         >
           {t("remove_logo")}
+        </Button>
+      </Fieldset>
+
+      <Fieldset legend={t("status", "Status")} mt="lg" radius="md">
+        <Text size="sm" mb="sm">
+          {(tournament.status ?? "active") === "archived"
+            ? t(
+                "tournament_archived_note",
+                "This tournament is archived. It shows in the Archived section on the home page until you restore it.",
+              )
+            : t(
+                "tournament_active_note",
+                "This tournament is active. Archiving moves it to the Archived section on the home page. You can still open it and restore it later.",
+              )}
+        </Text>
+        <Button
+          type="button"
+          variant="default"
+          onClick={async () => {
+            const archived = (tournament.status ?? "active") === "archived";
+            const next = archived ? "active" : "archived";
+            const message = archived
+              ? t("confirm_restore_tournament", "Restore this tournament to Active?")
+              : t(
+                  "confirm_archive_tournament",
+                  "Archive this tournament? You can restore it later.",
+                );
+            if (!confirm(message)) return;
+            await setTournamentStatus(tournament.id, next);
+            await swrTournamentResponse.mutate();
+            await mutate("tournaments");
+          }}
+        >
+          {(tournament.status ?? "active") === "archived"
+            ? t("restore_tournament", "Restore to Active")
+            : t("archive_tournament", "Archive tournament")}
         </Button>
       </Fieldset>
 

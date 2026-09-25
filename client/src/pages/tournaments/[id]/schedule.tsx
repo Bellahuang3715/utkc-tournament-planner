@@ -44,6 +44,7 @@ import { stringToColour } from '../../../services/lookups';
 import { saveScheduleTimetable } from '../../../services/schedule_timetable';
 import {
   SNAP_GRID_MINS,
+  eliminationMatchCount,
   getTimetableConfigKey,
   snapDurationMins,
 } from '../../../utils/schedule_timetable';
@@ -218,7 +219,7 @@ function ScheduleBlockCard({
         {block.divisionName} – {block.bracketName}
       </Text>
       <Text size="xs" c="dimmed">
-        {durationMins} mins ({block.numPlayers} players)
+        {durationMins} mins ({eliminationMatchCount(block.numPlayers)} matches)
       </Text>
     </Card>
   );

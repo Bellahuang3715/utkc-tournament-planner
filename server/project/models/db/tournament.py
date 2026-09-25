@@ -1,3 +1,4 @@
+from enum import Enum as PyEnum
 from typing import Literal
 
 from heliclockter import datetime_utc
@@ -7,6 +8,11 @@ from project.utils.id_types import TournamentId, UserId
 from project.utils.pydantic import EmptyStrToNone
 
 TournamentRole = Literal["organizer", "scorekeeper"]
+
+
+class TournamentStatus(str, PyEnum):
+    ACTIVE = "active"
+    ARCHIVED = "archived"
 
 
 class TournamentInsertable(BaseModelORM):
@@ -23,6 +29,7 @@ class TournamentInsertable(BaseModelORM):
     logo_path: str | None = None
     players_can_be_in_multiple_teams: bool
     auto_assign_courts: bool
+    status: TournamentStatus = TournamentStatus.ACTIVE
     creator_id: UserId
 
 
@@ -44,6 +51,10 @@ class TournamentPublic(BaseModelORM):
     dashboard_public: bool
     dashboard_endpoint: str | None = None
     logo_path: str | None = None
+
+
+class TournamentStatusBody(BaseModelORM):
+    status: TournamentStatus
 
 
 class TournamentUpdateBody(BaseModelORM):

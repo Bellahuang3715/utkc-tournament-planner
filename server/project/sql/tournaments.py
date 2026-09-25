@@ -3,7 +3,12 @@ from typing import Any
 from fastapi import HTTPException
 
 from project.database import database
-from project.models.db.tournament import Tournament, TournamentBody, TournamentUpdateBody
+from project.models.db.tournament import (
+    Tournament,
+    TournamentBody,
+    TournamentStatus,
+    TournamentUpdateBody,
+)
 from project.utils.id_types import BracketId, DivisionId, TournamentId, UserId
 
 
@@ -84,6 +89,20 @@ async def sql_get_tournament_id_for_bracket(bracket_id: BracketId) -> Tournament
         """
     result = await database.fetch_one(query=query, values={"bracket_id": bracket_id})
     return TournamentId(result["tournament_id"]) if result is not None else None
+
+
+async def sql_set_tournament_status(
+    tournament_id: TournamentId, status: TournamentStatus
+) -> None:
+    query = """
+        UPDATE tournaments
+        SET status = :status
+        WHERE id = :tournament_id
+        """
+    await database.execute(
+        query=query,
+        values={"tournament_id": tournament_id, "status": status.value},
+    )
 
 
 async def sql_delete_tournament(tournament_id: TournamentId) -> None:

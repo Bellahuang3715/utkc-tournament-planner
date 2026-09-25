@@ -1,7 +1,7 @@
 // pages/tournaments/[id]/_tournament_layout.tsx
 import React, { useEffect } from "react";
 import { useRouter } from "next/router";
-import { Box, Tabs, useMantineTheme } from "@mantine/core";
+import { Badge, Box, Group, Tabs, useMantineTheme } from "@mantine/core";
 import { IconUser, IconUsers } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next/pages";
 
@@ -47,7 +47,16 @@ export default function TournamentLayout({
     }
   }, [role, isScores, base, router]);
 
-  const breadcrumbs = tournament ? <h2>/ {tournament.name}</h2> : null;
+  const breadcrumbs = tournament ? (
+    <Group gap="sm">
+      <h2>/ {tournament.name}</h2>
+      {tournament.status === "archived" ? (
+        <Badge color="gray" variant="light">
+          {t("archived", "Archived")}
+        </Badge>
+      ) : null}
+    </Group>
+  ) : null;
 
   return (
     <Layout

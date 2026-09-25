@@ -10,7 +10,6 @@ import {
   Loader,
   Paper,
   SegmentedControl,
-  SimpleGrid,
   Stack,
   Tabs,
   Text,
@@ -24,7 +23,7 @@ import { useRouter } from "next/router";
 
 import TournamentLayout from "../../_tournament_layout";
 import { getTournamentIdFromRouter } from "../../../../components/utils/util";
-import DivisionDetailsModal from "../../../../components/modals/division_details_modal";
+import DivisionTimingModal from "../../../../components/modals/division_timing_modal";
 // BracketExportModal kept for future expanded/collapsed multi-export UI:
 // import BracketExportModal from "../../../../components/modals/bracket_export_modal";
 import DivisionPlayersTable from "../../../../components/tables/division_players";
@@ -57,20 +56,33 @@ import {
   exportTeamBracketsToExcel,
 } from "../../../../components/export/exportExcel";
 
-interface BracketData {
-  id: string;
-  name: string;
-  payload: any;
-}
-
-interface GroupModel {
-  id: number;
-  name: string;
-  categoryId: string;
-  matchDuration: number; // minutes
-  overtimeDuration: number; // minutes
-  totalPlayers: number;
-  brackets: BracketData[];
+function DivisionTimingLine({
+  durationMins,
+  marginMins,
+  onEdit,
+}: {
+  durationMins: number;
+  marginMins: number;
+  onEdit: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Group justify="space-between" align="center" wrap="wrap">
+      <Text size="sm" c="dimmed">
+        {durationMins} {t("minutes_short", "min")} {t("match_duration_short", "match")}
+        {" · "}
+        {marginMins} {t("minutes_short", "min")} {t("margin_short", "margin")}
+      </Text>
+      <Button
+        variant="light"
+        size="sm"
+        leftSection={<IconPencil size={16} />}
+        onClick={onEdit}
+      >
+        {t("edit_timing", "Edit timing")}
+      </Button>
+    </Group>
+  );
 }
 
 function EditTreesControls({
@@ -125,8 +137,7 @@ export default function BracketsPage() {
   // control which accordion item is open (so we can know collapsed/expanded)
   const [openItem, setOpenItem] = useState<string | null>(null);
 
-  // details modal state
-  const [editDetailsOf, setEditDetailsOf] = useState<GroupModel | null>(null);
+  const [editingTiming, setEditingTiming] = useState<any | null>(null);
 
   const { id: tournamentId, tournamentData } = getTournamentIdFromRouter();
   const tournamentIdValid = Number.isFinite(tournamentId);
@@ -215,11 +226,6 @@ export default function BracketsPage() {
     );
   }
 
-  const handleSaveGroupDetails = async () => {
-    await swrDivisions.mutate();
-    setEditDetailsOf(null);
-  };
-
   const downloadExcel = async (divisionId: number) => {
     const group = groups.find((g: any) => g.id === divisionId);
     const divisionName = group?.name ?? `Division ${divisionId}`;
@@ -257,7 +263,7 @@ export default function BracketsPage() {
           <Text size="sm" c="dimmed" maw={560}>
             {t(
               "divisions_page_subtitle",
-              "Open a division to manage details, roster, and bracket trees",
+              "Open a division to manage its roster, match timing, and bracket trees",
             )}
           </Text>
         </Stack>
@@ -367,11 +373,8 @@ export default function BracketsPage() {
                   </Accordion.Control>
 
                   <Accordion.Panel>
-                    <Tabs defaultValue="details">
+                    <Tabs defaultValue={isTeams ? "teams" : "players"}>
                       <Tabs.List>
-                        <Tabs.Tab value="details">
-                          {t("details", "Details")}
-                        </Tabs.Tab>
                         {isTeams ? (
                           <Tabs.Tab value="teams">
                             {t("teams_title", "Teams")}
@@ -386,100 +389,37 @@ export default function BracketsPage() {
                         </Tabs.Tab>
                       </Tabs.List>
 
-                      <Tabs.Panel value="details" pt="md">
-                        <Stack gap="md">
-                          <Group justify="space-between" align="center">
-                            <Text fw={600}>
-                              {t("group_information", "Division information")}
-                            </Text>
-                            <Button
-                              variant="light"
-                              size="sm"
-                              leftSection={<IconPencil size={16} />}
-                              onClick={() => setEditDetailsOf(group)}
-                            >
-                              {t("edit_details", "Edit details")}
-                            </Button>
-                          </Group>
-
-                          <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
-                            <Paper withBorder radius="md" p="md">
-                              <Text size="xs" c="dimmed" tt="uppercase">
-                                {t("group_name", "Name")}
-                              </Text>
-                              <Text fw={600} mt={4}>
-                                {group.name}
-                              </Text>
-                            </Paper>
-                            <Paper withBorder radius="md" p="md">
-                              <Text size="xs" c="dimmed" tt="uppercase">
-                                {t("prefix", "Prefix")}
-                              </Text>
-                              <Text fw={600} mt={4}>
-                                {group.prefix ?? "—"}
-                              </Text>
-                            </Paper>
-                            <Paper withBorder radius="md" p="md">
-                              <Text size="xs" c="dimmed" tt="uppercase">
-                                {t("division_type", "Type")}
-                              </Text>
-                              <Badge
-                                mt={6}
-                                variant="light"
-                                color={isTeams ? "blue" : "violet"}
-                              >
-                                {isTeams
-                                  ? t("teams_title", "Teams")
-                                  : t("individuals", "Individuals")}
-                              </Badge>
-                            </Paper>
-                            <Paper withBorder radius="md" p="md">
-                              <Text size="xs" c="dimmed" tt="uppercase">
-                                {t("match_duration", "Match duration")}
-                              </Text>
-                              <Text fw={600} mt={4}>
-                                {group.duration_mins} {t("minutes_short", "min")}
-                              </Text>
-                            </Paper>
-                            <Paper withBorder radius="md" p="md">
-                              <Text size="xs" c="dimmed" tt="uppercase">
-                                {t("overtime_duration", "Overtime / margin")}
-                              </Text>
-                              <Text fw={600} mt={4}>
-                                {group.margin_mins} {t("minutes_short", "min")}
-                              </Text>
-                            </Paper>
-                            {countLabel ? (
-                              <Paper withBorder radius="md" p="md">
-                                <Text size="xs" c="dimmed" tt="uppercase">
-                                  {isTeams
-                                    ? t("teams_title", "Teams")
-                                    : t("players", "Players")}
-                                </Text>
-                                <Text fw={600} mt={4}>
-                                  {countLabel}
-                                </Text>
-                              </Paper>
-                            ) : null}
-                          </SimpleGrid>
-                        </Stack>
-                      </Tabs.Panel>
-
-                      <Tabs.Panel value="players" pt="md">
-                        <DivisionPlayersTable
-                          tournamentId={tournamentData.id}
-                          divisionId={group.id}
-                          divisionName={group.name}
-                          divisionPrefix={group.prefix}
-                        />
-                      </Tabs.Panel>
-
-                      <Tabs.Panel value="teams" pt="md">
-                        <DivisionTeamsTable
-                          tournamentId={tournamentData.id}
-                          divisionId={group.id}
-                        />
-                      </Tabs.Panel>
+                      {isTeams ? (
+                        <Tabs.Panel value="teams" pt="md">
+                          <Stack gap="md">
+                            <DivisionTimingLine
+                              durationMins={group.duration_mins}
+                              marginMins={group.margin_mins}
+                              onEdit={() => setEditingTiming(group)}
+                            />
+                            <DivisionTeamsTable
+                              tournamentId={tournamentData.id}
+                              divisionId={group.id}
+                            />
+                          </Stack>
+                        </Tabs.Panel>
+                      ) : (
+                        <Tabs.Panel value="players" pt="md">
+                          <Stack gap="md">
+                            <DivisionTimingLine
+                              durationMins={group.duration_mins}
+                              marginMins={group.margin_mins}
+                              onEdit={() => setEditingTiming(group)}
+                            />
+                            <DivisionPlayersTable
+                              tournamentId={tournamentData.id}
+                              divisionId={group.id}
+                              divisionName={group.name}
+                              divisionPrefix={group.prefix}
+                            />
+                          </Stack>
+                        </Tabs.Panel>
+                      )}
 
                       <Tabs.Panel value="trees" pt="md">
                         <Stack gap="md">
@@ -540,11 +480,23 @@ export default function BracketsPage() {
           </Accordion>
         )}
 
-        <DivisionDetailsModal
-          opened={!!editDetailsOf}
-          group={editDetailsOf}
-          onClose={() => setEditDetailsOf(null)}
-          onSave={handleSaveGroupDetails}
+        <DivisionTimingModal
+          opened={!!editingTiming}
+          division={
+            editingTiming
+              ? {
+                  id: editingTiming.id,
+                  name: editingTiming.name,
+                  prefix: editingTiming.prefix,
+                  duration_mins: editingTiming.duration_mins,
+                  margin_mins: editingTiming.margin_mins,
+                  division_type: editingTiming.division_type,
+                }
+              : null
+          }
+          tournamentId={tournamentData.id}
+          onClose={() => setEditingTiming(null)}
+          onSaved={() => swrDivisions.mutate()}
         />
         {/* BracketExportModal (expanded/collapsed multi-select) — re-enable later */}
       </Stack>

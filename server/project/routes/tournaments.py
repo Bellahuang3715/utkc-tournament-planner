@@ -18,6 +18,7 @@ from project.models.db.account import UserAccountType
 from project.models.db.tournament import (
     Tournament,
     TournamentBody,
+    TournamentStatusBody,
     TournamentUpdateBody,
 )
 from project.models.db.user import UserPublic
@@ -43,6 +44,7 @@ from project.sql.tournaments import (
     sql_get_tournaments,
     sql_set_dashboard_preview_token,
     sql_set_scorekeeper_token,
+    sql_set_tournament_status,
     sql_update_tournament,
 )
 from project.utils.errors import (
@@ -110,6 +112,16 @@ async def get_public_tournament_by_endpoint(
         raise forbidden_dashboard_exception
 
     return TournamentPublicResponse(data=to_public_tournament(tournament))
+
+
+@router.put("/tournaments/{tournament_id}/status", response_model=SuccessResponse)
+async def set_tournament_status(
+    tournament_id: TournamentId,
+    body: TournamentStatusBody,
+    _: Tournament = Depends(require_tournament_owner),
+) -> SuccessResponse:
+    await sql_set_tournament_status(tournament_id, body.status)
+    return SuccessResponse()
 
 
 @router.put("/tournaments/{tournament_id}", response_model=SuccessResponse)

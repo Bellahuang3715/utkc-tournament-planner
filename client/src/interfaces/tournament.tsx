@@ -1,3 +1,5 @@
+export type TournamentStatus = "active" | "archived";
+
 export interface Tournament {
   id: number;
   name: string;
@@ -14,6 +16,7 @@ export interface Tournament {
   scorekeeper_token?: string | null;
   players_can_be_in_multiple_teams: boolean;
   auto_assign_courts: boolean;
+  status?: TournamentStatus;
   logo_path: string | null;
   my_role?: 'organizer' | 'scorekeeper' | null;
 }

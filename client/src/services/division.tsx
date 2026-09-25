@@ -1,6 +1,7 @@
 import { createAxios, handleRequestError } from './adapter';
 import type { DivisionCreateValues, DivisionFormValues, DivisionPlayer, DivisionTeam } from '../interfaces/division';
 import type { ScheduleBlock } from '../interfaces/schedule_timetable';
+import { estimateBlockMins } from '../utils/schedule_timetable';
 
 export async function createDivision(values: DivisionCreateValues) {
   try {
@@ -112,9 +113,9 @@ export async function fetchDivisionTeams(division_id: number) {
 /** Fetch all division–bracket blocks for the schedule timetable (divisions + brackets, no players/teams). */
 export async function fetchScheduleBlocks(tournamentId: number): Promise<ScheduleBlock[]> {
   const axiosInstance = await createAxios();
-  const divRes = await axiosInstance.get<{ data: Array<{ id: number; name: string; duration_mins: number }> }>(
-    `tournaments/${tournamentId}/divisions`
-  );
+  const divRes = await axiosInstance.get<{
+    data: Array<{ id: number; name: string; duration_mins: number; margin_mins: number }>;
+  }>(`tournaments/${tournamentId}/divisions`);
   const divisions = divRes.data?.data ?? [];
   const blocks: ScheduleBlock[] = [];
   await Promise.all(
@@ -125,8 +126,10 @@ export async function fetchScheduleBlocks(tournamentId: number): Promise<Schedul
       const brackets = bracketRes.data?.data ?? [];
       brackets.forEach((b) => {
         const numPlayers = Number(b.num_players ?? 0);
-        const minsPerPlayer = Number(div.duration_mins ?? 0);
-        const estimatedMins = Math.max(0, minsPerPlayer) * Math.max(0, numPlayers);
+        const matchMins = Number(div.duration_mins ?? 0);
+        const marginMins = Number(div.margin_mins ?? 0);
+        const minsPerPlayer = matchMins + marginMins;
+        const estimatedMins = estimateBlockMins(matchMins, marginMins, numPlayers);
         blocks.push({
           kind: 'division',
           divisionId: div.id,
