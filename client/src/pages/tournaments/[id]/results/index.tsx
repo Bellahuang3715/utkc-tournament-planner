@@ -4,13 +4,13 @@ import {
   Paper,
   Stack,
   Text,
-  Title,
 } from '@mantine/core';
 import { IconMedal } from '@tabler/icons-react';
 import { useTranslation } from 'next-i18next/pages';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
 import React from 'react';
 
+import { PageHeader } from '../../../../components/layout/page_header';
 import { getTournamentIdFromRouter } from '../../../../components/utils/util';
 import TournamentLayout from '../../_tournament_layout';
 
@@ -157,7 +157,7 @@ function DivisionResultsCard({ division }: { division: DivisionResults }) {
   return (
     <Paper withBorder radius="md" p="md">
       <Group justify="space-between" mb="md" wrap="wrap" gap="xs">
-        <Title order={3}>{division.name}</Title>
+        <Text fw={600}>{division.name}</Text>
         <Badge variant="outline" color="blue">
           {division.divisionType === 'INDIVIDUALS'
             ? t('players_title', 'Players')
@@ -191,7 +191,13 @@ export default function ResultsPage() {
   return (
     <TournamentLayout tournament_id={tournamentData.id}>
       <Stack gap="lg">
-        <Title order={2}>{t('results_title', 'Results')}</Title>
+        <PageHeader
+          title={t('results_title', 'Results')}
+          description={t(
+            'results_page_subtitle',
+            'Final placements for each division once scoring is finished.',
+          )}
+        />
 
         <Stack gap="md">
           {MOCK_DIVISION_RESULTS.map((division) => (

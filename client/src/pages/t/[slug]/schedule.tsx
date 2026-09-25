@@ -48,9 +48,10 @@ export default function ParticipantSchedulePage() {
 
   return (
     <ParticipantTournamentLayout>
+      <Stack gap="lg">
       <ParticipantPageTitle
         title="Schedule"
-        subtitle="Blocks in time order — tap a court name on the Courts tab for more detail."
+        subtitle="Blocks in time order. Court names match the Courts page."
       />
 
       {loading && <ParticipantLoading />}
@@ -81,6 +82,7 @@ export default function ParticipantSchedulePage() {
             </Text>
           </div>
         ))}
+      </Stack>
       </Stack>
     </ParticipantTournamentLayout>
   );

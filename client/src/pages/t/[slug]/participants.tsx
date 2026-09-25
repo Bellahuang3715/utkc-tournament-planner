@@ -8,6 +8,7 @@ import ParticipantTournamentLayout, {
 import {
   ParticipantEmpty,
   ParticipantLoading,
+  ParticipantPageTitle,
   ParticipantSearchInput,
 } from '../../../components/participant/ParticipantUi';
 import { responseIsValid } from '../../../components/utils/util';
@@ -71,7 +72,11 @@ export default function ParticipantPlayersPage() {
 
   return (
     <ParticipantTournamentLayout>
-      <Stack gap="md">
+      <Stack gap="lg">
+        <ParticipantPageTitle
+          title="Players"
+          subtitle="Everyone entered in this tournament, grouped by club."
+        />
         <ParticipantSearchInput
           value={query}
           onChange={setQuery}

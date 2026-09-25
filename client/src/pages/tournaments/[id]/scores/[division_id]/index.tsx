@@ -11,7 +11,6 @@ import {
   Paper,
   Popover,
   Stack,
-  Title,
   Text,
   Badge,
   Tabs,
@@ -24,6 +23,7 @@ import { serverSideTranslations } from "next-i18next/pages/serverSideTranslation
 import { Expanded, EXPANDED_SIZES_INDIVIDUALS, EXPANDED_SIZES_TEAMS } from "tournament-brackets-ui";
 
 import { showNotification } from "@mantine/notifications";
+import { PageHeader } from "../../../../../components/layout/page_header";
 import TournamentLayout from "../../../_tournament_layout";
 import RequestErrorAlert from "../../../../../components/utils/error_alert";
 import { getTournamentIdFromRouter } from "../../../../../components/utils/util";
@@ -919,21 +919,20 @@ export default function DivisionScoresEditorPage() {
 
   return (
     <TournamentLayout tournament_id={tournamentData.id}>
-      <Stack gap="md" p="md">
-        <Group justify="space-between" align="flex-start" wrap="wrap">
-          <Stack gap={2}>
-            <Title order={2}>{t("scores_editor_title", "Score Editor")}</Title>
-            <Text c="dimmed">
+      <Stack gap="lg">
+        <PageHeader
+          title={t("scores_editor_title", "Score Editor")}
+          description={
+            <>
               {selectedDivision.name}
-              {selectedDivision.prefix ? ` (${selectedDivision.prefix})` : ""}
-            </Text>
-            <Text size="sm" c="dimmed">
+              {selectedDivision.prefix ? ` (${selectedDivision.prefix})` : ""}.{" "}
               {t(
                 "scores_editor_view_hint",
                 "Open Edit on a group to enter scores. Groups locked by someone else show their name.",
               )}
-            </Text>
-          </Stack>
+            </>
+          }
+          actions={
           <Group gap="sm" align="center" wrap="wrap">
             <Badge variant="light" color="blue" size="lg">
               {selectedDivision.division_type === "TEAMS"
@@ -993,7 +992,8 @@ export default function DivisionScoresEditorPage() {
               </Popover.Dropdown>
             </Popover>
           </Group>
-        </Group>
+          }
+        />
 
         {bracketsLoaded && divisionLocked && (
           <Text size="sm" c="dimmed">

@@ -1,10 +1,11 @@
-import { Container, Stack, Text, Title } from '@mantine/core';
+import { Stack, Text } from '@mantine/core';
 import { useTranslation } from 'next-i18next/pages';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
 import React, { useEffect, useState } from 'react';
 import type { User as FirebaseUser } from 'firebase/auth';
 
 import UserForm from '../components/forms/user';
+import { PageHeader } from '../components/layout/page_header';
 import { GenericSkeletonThreeRows } from '../components/utils/skeletons';
 import { UserInterface } from '../interfaces/user';
 import { getCurrentUser } from '../services/user';
@@ -96,20 +97,16 @@ export default function UserPage() {
 
   return (
     <Layout>
-      <Container size="sm">
-        <Stack gap="lg">
-          <Stack gap={4}>
-            <Title order={2}>{t('edit_profile_title', 'Profile')}</Title>
-            <Text size="sm" c="dimmed">
-              {t(
-                'edit_profile_subtitle',
-                'Manage your account details and security',
-              )}
-            </Text>
-          </Stack>
-          {content}
-        </Stack>
-      </Container>
+      <Stack gap="lg">
+        <PageHeader
+          title={t('edit_profile_title', 'Profile')}
+          description={t(
+            'edit_profile_subtitle',
+            'Manage your account details and security.',
+          )}
+        />
+        {content}
+      </Stack>
     </Layout>
   );
 }

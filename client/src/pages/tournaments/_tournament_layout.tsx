@@ -1,12 +1,13 @@
 // pages/tournaments/[id]/_tournament_layout.tsx
 import React from "react";
 import { useRouter } from "next/router";
-import { Box, Tabs, useMantineTheme } from "@mantine/core";
+import { Stack, Tabs, useMantineTheme } from "@mantine/core";
 import { IconUser, IconUsers } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next/pages";
 
+import { PageHeader } from "../../components/layout/page_header";
 import { TournamentLinks } from "../../components/navbar/_main_links";
-import { responseIsValid } from "../../components/utils/util";
+import { capitalize, responseIsValid } from "../../components/utils/util";
 import { getTournamentById } from "../../services/adapter";
 
 import Layout from "../_layout";
@@ -36,8 +37,14 @@ export default function TournamentLayout({
       breadcrumbs={breadcrumbs}
     >
       {isParticipants && (
-        <Box mb="lg">
-          {/* 3. Tabs—with pills, bigger font, colored underline */}
+        <Stack gap="lg" mb="lg">
+          <PageHeader
+            title={capitalize(t("participants_title", "Participants"))}
+            description={t(
+              "participants_page_subtitle",
+              "Add players and teams, then generate divisions from this roster.",
+            )}
+          />
           <Tabs
             value={path}
             onChange={(val) => val && router.push(val)}
@@ -76,7 +83,7 @@ export default function TournamentLayout({
               </Tabs.Tab>
             </Tabs.List>
           </Tabs>
-        </Box>
+        </Stack>
       )}
 
       {children}

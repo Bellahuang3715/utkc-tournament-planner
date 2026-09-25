@@ -7,13 +7,13 @@ import {
   Loader,
   SimpleGrid,
   Stack,
-  Title,
   Text,
 } from "@mantine/core";
 import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import { useRouter } from "next/router";
 
+import { PageHeader } from "../../../../components/layout/page_header";
 import TournamentLayout from "../../_tournament_layout";
 import ScoreStatusBadge from "../../../../components/scores/ScoreStatusBadge";
 import { getTournamentIdFromRouter } from "../../../../components/utils/util";
@@ -175,8 +175,14 @@ export default function ScoresPage() {
 
   return (
     <TournamentLayout tournament_id={tournamentData.id}>
-      <Stack gap="md" p="md">
-        <Title order={2}>{t("scores_title", "Scores")}</Title>
+      <Stack gap="lg">
+        <PageHeader
+          title={t("scores_title", "Scores")}
+          description={t(
+            "scores_page_subtitle",
+            "Pick a division to open the scoring editor.",
+          )}
+        />
 
         {!swrDivisions.data || swrDivisions.isLoading ? (
           <Center style={{ minHeight: 220 }}>
@@ -186,12 +192,6 @@ export default function ScoresPage() {
           <Text c="dimmed">{t("no_divisions", "No divisions found.")}</Text>
         ) : (
           <>
-            <Text c="dimmed">
-              {t(
-                "scores_note_blocks",
-                "Pick a division to open the fillable scoring editor.",
-              )}
-            </Text>
             <SimpleGrid
               cols={{ base: 1, sm: 2, md: 3 }}
               spacing="md"

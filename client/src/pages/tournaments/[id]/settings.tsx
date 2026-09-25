@@ -1,13 +1,12 @@
 import {
+  Box,
   Button,
-  Center,
   Checkbox,
-  Container,
   CopyButton,
   Fieldset,
-  Grid,
   Group,
   Image,
+  Stack,
   Text,
   TextInput,
 } from "@mantine/core";
@@ -22,6 +21,7 @@ import { useRouter } from "next/router";
 import React from "react";
 import { SWRResponse, mutate } from "swr";
 
+import { PageHeader } from "../../../components/layout/page_header";
 import NotFoundTitle from "../../404";
 import { DropzoneButton } from "../../../components/utils/file_upload";
 import { GenericSkeletonThreeRows } from "../../../components/utils/skeletons";
@@ -107,6 +107,7 @@ function GeneralTournamentForm({
         await swrTournamentResponse.mutate();
       })}
     >
+      <Stack gap="lg">
       <TextInput
         withAsterisk
         label={t("name_input_label")}
@@ -114,19 +115,16 @@ function GeneralTournamentForm({
         {...form.getInputProps("name")}
       />
 
-      <Fieldset legend={t("planning_of_matches_legend")} mt="lg" radius="md">
-        <Text fz="sm">{t("planning_of_matches_description")}</Text>
-        <Grid>
-          <Grid.Col span={{ sm: 9 }}>
+      <Fieldset legend={t("planning_of_matches_legend")} radius="md">
+        <Stack gap="sm">
+          <Text fz="sm">{t("planning_of_matches_description")}</Text>
+          <Group align="flex-end" wrap="wrap" gap="sm">
             <DateTimePicker
+              style={{ flex: "1 1 16rem" }}
               rightSection={<IconCalendar size="1.1rem" stroke={1.5} />}
-              mx="auto"
               {...form.getInputProps("start_time")}
             />
-          </Grid.Col>
-          <Grid.Col span={{ sm: 3 }}>
             <Button
-              fullWidth
               color="indigo"
               leftSection={<IconCalendarTime size="1.1rem" stroke={1.5} />}
               onClick={() => {
@@ -135,40 +133,37 @@ function GeneralTournamentForm({
             >
               {t("set_to_new_button")}
             </Button>
-          </Grid.Col>
-        </Grid>
+          </Group>
+        </Stack>
       </Fieldset>
-      <Fieldset legend={t("dashboard_settings_title")} mt="lg" radius="md">
-        <Text fz="sm" mb="xs">
+      <Fieldset legend={t("dashboard_settings_title")} radius="md">
+        <Stack gap="sm">
+        <Text fz="sm">
           Tournament code for participants (share this — they enter it on the join page)
         </Text>
-        <Grid>
-          <Grid.Col span={{ sm: 9 }}>
-            <TextInput
-              placeholder={t("dashboard_link_placeholder")}
-              {...form.getInputProps("dashboard_endpoint")}
-            />
-          </Grid.Col>
-          <Grid.Col span={{ sm: 3 }}>
-            <CopyButton
-              value={form.values.dashboard_endpoint ?? ""}
-            >
-              {({ copied, copy }) => (
-                <Button
-                  disabled={!form.values.dashboard_endpoint}
-                  leftSection={<IconCopy size="1.1rem" stroke={1.5} />}
-                  fullWidth
-                  color={copied ? "teal" : "indigo"}
-                  onClick={copy}
-                >
-                  {copied ? t("copied_url_button") : "Copy code"}
-                </Button>
-              )}
-            </CopyButton>
-          </Grid.Col>
-        </Grid>
+        <Group align="flex-end" wrap="wrap" gap="sm">
+          <TextInput
+            style={{ flex: "1 1 12rem" }}
+            placeholder={t("dashboard_link_placeholder")}
+            {...form.getInputProps("dashboard_endpoint")}
+          />
+          <CopyButton
+            value={form.values.dashboard_endpoint ?? ""}
+          >
+            {({ copied, copy }) => (
+              <Button
+                disabled={!form.values.dashboard_endpoint}
+                leftSection={<IconCopy size="1.1rem" stroke={1.5} />}
+                color={copied ? "teal" : "indigo"}
+                onClick={copy}
+              >
+                {copied ? t("copied_url_button") : "Copy code"}
+              </Button>
+            )}
+          </CopyButton>
+        </Group>
 
-        <Text fz="sm" mt="md" mb="xs">
+        <Text fz="sm" mt="xs">
           Direct participant link
         </Text>
         <CopyButton
@@ -182,7 +177,6 @@ function GeneralTournamentForm({
             <Button
               disabled={!form.values.dashboard_endpoint}
               leftSection={<IconCopy size="1.1rem" stroke={1.5} />}
-              fullWidth
               variant="light"
               color={copied ? "teal" : "indigo"}
               onClick={copy}
@@ -193,15 +187,15 @@ function GeneralTournamentForm({
         </CopyButton>
 
         <Checkbox
-          mt="lg"
+          mt="xs"
           label="Publish participant site (anyone with the public link can view)"
           {...form.getInputProps("dashboard_public", { type: "checkbox" })}
         />
 
-        <Text fz="sm" mt="lg" mb="xs">
+        <Text fz="sm" mt="xs">
           Preview link (works even when unpublished). Share only with staff.
         </Text>
-        <Group grow align="flex-end">
+        <Group align="flex-end" wrap="wrap" gap="sm">
           <CopyButton
             value={
               form.values.dashboard_endpoint && tournament.dashboard_preview_token
@@ -236,17 +230,19 @@ function GeneralTournamentForm({
             Regenerate preview
           </Button>
         </Group>
-        <Text size="xs" c="dimmed" mt={6}>
+        <Text size="xs" c="dimmed">
           Regenerating invalidates the previous preview link immediately.
         </Text>
+        </Stack>
       </Fieldset>
 
-      <Fieldset legend="Scorekeeper access" mt="lg" radius="md">
-        <Text fz="sm" mb="xs">
+      <Fieldset legend="Scorekeeper access" radius="md">
+        <Stack gap="sm">
+        <Text fz="sm">
           Share this code with volunteers. They enter it at /scorekeeping to
           open the scores page only (no account required).
         </Text>
-        <Group grow align="flex-end">
+        <Group align="flex-end" wrap="wrap" gap="sm">
           <CopyButton value={tournament.scorekeeper_token ?? ""}>
             {({ copied, copy }) => (
               <Button
@@ -288,27 +284,26 @@ function GeneralTournamentForm({
             Disable
           </Button>
         </Group>
-        <Text size="xs" c="dimmed" mt={6}>
+        <Text size="xs" c="dimmed">
           Rotating or disabling invalidates the code immediately. After the
           tournament, disable or rotate so volunteers lose access.
         </Text>
+        </Stack>
       </Fieldset>
 
-      <Fieldset legend="Logo" mt="lg" radius="md">
+      <Fieldset legend="Logo" radius="md">
+        <Stack gap="sm">
         <DropzoneButton
           tournamentId={tournament.id}
           swrResponse={swrTournamentResponse}
           variant="tournament"
         />
-        <Center my="lg">
-          <div style={{ width: "50%" }}>
-            <TournamentLogo tournament={tournament} />
-          </div>
-        </Center>
+        <Box maw={240}>
+          <TournamentLogo tournament={tournament} />
+        </Box>
         <Button
           variant="outline"
           color="red"
-          fullWidth
           onClick={async () => {
             await removeTournamentLogo(tournament.id);
             await swrTournamentResponse.mutate();
@@ -316,10 +311,12 @@ function GeneralTournamentForm({
         >
           {t("remove_logo")}
         </Button>
+        </Stack>
       </Fieldset>
 
-      <Fieldset legend={t("status", "Status")} mt="lg" radius="md">
-        <Text size="sm" mb="sm">
+      <Fieldset legend={t("status", "Status")} radius="md">
+        <Stack gap="sm">
+        <Text size="sm">
           {(tournament.status ?? "active") === "archived"
             ? t(
                 "tournament_archived_note",
@@ -352,34 +349,35 @@ function GeneralTournamentForm({
             ? t("restore_tournament", "Restore to Active")
             : t("archive_tournament", "Archive tournament")}
         </Button>
+        </Stack>
       </Fieldset>
 
-      <Button fullWidth mt={24} color="green" type="submit">
-        {t("save_button")}
-      </Button>
-
-      <Button
-        fullWidth
-        variant="outline"
-        mt="sm"
-        color="red"
-        size="sm"
-        leftSection={<MdDelete size={20} />}
-        onClick={async () => {
-          await deleteTournament(tournament.id)
-            .then(async () => {
-              await router.push("/");
-            })
-            .catch((response: any) => handleRequestError(response));
-        }}
-      >
-        {t("delete_tournament_button")}
-      </Button>
+      <Group>
+        <Button color="green" type="submit">
+          {t("save_button")}
+        </Button>
+        <Button
+          variant="outline"
+          color="red"
+          leftSection={<MdDelete size={20} />}
+          onClick={async () => {
+            await deleteTournament(tournament.id)
+              .then(async () => {
+                await router.push("/");
+              })
+              .catch((response: any) => handleRequestError(response));
+          }}
+        >
+          {t("delete_tournament_button")}
+        </Button>
+      </Group>
+      </Stack>
     </form>
   );
 }
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const { tournamentData } = getTournamentIdFromRouter();
   const swrTournamentResponse = getTournamentById(tournamentData.id);
   const tournamentDataFull =
@@ -402,7 +400,16 @@ export default function SettingsPage() {
 
   return (
     <TournamentLayout tournament_id={tournamentData.id}>
-      <Container>{content}</Container>
+      <Stack gap="lg" maw={640} w="100%" mx="auto">
+        <PageHeader
+          title={t("tournament_setting_title", "Settings")}
+          description={t(
+            "settings_page_subtitle",
+            "Name, dates, public page, scorekeeper access, and archive status.",
+          )}
+        />
+        {content}
+      </Stack>
     </TournamentLayout>
   );
 }

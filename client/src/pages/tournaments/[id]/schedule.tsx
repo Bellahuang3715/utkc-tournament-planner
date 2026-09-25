@@ -9,7 +9,6 @@ import {
   Stack,
   Text,
   TextInput,
-  Title,
 } from '@mantine/core';
 import { showNotification } from '@mantine/notifications';
 import { IconTrash } from '@tabler/icons-react';
@@ -19,6 +18,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SWRResponse } from 'swr';
 import { v4 as uuidv4 } from 'uuid';
 
+import { PageHeader } from '../../../components/layout/page_header';
 import CourtModal from '../../../components/modals/create_court_modal';
 import CourtTimetable, {
   PaletteDragPayload,
@@ -358,8 +358,14 @@ export default function SchedulePage() {
 
   return (
     <TournamentLayout tournament_id={tournamentData.id}>
-      <Stack gap="md">
-        <Title order={3}>{t('planning_title')}</Title>
+      <Stack gap="lg">
+        <PageHeader
+          title={t('schedule_title', 'Schedule')}
+          description={t(
+            'schedule_page_subtitle',
+            'Set the day and match length, then place each block on a court.',
+          )}
+        />
         <TimetableConfigForm
           tournamentId={tournamentData.id}
           config={config}

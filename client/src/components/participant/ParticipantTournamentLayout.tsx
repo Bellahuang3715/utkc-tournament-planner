@@ -29,6 +29,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React, { ReactNode, useMemo } from 'react';
 
+import { PageHeader } from '../layout/page_header';
 import { TournamentPublic } from '../../interfaces/tournament';
 import { getPublicTournamentByEndpoint } from '../../services/adapter';
 import linkClasses from '../navbar/_main_links.module.css';
@@ -246,15 +247,10 @@ export default function ParticipantTournamentLayout({
 
 export function ParticipantComingSoon({ section }: { section: string }) {
   return (
-    <Stack gap="xs">
-      <Title order={2} style={{ fontSize: '1.35rem' }}>
-        {section}
-      </Title>
-      <Text c="dimmed" size="sm">
-        This participant view is ready. Live {section.toLowerCase()} will show here during the
-        tournament.
-      </Text>
-    </Stack>
+    <PageHeader
+      title={section}
+      description={`Live ${section.toLowerCase()} will show here during the tournament.`}
+    />
   );
 }
 

@@ -1,5 +1,5 @@
-import React from "react";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
+import React from "react";
 
 import PlayersTable from "../../../../components/tables/players";
 import { getTournamentIdFromRouter } from "../../../../components/utils/util";

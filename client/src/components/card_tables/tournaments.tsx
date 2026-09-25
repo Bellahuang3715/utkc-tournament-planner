@@ -1,7 +1,7 @@
-import { Button, Card, Group, Image, Stack, Text, Title } from '@mantine/core';
+import { Accordion, Button, Card, Group, Image, Select, Stack, Text } from '@mantine/core';
 import { useTranslation } from 'next-i18next/pages';
 import Link from 'next/link';
-import React from 'react';
+import React, { useState } from 'react';
 import { SWRResponse } from 'swr';
 
 import { Tournament } from '../../interfaces/tournament';
@@ -36,12 +36,24 @@ function Stat({ title, value }: { title: string; value: any }) {
   );
 }
 
+type TournamentSort = "name" | "created";
+
+function compareTournaments(sort: TournamentSort) {
+  return (a: Tournament, b: Tournament) => {
+    if (sort === "created") {
+      return new Date(b.created).getTime() - new Date(a.created).getTime();
+    }
+    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+  };
+}
+
 export default function TournamentsCardTable({
   swrTournamentsResponse,
 }: {
   swrTournamentsResponse: SWRResponse;
 }) {
   const { t } = useTranslation();
+  const [sort, setSort] = useState<TournamentSort>("name");
 
   if (swrTournamentsResponse.error) {
     return <RequestErrorAlert error={swrTournamentsResponse.error} />;
@@ -53,13 +65,13 @@ export default function TournamentsCardTable({
   const tournaments: Tournament[] =
     swrTournamentsResponse.data != null ? swrTournamentsResponse.data.data : [];
 
-  const byName = (a: Tournament, b: Tournament) => a.name.localeCompare(b.name);
+  const compare = compareTournaments(sort);
   const active = tournaments
     .filter((tournament) => (tournament.status ?? "active") === "active")
-    .sort(byName);
+    .sort(compare);
   const archived = tournaments
     .filter((tournament) => tournament.status === "archived")
-    .sort(byName);
+    .sort(compare);
 
   const renderCards = (list: Tournament[]) =>
     list.map((tournament) => (
@@ -94,32 +106,56 @@ export default function TournamentsCardTable({
 
   if (tournaments.length < 1) return <EmptyTableInfo entity_name={t('tournaments_title')} />;
 
+  const sections = [
+    {
+      value: "active",
+      title: t("active", "Active"),
+      empty: t("no_active_tournaments", "No active tournaments."),
+      list: active,
+    },
+    {
+      value: "archived",
+      title: t("archived", "Archived"),
+      empty: t("no_archived_tournaments", "No archived tournaments."),
+      list: archived,
+    },
+  ];
+
   return (
-    <Stack gap="xl" mt="md">
-      <Stack gap="sm">
-        <Title order={3}>{t("active", "Active")}</Title>
-        {active.length < 1 ? (
-          <Text size="sm" c="dimmed">
-            {t("no_active_tournaments", "No active tournaments.")}
-          </Text>
-        ) : (
-          <Group gap="sm" style={{ width: '100%' }}>
-            {renderCards(active)}
-          </Group>
-        )}
-      </Stack>
-      <Stack gap="sm">
-        <Title order={3}>{t("archived", "Archived")}</Title>
-        {archived.length < 1 ? (
-          <Text size="sm" c="dimmed">
-            {t("no_archived_tournaments", "No archived tournaments.")}
-          </Text>
-        ) : (
-          <Group gap="sm" style={{ width: '100%' }}>
-            {renderCards(archived)}
-          </Group>
-        )}
-      </Stack>
+    <Stack gap="md">
+      <Select
+        label={t("sort_tournaments", "Sort")}
+        value={sort}
+        onChange={(value) => value && setSort(value as TournamentSort)}
+        data={[
+          { value: "name", label: t("sort_by_name", "Name") },
+          { value: "created", label: t("sort_by_date_added", "Date added") },
+        ]}
+        allowDeselect={false}
+        w={200}
+      />
+      <Accordion multiple defaultValue={["active", "archived"]} variant="separated">
+        {sections.map((section) => (
+          <Accordion.Item key={section.value} value={section.value}>
+            <Accordion.Control>
+              <Text fw={600}>
+                {section.title} ({section.list.length})
+              </Text>
+            </Accordion.Control>
+            <Accordion.Panel>
+              {section.list.length < 1 ? (
+                <Text size="sm" c="dimmed">
+                  {section.empty}
+                </Text>
+              ) : (
+                <Group gap="sm" style={{ width: "100%" }}>
+                  {renderCards(section.list)}
+                </Group>
+              )}
+            </Accordion.Panel>
+          </Accordion.Item>
+        ))}
+      </Accordion>
     </Stack>
   );
 }

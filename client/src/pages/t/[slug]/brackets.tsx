@@ -5,11 +5,9 @@ import {
   Paper,
   Stack,
   Text,
-  Title,
   UnstyledButton,
   useComputedColorScheme,
 } from '@mantine/core';
-import { IconList } from '@tabler/icons-react';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
 import React, { useMemo, useState } from 'react';
 import {
@@ -24,6 +22,7 @@ import ParticipantTournamentLayout, {
 import {
   ParticipantEmpty,
   ParticipantLoading,
+  ParticipantPageTitle,
 } from '../../../components/participant/ParticipantUi';
 import { DEFAULT_BOOKLET } from '../../../components/utils/brackets_editor/shared';
 import { responseIsValid } from '../../../components/utils/util';
@@ -121,6 +120,14 @@ export default function ParticipantBracketsPage() {
 
   return (
     <ParticipantTournamentLayout>
+      <Stack gap="lg">
+      {divisionId == null && (
+        <ParticipantPageTitle
+          title="Brackets"
+          subtitle="Seeding and groups. Scores stay on the Scores page."
+        />
+      )}
+
       {loadingDivisions && <ParticipantLoading />}
 
       {!loadingDivisions && divisions.length === 0 && (
@@ -128,20 +135,7 @@ export default function ParticipantBracketsPage() {
       )}
 
       {divisionId == null && divisions.length > 0 && (
-        <Stack gap="md">
-          <Group gap="sm" wrap="nowrap" align="flex-start">
-            <IconList size={28} stroke={1.5} style={{ flexShrink: 0, marginTop: 2 }} />
-            <div>
-              <Title order={2} style={{ fontSize: '1.35rem' }}>
-                Brackets
-              </Title>
-              <Text size="sm" c="dimmed">
-                Seeding and groups · no scores
-              </Text>
-            </div>
-          </Group>
-
-          <Stack gap="sm">
+        <Stack gap="sm">
             {divisions.map((d: any) => (
               <UnstyledButton
                 key={d.id}
@@ -170,7 +164,6 @@ export default function ParticipantBracketsPage() {
               </UnstyledButton>
             ))}
           </Stack>
-        </Stack>
       )}
 
       {selected && (
@@ -183,6 +176,10 @@ export default function ParticipantBracketsPage() {
               ← All divisions
             </Text>
           </UnstyledButton>
+          <ParticipantPageTitle
+            title={selected.name}
+            subtitle="Groups and seeding for this division."
+          />
 
           {loadingBrackets && <ParticipantLoading />}
 
@@ -207,9 +204,9 @@ export default function ParticipantBracketsPage() {
                     borderLeft: '4px solid var(--mantine-color-indigo-6)',
                   }}
                 >
-                  <Title order={3} mb="md" style={{ fontSize: '1.15rem' }}>
+                  <Text fw={600} mb="md">
                     {heading}
-                  </Title>
+                  </Text>
                   {!sizeOk ? (
                     <Text size="sm" c="dimmed">
                       Bracket size {b.num_players} is not supported for display.
@@ -248,6 +245,7 @@ export default function ParticipantBracketsPage() {
             })}
         </Stack>
       )}
+      </Stack>
     </ParticipantTournamentLayout>
   );
 }

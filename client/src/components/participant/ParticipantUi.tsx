@@ -1,28 +1,21 @@
-import { Center, Loader, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Center, Loader, Text, TextInput } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import React, { ReactNode } from 'react';
+
+import { PageHeader } from '../layout/page_header';
 
 /** Shared mobile-first primitives for the participant site only. */
 
 export function ParticipantPageTitle({
   title,
   subtitle,
+  actions,
 }: {
   title: string;
-  subtitle?: string;
+  subtitle: string;
+  actions?: ReactNode;
 }) {
-  return (
-    <Stack gap={4} mb="sm">
-      <Title order={2} style={{ fontSize: '1.35rem' }}>
-        {title}
-      </Title>
-      {subtitle && (
-        <Text size="sm" c="dimmed">
-          {subtitle}
-        </Text>
-      )}
-    </Stack>
-  );
+  return <PageHeader title={title} description={subtitle} actions={actions} />;
 }
 
 export function ParticipantSearchInput({

@@ -15,16 +15,16 @@ import {
 export default function ParticipantResultsPage() {
   return (
     <ParticipantTournamentLayout>
-      <ParticipantPageTitle
-        title="Results"
-        subtitle="Final placements for each division."
-      />
-      <Stack gap="sm">
+      <Stack gap="lg">
+        <ParticipantPageTitle
+          title="Results"
+          subtitle="Final placements for each division."
+        />
         <ParticipantEmpty>
           Results will appear here once the organizer publishes final placements.
         </ParticipantEmpty>
         <Text size="sm" c="dimmed">
-          Meanwhile, check <strong>Scores</strong> for live match outcomes.
+          Meanwhile, check Scores for live match outcomes.
         </Text>
       </Stack>
     </ParticipantTournamentLayout>

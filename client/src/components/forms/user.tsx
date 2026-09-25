@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import {
   Autocomplete,
+  Box,
   Button,
-  Container,
   Fieldset,
   Grid,
   Group,
@@ -77,7 +77,7 @@ export default function UserForm({ user }: { user: UserInterface }) {
     : '—';
 
   return (
-    <Container size="sm" px={0}>
+    <Box maw={560} w="100%">
       <form
         onSubmit={detailsForm.onSubmit(async (values) => {
           await updateUser(user.id, {
@@ -239,6 +239,6 @@ export default function UserForm({ user }: { user: UserInterface }) {
           {t('logout_title')}
         </Button>
       </Fieldset>
-    </Container>
+    </Box>
   );
 }

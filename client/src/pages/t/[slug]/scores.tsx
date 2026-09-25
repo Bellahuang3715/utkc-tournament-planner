@@ -4,11 +4,9 @@ import {
   Paper,
   Stack,
   Text,
-  Title,
   UnstyledButton,
   useComputedColorScheme,
 } from '@mantine/core';
-import { IconScoreboard } from '@tabler/icons-react';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -23,6 +21,7 @@ import ParticipantTournamentLayout, {
 import {
   ParticipantEmpty,
   ParticipantLoading,
+  ParticipantPageTitle,
 } from '../../../components/participant/ParticipantUi';
 import ScoreStatusBadge from '../../../components/scores/ScoreStatusBadge';
 import { DEFAULT_BOOKLET } from '../../../components/utils/brackets_editor/shared';
@@ -313,6 +312,14 @@ export default function ParticipantScoresPage() {
 
   return (
     <ParticipantTournamentLayout>
+      <Stack gap="lg">
+      {divisionId == null && (
+        <ParticipantPageTitle
+          title="Scores"
+          subtitle="Live match results. This page refreshes automatically."
+        />
+      )}
+
       {loadingDivisions && <ParticipantLoading />}
 
       {!loadingDivisions && divisions.length === 0 && (
@@ -322,17 +329,6 @@ export default function ParticipantScoresPage() {
       {/* Step 1: pick division */}
       {divisionId == null && divisions.length > 0 && (
         <Stack gap="md">
-          <Group gap="sm" wrap="nowrap" align="flex-start">
-            <IconScoreboard size={28} stroke={1.5} style={{ flexShrink: 0, marginTop: 2 }} />
-            <div>
-              <Title order={2} style={{ fontSize: '1.35rem' }}>
-                Scores
-              </Title>
-              <Text size="sm" c="dimmed">
-                Live match results · refreshes automatically
-              </Text>
-            </div>
-          </Group>
 
           {loadingStatuses && Object.keys(overviewByDivision).length === 0 && (
             <ParticipantLoading />
@@ -396,22 +392,18 @@ export default function ParticipantScoresPage() {
             </Text>
           </UnstyledButton>
 
-          <Group gap="sm" wrap="nowrap" align="flex-start">
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <Title order={2} style={{ fontSize: '1.25rem' }}>
-                {selected.name}
-              </Title>
-              <Text size="sm" c="dimmed">
-                Select a group
-              </Text>
-            </div>
-            <ScoreStatusBadge
-              status={
-                overviewByDivision[selected.id]?.status ??
-                aggregateScoreStatuses(selectedGroups.map((g) => g.status))
-              }
-            />
-          </Group>
+          <ParticipantPageTitle
+            title={selected.name}
+            subtitle="Select a group to see its scores."
+            actions={
+              <ScoreStatusBadge
+                status={
+                  overviewByDivision[selected.id]?.status ??
+                  aggregateScoreStatuses(selectedGroups.map((g) => g.status))
+                }
+              />
+            }
+          />
 
           {loadingGroups && <ParticipantLoading />}
 
@@ -480,18 +472,18 @@ export default function ParticipantScoresPage() {
             );
 
             return (
+              <Stack gap="lg">
+                <ParticipantPageTitle
+                  title={heading}
+                  subtitle="Live scores for this group."
+                  actions={<ScoreStatusBadge status={status} />}
+                />
               <Paper
                 withBorder
                 radius="md"
                 p="md"
                 style={{ borderLeft: '4px solid var(--mantine-color-teal-6)' }}
               >
-                <Group justify="space-between" mb="md" wrap="wrap">
-                  <Title order={3} style={{ fontSize: '1.15rem' }}>
-                    {heading}
-                  </Title>
-                  <ScoreStatusBadge status={status} />
-                </Group>
                 {!sizeOk ? (
                   <Text size="sm" c="dimmed">
                     Bracket size {b.num_players} is not supported for display.
@@ -537,10 +529,12 @@ export default function ParticipantScoresPage() {
                   </Box>
                 )}
               </Paper>
+              </Stack>
             );
           })()}
         </Stack>
       )}
+      </Stack>
     </ParticipantTournamentLayout>
   );
 }

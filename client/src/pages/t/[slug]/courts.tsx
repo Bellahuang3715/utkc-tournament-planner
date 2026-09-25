@@ -55,6 +55,7 @@ export default function ParticipantCourtsPage() {
 
   return (
     <ParticipantTournamentLayout>
+      <Stack gap="lg">
       <ParticipantPageTitle
         title="Courts"
         subtitle="What’s assigned to each court today."
@@ -106,6 +107,7 @@ export default function ParticipantCourtsPage() {
           })}
         </Accordion>
       )}
+      </Stack>
     </ParticipantTournamentLayout>
   );
 }

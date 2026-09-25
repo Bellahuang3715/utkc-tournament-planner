@@ -15,6 +15,7 @@ import React from 'react';
 import ParticipantTournamentLayout, {
   useParticipantTournamentSlug,
 } from '../../../components/participant/ParticipantTournamentLayout';
+import { ParticipantPageTitle } from '../../../components/participant/ParticipantUi';
 
 const SHORTCUTS = [
   { href: '/matches', label: 'Find my matches', desc: 'Search by name or code', icon: IconSearch },
@@ -31,7 +32,11 @@ export default function ParticipantTournamentHomePage() {
 
   return (
     <ParticipantTournamentLayout>
-      <Stack gap="sm">
+      <Stack gap="lg">
+        <ParticipantPageTitle
+          title="Home"
+          subtitle="Find matches, the schedule, scores, and results."
+        />
         <SimpleGrid cols={1} spacing="sm">
           {SHORTCUTS.map((item) => {
             const Icon = item.icon;

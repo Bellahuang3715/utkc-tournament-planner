@@ -13,11 +13,12 @@ import {
   Stack,
   Tabs,
   Text,
-  Title,
   Tooltip,
 } from "@mantine/core";
 import { useTranslation } from "next-i18next/pages";
 import { IconDownload, IconPencil, IconTrash } from "@tabler/icons-react";
+
+import { PageHeader } from "../../../../components/layout/page_header";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import { useRouter } from "next/router";
 
@@ -258,15 +259,13 @@ export default function BracketsPage() {
   return (
     <TournamentLayout tournament_id={tournamentData.id}>
       <Stack gap="lg">
-        <Stack gap={4}>
-          <Title order={2}>{t("divisions_title", "Divisions")}</Title>
-          <Text size="sm" c="dimmed" maw={560}>
-            {t(
-              "divisions_page_subtitle",
-              "Open a division to manage its roster, match timing, and bracket trees",
-            )}
-          </Text>
-        </Stack>
+        <PageHeader
+          title={t("divisions_title", "Divisions")}
+          description={t(
+            "divisions_page_subtitle",
+            "Open a division to manage its roster, match timing, and bracket trees.",
+          )}
+        />
 
         {groups.length === 0 ? (
           <Paper withBorder radius="md" p="xl">

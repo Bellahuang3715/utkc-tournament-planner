@@ -3,7 +3,6 @@ import {
   Alert,
   Button,
   Stack,
-  Title,
   Group,
   Center,
   Loader,
@@ -20,6 +19,7 @@ import { useTranslation } from "next-i18next/pages";
 import { CollapsedLeft, CollapsedRight, Expanded } from "tournament-brackets-ui";
 
 import TournamentLayout from "../../../pages/tournaments/_tournament_layout";
+import { PageHeader } from "../../layout/page_header";
 import { getTournamentIdFromRouter } from "../util";
 import { toUITeams, toUITeamNames } from "../../../services/bracket";
 import {
@@ -471,17 +471,20 @@ export default function BracketsEditorTeams() {
 
   return (
     <TournamentLayout tournament_id={tournamentId}>
-      <Stack p="md" gap="md">
-        <Group justify="space-between" align="center" wrap="wrap">
-          <Title order={3}>
-            {t("edit_seeding", "Edit Seeding / Positions")} —{" "}
-            {t("teams_title", "Teams")}
-          </Title>
-          <Text c="dimmed" size="sm">
-            {totalTeams} {t("teams_title", "teams")} • {sorted.length}{" "}
-            {t("brackets", "brackets")}
-          </Text>
-        </Group>
+      <Stack gap="lg">
+        <PageHeader
+          title={t("edit_seeding", "Edit seeding")}
+          description={t(
+            "edit_seeding_teams_subtitle",
+            "Move teams between bracket spots and adjust how the export looks.",
+          )}
+          actions={
+            <Text c="dimmed" size="sm">
+              {totalTeams} {t("teams_title", "teams")} · {sorted.length}{" "}
+              {t("brackets", "brackets")}
+            </Text>
+          }
+        />
 
         {locked && (
           <Alert color="orange" title={t("division_locked", "Locked")}>
