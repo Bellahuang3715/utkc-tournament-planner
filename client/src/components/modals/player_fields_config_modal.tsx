@@ -13,7 +13,6 @@ import {
   Paper,
   useMantineTheme,
 } from "@mantine/core";
-import { showNotification } from "@mantine/notifications";
 import { IconX, IconPlus } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next/pages";
 import {
@@ -47,6 +46,7 @@ export default function PlayerFieldsConfigModal({
   const [newOptionText, setNewOptionText] = useState<Record<string, string>>(
     {}
   );
+  const [newFieldLabel, setNewFieldLabel] = useState("");
 
   const swrPlayerFieldsResponse = getPlayerFields(tournament_id);
   const playerFields: FieldInsertable[] =
@@ -89,40 +89,38 @@ export default function PlayerFieldsConfigModal({
       )
     );
 
-  async function handleSave() {
-    // 1) Normalize keys for any first/last name fields:
-    const normalizedFields = fields.map((f) => {
-      const txt = `${f.key} ${f.label}`.toLowerCase();
-      if (/\b(first\s*name|firstname)\b/.test(txt)) {
-        return { ...f, key: "firstname" };
-      }
-      if (/\b(last\s*name|lastname)\b/.test(txt)) {
-        return { ...f, key: "lastname" };
-      }
-      return f;
-    });
-
-    // 2) Check that at least one Name field (first or last or generic) is present:
-    const hasNameField = normalizedFields.some((f) => {
-      const txt = `${f.key} ${f.label}`.toLowerCase();
-      return /\b(name|firstname|lastname)\b/.test(txt);
-    });
-
-    if (!hasNameField) {
-      showNotification({
-        title: t("error", "Error"),
-        message: t(
-          "template_missing_name",
-          'You must include at least one Name field (e.g. "Name", "First Name", "Last Name").'
-        ),
-        color: "red",
-      });
-      return;
+  function addField() {
+    const label = newFieldLabel.trim();
+    if (!label) return;
+    const base =
+      label
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_|_$/g, "") || "field";
+    let key = base;
+    let n = 2;
+    while (fields.some((f) => f.key === key)) {
+      key = `${base}_${n}`;
+      n += 1;
     }
+    setFields((current) => [
+      ...current,
+      {
+        key,
+        label,
+        include: true,
+        type: "TEXT",
+        options: [],
+        position: current.length,
+      },
+    ]);
+    setNewFieldLabel("");
+  }
 
-    // 3) All good → send normalized fields up
-    await updatePlayerFields(tournament_id, normalizedFields);
-    onSave({ fields: normalizedFields });
+  async function handleSave() {
+    const saved = await updatePlayerFields(tournament_id, fields);
+    if (saved == null) return;
+    onSave({ fields });
     onClose();
   }
 
@@ -137,9 +135,34 @@ export default function PlayerFieldsConfigModal({
       <Text size="sm" color={theme.colors.blue[7]} mb="lg">
         {t(
           "configure_instr",
-          "Pick which columns to include and set each field’s type and options."
+          "Name and club are always included. Add any other columns, then set each field’s type and options."
         )}
       </Text>
+      <Flex mb="md" gap="xs">
+        <TextInput
+          placeholder={t("add_field_placeholder", "Add a field, such as Rank")}
+          value={newFieldLabel}
+          onChange={(e) => setNewFieldLabel(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addField();
+            }
+          }}
+          style={{ flex: 1 }}
+        />
+        <Button variant="light" onClick={addField}>
+          {t("add_field_button", "Add field")}
+        </Button>
+      </Flex>
+      {fields.length === 0 && (
+        <Text size="sm" c="dimmed" mb="md">
+          {t(
+            "no_extra_fields",
+            "No extra columns yet. Add a field here, or import a spreadsheet and its headers will become the columns."
+          )}
+        </Text>
+      )}
       {/* Header labels */}
       <Paper
         withBorder

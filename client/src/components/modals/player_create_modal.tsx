@@ -9,8 +9,10 @@ import {
   Select,
   Stack,
   Group,
+  Text,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { showNotification } from "@mantine/notifications";
 import { IconUser, IconUsers } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next/pages";
 import { SWRResponse } from "swr";
@@ -88,9 +90,23 @@ function SinglePlayerTab({
   const onSubmit = form.onSubmit(async (values) => {
     if (isEdit && player) {
       // await updatePlayer(tournament_id, player.id, { data: values });
-    } else {
-      // await createPlayer(tournament_id, { data: values });
+      await swrPlayersResponse.mutate();
+      setOpened(false);
+      return;
     }
+
+    const data: Record<string, any> = {};
+    playerFields
+      .filter((f) => f.include)
+      .forEach((f) => {
+        data[f.key] = values[f.key];
+      });
+    const result = await createPlayer(tournament_id, {
+      name: values.name,
+      club_id: Number(values.club_id),
+      data,
+    });
+    if (result == null) return;
     await swrPlayersResponse.mutate();
     setOpened(false);
   });
@@ -177,15 +193,47 @@ export default function PlayerCreateModal({
   swrPlayerFieldsResponse,
   opened,
   setOpened,
+  initialTab = "single",
+  allowSingle = true,
 }: {
   tournament_id: number;
   swrPlayersResponse: SWRResponse;
   swrPlayerFieldsResponse?: SWRResponse;
   opened: boolean;
   setOpened: (open: boolean) => void;
+  initialTab?: "single" | "multi";
+  allowSingle?: boolean;
 }) {
   const { t } = useTranslation();
   const swrClubsForImport = getClubs();
+  const [tab, setTab] = useState<"single" | "multi">(initialTab);
+  const [importDirty, setImportDirty] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const importing = !allowSingle || tab === "multi";
+
+  useEffect(() => {
+    if (opened) setTab(allowSingle ? initialTab : "multi");
+  }, [opened, initialTab, allowSingle]);
+
+  useEffect(() => {
+    if (!opened) {
+      setImportDirty(false);
+      setConfirmLeave(false);
+    }
+  }, [opened]);
+
+  const requestClose = () => {
+    if (importing && importDirty) {
+      setConfirmLeave(true);
+      return;
+    }
+    setOpened(false);
+  };
+
+  const leaveImport = () => {
+    setConfirmLeave(false);
+    setOpened(false);
+  };
 
   // import all club sheets
   const handleImportAll = async (uploads: PlayersUpload[]) => {
@@ -193,29 +241,56 @@ export default function PlayerCreateModal({
     const clubs: Club[] = swrClubsForImport.data?.data ?? [];
     console.log("uploads", uploads);
 
-    // infer schema once
-    const { file, sheet, headerRow, dataRow } = uploads[0];
-    const { fields, headerMap, nameCols } = await inferFieldsFromSheet(
-      file,
-      sheet,
-      headerRow
+    const normLabel = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const existingFields: FieldInsertable[] =
+      swrPlayerFieldsResponse?.data?.fields ?? [];
+    // The first spreadsheet defines columns only when none exist yet.
+    // Later files must match those columns and must not replace them.
+    const existingPlayers =
+      swrPlayersResponse.data?.data?.players ?? [];
+    let schemaFields = existingFields;
+    if (existingFields.length === 0) {
+      if (existingPlayers.length > 0) {
+        showNotification({
+          color: "red",
+          title: t("error", "Error"),
+          message: t(
+            "players_fields_locked",
+            "Set the player fields before importing. A spreadsheet can’t choose new columns once players are already in the tournament.",
+          ),
+        });
+        return;
+      }
+      const first = uploads[0];
+      const inferred = await inferFieldsFromSheet(
+        first.file,
+        first.sheet,
+        first.headerRow,
+      );
+      const saved = await updatePlayerFields(tournament_id, inferred.fields);
+      if (saved == null) return;
+      schemaFields = inferred.fields;
+      if (swrPlayerFieldsResponse) await swrPlayerFieldsResponse.mutate();
+    }
+    const keyByLabel = new Map(
+      schemaFields.map((f) => [normLabel(f.label), f.key]),
     );
-    console.log("fields", fields);
-    // push schema to players_field from first sheet
-    await updatePlayerFields(tournament_id, fields);
-    // refresh player fields in UI so table columns update immediately
-    if (swrPlayerFieldsResponse) await swrPlayerFieldsResponse.mutate();
 
     // now import every upload
-    for (const { file, clubName, sheet } of uploads) {
+    for (const upload of uploads) {
+      const { headerMap, nameCols } = await inferFieldsFromSheet(
+        upload.file,
+        upload.sheet,
+        upload.headerRow,
+      );
       const wb = new ExcelJS.Workbook();
-      await wb.xlsx.load(await file.arrayBuffer());
-      const ws = wb.getWorksheet(sheet);
+      await wb.xlsx.load(await upload.file.arrayBuffer());
+      const ws = wb.getWorksheet(upload.sheet);
       if (!ws) continue;
 
       // for each row starting at dataRow, build a player
       // stop when we hit an empty row (no name)
-      for (let r = dataRow; r <= ws.rowCount; r++) {
+      for (let r = upload.dataRow; r <= ws.rowCount; r++) {
         const row = ws.getRow(r);
 
         // helper to read a cell’s displayed text (handles formulas)
@@ -226,11 +301,10 @@ export default function PlayerCreateModal({
           return String(raw ?? "").trim();
         };
 
-        // build a raw map header→value, pulling out .result if it's a formula
         const rowData: Record<string, any> = {};
         headerMap.forEach(({ col, header }) => {
-          // normalize the header into a lowercase_snake_case key:
-          const key = header.toLowerCase().replace(/\s+/g, "_");
+          const key = keyByLabel.get(normLabel(header));
+          if (!key) return;
           const txt = cellText(row.getCell(col));
           rowData[key] = txt === "" ? null : txt;
         });
@@ -256,12 +330,16 @@ export default function PlayerCreateModal({
 
         const body = {
           name: nameValue,
-          club_id: resolveClubIdByName(clubs, clubName, 2),
+          club_id: resolveClubIdByName(clubs, upload.clubName, 2),
           data: rowData,
         };
 
         console.log("posting player:", body);
-        await createPlayer(tournament_id, body);
+        const created = await createPlayer(tournament_id, body);
+        if (created == null) {
+          await swrPlayersResponse.mutate();
+          return;
+        }
       }
     }
 
@@ -274,34 +352,78 @@ export default function PlayerCreateModal({
     <>
       <Modal
         opened={opened}
-        onClose={() => setOpened(false)}
-        title={t("create_player_modal_title")}
+        onClose={requestClose}
+        closeOnClickOutside={!importing}
+        title={
+          allowSingle
+            ? t("create_player_modal_title")
+            : t("import_players_title", "Import players")
+        }
         size="lg"
         centered
       >
-        <Tabs defaultValue="single">
-          <Tabs.List justify="center" grow mb="xs">
-            <Tabs.Tab value="single" leftSection={<IconUser size={16} />}>
-              {t("single_player_title")}
-            </Tabs.Tab>
-            <Tabs.Tab value="multi" leftSection={<IconUsers size={16} />}>
-              {t("club_header")}
-            </Tabs.Tab>
-          </Tabs.List>
+        {allowSingle ? (
+          <Tabs
+            value={tab}
+            onChange={(value) => {
+              if (value === "single" || value === "multi") setTab(value);
+            }}
+          >
+            <Tabs.List justify="center" grow mb="xs">
+              <Tabs.Tab value="single" leftSection={<IconUser size={16} />}>
+                {t("single_player_title")}
+              </Tabs.Tab>
+              <Tabs.Tab value="multi" leftSection={<IconUsers size={16} />}>
+                {t("club_header")}
+              </Tabs.Tab>
+            </Tabs.List>
 
-          <Tabs.Panel value="single" pt="xs">
-            <SinglePlayerTab
-              swrPlayersResponse={swrPlayersResponse}
-              tournament_id={tournament_id}
-              setOpened={setOpened}
-            />
-          </Tabs.Panel>
-          <Tabs.Panel value="multi" pt="xs">
-            <Group gap="sm">
-              <PlayersImportModal onImportAll={handleImportAll} />
-            </Group>
-          </Tabs.Panel>
-        </Tabs>
+            <Tabs.Panel value="single" pt="xs">
+              <SinglePlayerTab
+                swrPlayersResponse={swrPlayersResponse}
+                tournament_id={tournament_id}
+                setOpened={setOpened}
+              />
+            </Tabs.Panel>
+            <Tabs.Panel value="multi" pt="xs">
+              <Group gap="sm">
+                <PlayersImportModal
+                  onImportAll={handleImportAll}
+                  onDirtyChange={setImportDirty}
+                />
+              </Group>
+            </Tabs.Panel>
+          </Tabs>
+        ) : (
+          <PlayersImportModal
+            onImportAll={handleImportAll}
+            onDirtyChange={setImportDirty}
+          />
+        )}
+      </Modal>
+      <Modal
+        opened={confirmLeave}
+        onClose={() => setConfirmLeave(false)}
+        title={t("leave_import_title", "Leave this import?")}
+        centered
+        size="sm"
+      >
+        <Stack gap="lg">
+          <Text size="sm" lh={1.6}>
+            {t(
+              "leave_import_message",
+              "Are you sure you want to leave? You will lose your progress.",
+            )}
+          </Text>
+          <Group justify="flex-end" gap="sm">
+            <Button variant="default" onClick={() => setConfirmLeave(false)}>
+              {t("stay_button", "Stay")}
+            </Button>
+            <Button color="red" onClick={leaveImport}>
+              {t("leave_button", "Leave")}
+            </Button>
+          </Group>
+        </Stack>
       </Modal>
     </>
   );

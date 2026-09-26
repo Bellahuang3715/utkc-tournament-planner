@@ -19,6 +19,9 @@ const SKIP_HEADERS = new Set([
   "familyname",
   "surname",
   "playername",
+  // Club is chosen in the import form, not stored as a player column.
+  "club",
+  "clubname",
 ]);
 
 const shouldSkip = (h: string) => SKIP_HEADERS.has(norm(h));

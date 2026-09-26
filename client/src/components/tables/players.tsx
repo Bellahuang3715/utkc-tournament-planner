@@ -7,9 +7,22 @@ import {
   type MRT_ColumnDef,
   type MRT_Row,
 } from "mantine-react-table-open";
-import { ActionIcon, Button, Group, Stack, Text, Tooltip } from "@mantine/core";
 import {
+  ActionIcon,
+  Badge,
+  Button,
+  Group,
+  Modal,
+  Paper,
+  Stack,
+  Text,
+  Tooltip,
+  UnstyledButton,
+} from "@mantine/core";
+import {
+  IconChevronRight,
   IconDownload,
+  IconFileSpreadsheet,
   IconListDetails,
   IconPencil,
   IconPlus,
@@ -42,6 +55,9 @@ export default function PlayersTable({
 }) {
   const { t } = useTranslation();
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createTab, setCreateTab] = useState<"single" | "multi">("single");
+  const [setupChoiceOpen, setSetupChoiceOpen] = useState(false);
+  const [openFormAfterFields, setOpenFormAfterFields] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [fieldsModalOpen, setFieldsModalOpen] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
@@ -51,6 +67,23 @@ export default function PlayersTable({
 
   const playerFields: FieldInsertable[] =
     swrPlayerFieldsResponse.data?.fields ?? [];
+  const hasFields = playerFields.length > 0;
+  const canAddPlayer = hasFields || players.length > 0;
+
+  const openCreate = (tab: "single" | "multi") => {
+    setCreateTab(tab);
+    setCreateModalOpen(true);
+  };
+
+  const needsFieldSetup = !hasFields && players.length === 0;
+
+  const handleAddPlayer = () => {
+    if (needsFieldSetup) {
+      setSetupChoiceOpen(true);
+      return;
+    }
+    openCreate("single");
+  };
 
   const csvConfig = mkConfig({
     fieldSeparator: ",",
@@ -208,7 +241,7 @@ export default function PlayersTable({
           <Button
             leftSection={<IconPlus size={16} />}
             variant="filled"
-            onClick={() => setCreateModalOpen(true)}
+            onClick={handleAddPlayer}
           >
             {t("add_player_button", "Add player")}
           </Button>
@@ -268,6 +301,8 @@ export default function PlayersTable({
         tournament_id={tournamentData.id}
         opened={createModalOpen}
         setOpened={setCreateModalOpen}
+        initialTab={createTab}
+        allowSingle={canAddPlayer}
       />
       <PlayerEditModal
         swrPlayersResponse={swrPlayersResponse}
@@ -279,10 +314,30 @@ export default function PlayersTable({
       <PlayerFieldsConfigModal
         tournament_id={tournamentData.id}
         opened={fieldsModalOpen}
-        onClose={() => setFieldsModalOpen(false)}
-        onSave={async () => {
+        onClose={() => {
+          setFieldsModalOpen(false);
+          setOpenFormAfterFields(false);
+        }}
+        onSave={async (config) => {
+          const shouldOpenForm =
+            openFormAfterFields && config.fields.length > 0;
+          setOpenFormAfterFields(false);
           setFieldsModalOpen(false);
           await swrPlayerFieldsResponse.mutate();
+          if (shouldOpenForm) openCreate("single");
+        }}
+      />
+      <FieldSetupChoiceModal
+        opened={setupChoiceOpen}
+        onClose={() => setSetupChoiceOpen(false)}
+        onImport={() => {
+          setSetupChoiceOpen(false);
+          openCreate("multi");
+        }}
+        onManual={() => {
+          setSetupChoiceOpen(false);
+          setOpenFormAfterFields(true);
+          setFieldsModalOpen(true);
         }}
       />
       {players.length === 0 ? (
@@ -290,30 +345,140 @@ export default function PlayersTable({
           <Group gap="xs">
             <Button
               leftSection={<IconPlus size={16} />}
-              onClick={() => setCreateModalOpen(true)}
+              onClick={handleAddPlayer}
             >
               {t("add_player_button", "Add player")}
             </Button>
-            <Button
-              leftSection={<IconListDetails size={16} />}
-              variant="outline"
-              onClick={() => setFieldsModalOpen(true)}
-            >
-              {t("configure_template", "Manage Player Fields")}
-            </Button>
+            {hasFields && (
+              <>
+                <Button
+                  leftSection={<IconFileSpreadsheet size={16} />}
+                  variant="outline"
+                  onClick={() => openCreate("multi")}
+                >
+                  {t("import_players_button", "Import from Excel")}
+                </Button>
+                <Button
+                  leftSection={<IconListDetails size={16} />}
+                  variant="outline"
+                  onClick={() => setFieldsModalOpen(true)}
+                >
+                  {t("configure_template", "Manage Player Fields")}
+                </Button>
+              </>
+            )}
           </Group>
           <EmptyRoster
             icon={<IconUsers size={22} stroke={1.5} />}
             title={t("no_players_title", "No players yet")}
-            description={t(
-              "no_players_description",
-              "Add players to this tournament to get started.",
-            )}
+            description={
+              hasFields
+                ? t(
+                    "no_players_description",
+                    "Add players one at a time, or import a spreadsheet that uses these columns.",
+                  )
+                : t(
+                    "no_players_choose_fields",
+                    "Add a player to choose how the columns are set up.",
+                  )
+            }
           />
         </Stack>
       ) : (
         <MantineReactTable table={table} />
       )}
     </>
+  );
+}
+
+function FieldSetupChoiceModal({
+  opened,
+  onClose,
+  onImport,
+  onManual,
+}: {
+  opened: boolean;
+  onClose: () => void;
+  onImport: () => void;
+  onManual: () => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title={t("player_fields_setup_title", "Set up player columns")}
+      centered
+      size="md"
+    >
+      <Text size="sm" c="dimmed" mb="md">
+        {t(
+          "player_fields_setup_intro",
+          "Name and club are always included. The other columns on the player table are player fields, such as rank or grade. Choose how to set those fields before the first player is added.",
+        )}
+      </Text>
+      <Stack gap="sm">
+        <UnstyledButton
+          type="button"
+          onClick={onImport}
+          style={{ width: "100%", textAlign: "left" }}
+        >
+          <Paper withBorder p="md" radius="md">
+            <Group justify="space-between" wrap="nowrap" align="flex-start">
+              <Stack gap={4} style={{ flex: 1 }}>
+                <Group gap="xs">
+                  <IconFileSpreadsheet size={18} />
+                  <Text fw={600}>
+                    {t("import_players_button", "Import from Excel")}
+                  </Text>
+                  <Badge variant="light" color="teal">
+                    {t("recommended", "Recommended")}
+                  </Badge>
+                </Group>
+                <Text size="sm" c="dimmed">
+                  {t(
+                    "player_fields_excel_hint",
+                    "The spreadsheet’s headers become the columns. Later files have to use those same columns.",
+                  )}
+                </Text>
+              </Stack>
+              <IconChevronRight size={18} style={{ marginTop: 2 }} />
+            </Group>
+          </Paper>
+        </UnstyledButton>
+        <UnstyledButton
+          type="button"
+          onClick={onManual}
+          style={{ width: "100%", textAlign: "left" }}
+        >
+          <Paper withBorder p="md" radius="md">
+            <Group justify="space-between" wrap="nowrap" align="flex-start">
+              <Stack gap={4} style={{ flex: 1 }}>
+                <Group gap="xs">
+                  <IconListDetails size={18} />
+                  <Text fw={600}>
+                    {t("configure_fields_manually", "Configure manually")}
+                  </Text>
+                </Group>
+                <Text size="sm" c="dimmed">
+                  {t(
+                    "player_fields_manual_hint",
+                    "Type the columns yourself, such as rank or grade.",
+                  )}
+                </Text>
+                <Text size="sm" c="orange.8">
+                  {t(
+                    "player_fields_manual_risk",
+                    "If a later spreadsheet doesn’t match these columns, it can’t be imported. Change the fields before any players are added, or fix the spreadsheet.",
+                  )}
+                </Text>
+              </Stack>
+              <IconChevronRight size={18} style={{ marginTop: 2 }} />
+            </Group>
+          </Paper>
+        </UnstyledButton>
+      </Stack>
+    </Modal>
   );
 }

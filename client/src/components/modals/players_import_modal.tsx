@@ -43,6 +43,7 @@ export interface PlayersUpload {
 
 interface PlayersImportModalProps {
   onImportAll: (uploads: PlayersUpload[]) => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -139,6 +140,7 @@ const countPlayersUntilEmptyName = (
 
 export default function PlayersImportModal({
   onImportAll,
+  onDirtyChange,
 }: PlayersImportModalProps) {
   const theme = useMantineTheme();
   const { t } = useTranslation();
@@ -192,6 +194,25 @@ export default function PlayersImportModal({
   const [duplicateKind, setDuplicateKind] = useState<"added" | "imported" | null>(
     null,
   );
+
+  useEffect(() => {
+    const dirty =
+      uploads.length > 0 ||
+      clubFile != null ||
+      clubName != null ||
+      teamCount !== "" ||
+      headerRow !== 1 ||
+      dataRow !== 1;
+    onDirtyChange?.(dirty);
+  }, [
+    uploads.length,
+    clubFile,
+    clubName,
+    teamCount,
+    headerRow,
+    dataRow,
+    onDirtyChange,
+  ]);
   const fileResetRef = useRef<() => void>(null);
   const preferredSheetRef = useRef("");
 
@@ -226,9 +247,12 @@ export default function PlayersImportModal({
     "given name",
     "family name",
   ];
+  const clubCandidates = ["club", "club name", "clubname"];
   const isNameHeader = (s: string) => nameCandidates.includes(normalize(s));
-  const stripNameHeaders = (arr: string[]) =>
-    arr.filter((h) => !isNameHeader(h));
+  const isClubHeader = (s: string) => clubCandidates.includes(normalize(s));
+  // Name and club are fixed columns, so they are not part of the field match.
+  const stripFixedHeaders = (arr: string[]) =>
+    arr.filter((h) => !isNameHeader(h) && !isClubHeader(h));
 
   const hasNameHeader = (headers: string[]) => {
     const set = new Set(headers.map(normalize));
@@ -303,20 +327,33 @@ export default function PlayersImportModal({
 
   const headersOk = useMemo(() => {
     if (!currentHeaders.length) return false;
+    if (!hasNameHeader(currentHeaders)) return false;
 
-    // first file: must have a name-ish header
-    if (uploads.length === 0) {
-      return hasNameHeader(currentHeaders);
+    // Existing columns must match. There is no override that writes a new schema.
+    if (hasDefinedFields) {
+      const { missing, added } = diffHeaders(
+        stripFixedHeaders(expectedHeaders),
+        stripFixedHeaders(currentHeaders),
+      );
+      return missing.length === 0 && added.length === 0;
     }
 
-    // subsequent files: must match baseline, ignoring name headers
+    // First file in an empty tournament defines the columns.
+    if (uploads.length === 0) return true;
+
     const base = baselineHeaders ?? [];
     const { missing, added } = diffHeaders(
-      stripNameHeaders(base),
-      stripNameHeaders(currentHeaders),
+      stripFixedHeaders(base),
+      stripFixedHeaders(currentHeaders),
     );
     return missing.length === 0 && added.length === 0;
-  }, [uploads.length, baselineHeaders, currentHeaders]);
+  }, [
+    currentHeaders,
+    hasDefinedFields,
+    expectedHeaders,
+    uploads.length,
+    baselineHeaders,
+  ]);
 
   useEffect(() => {
     if (!workbook || !selectedSheet || headerRow < 1 || dataRow < 1) {
@@ -627,10 +664,9 @@ export default function PlayersImportModal({
               ) : (
                 (() => {
                   // Compare detected vs expected (from existing player fields)
-                  const detectedForCompare = stripNameHeaders(currentHeaders);
                   const { missing, added } = diffHeaders(
-                    expectedHeaders,
-                    detectedForCompare,
+                    stripFixedHeaders(expectedHeaders),
+                    stripFixedHeaders(currentHeaders),
                   );
 
                   // If everything matches, show success note
@@ -673,7 +709,7 @@ export default function PlayersImportModal({
                       <Text size="xs" c="dimmed">
                         {t(
                           "expected_headers_hint",
-                          "Expected headers are derived from the tournament’s player fields.",
+                          "Expected headers come from this tournament’s player fields. This file stays blocked until they match. Change the fields while there are no players, or fix the spreadsheet.",
                         )}
                       </Text>
                     </Stack>
