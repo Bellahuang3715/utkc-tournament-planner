@@ -71,6 +71,10 @@ class UserToRegister(BaseModelORM):
     country: str | None = None
 
 
+class GoogleUserToRegister(BaseModelORM):
+    country: str
+
+
 class UserInDB(User):
     id: UserId
     password_hash: str

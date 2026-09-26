@@ -1,8 +1,7 @@
-import { Button, Group, Stack } from "@mantine/core";
+import { Group, Stack } from "@mantine/core";
 import { GetStaticProps } from "next";
 import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
-import Link from "next/link";
 
 import TournamentsCardTable from "../components/card_tables/tournaments";
 import { PageHeader } from "../components/layout/page_header";
@@ -27,9 +26,6 @@ export default function HomePage() {
           )}
           actions={
             <Group gap="sm" className={classes.fullWithMobile}>
-              <Button component={Link} href="/scorekeeping" variant="light">
-                Enter scorekeeper code
-              </Button>
               <TournamentModal swrTournamentsResponse={swrTournamentsResponse} />
             </Group>
           }

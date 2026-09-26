@@ -44,6 +44,11 @@ export async function registerUserDb(user: UserToRegisterInterface, captchaToken
   }
 }
 
+export async function registerGoogleUser(country: string) {
+  const axiosInstance = await createAxios();
+  return axiosInstance.post('users/register_google', { country });
+}
+
 export async function registerDemoUser(captchaToken: string | null) {
   try {
     const axiosInstance = await createAxios();

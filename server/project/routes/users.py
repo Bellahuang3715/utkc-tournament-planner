@@ -15,14 +15,16 @@ from project.models.db.user import (
     UserInsertable,
     UserPasswordToUpdate,
     UserPublic,
+    GoogleUserToRegister,
     UserToRegister,
     UserToUpdate,
 )
-from project.routes.auth import firebase_user_authenticated
+from project.routes.auth import FirebaseIdentity, firebase_identity, firebase_user_authenticated
 from project.routes.models import SuccessResponse, UserPublicResponse
 from project.sql.users import (
     check_whether_email_is_in_use,
     create_user,
+    get_user,
     get_user_by_id,
     update_user,
     update_user_password,
@@ -99,6 +101,38 @@ async def register_user(user_to_register: UserToRegister) -> SuccessResponse:
         if await check_whether_email_is_in_use(user.email):
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Email address already in use")
 
+        user_created = await create_user(user)
+        await import_default_clubs(user_created.id, country)
+    return SuccessResponse()
+
+
+@router.post("/users/register_google", response_model=SuccessResponse)
+async def register_google_user(
+    body: GoogleUserToRegister,
+    identity: FirebaseIdentity = Depends(firebase_identity),
+) -> SuccessResponse:
+    """Create the app account for a Firebase user who signed in with Google."""
+    if not config.allow_user_registration:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Account creation is unavailable for now")
+
+    country = resolve_country_name(body.country)
+    if country is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Country is required")
+
+    if await get_user(identity.email) is not None:
+        return SuccessResponse()
+
+    user = UserInsertable(
+        email=identity.email,
+        password_hash=hash_password(str(uuid4())),
+        name=identity.name,
+        created=datetime_utc.now(),
+        account_type=UserAccountType.REGULAR,
+        country=country,
+    )
+    async with database.transaction():
+        if await check_whether_email_is_in_use(user.email):
+            return SuccessResponse()
         user_created = await create_user(user)
         await import_default_clubs(user_created.id, country)
     return SuccessResponse()

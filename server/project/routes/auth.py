@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from starlette import status
 from firebase_admin import auth
@@ -5,41 +7,57 @@ from firebase_config import *
 
 from project.models.db.user import UserPublic
 from project.sql.users import get_user
-from project.utils.types import assert_some
 
 router = APIRouter()
 
 
-async def firebase_user_authenticated(request: Request) -> UserPublic:
-    # Extract Authorization header
+@dataclass(frozen=True)
+class FirebaseIdentity:
+    email: str
+    name: str
+
+
+def _bearer_token(request: Request) -> str:
     authorization = request.headers.get("Authorization")
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing or invalid authorization header",
         )
+    return authorization.split("Bearer ", 1)[1]
 
-    # Extract token
-    id_token = authorization.split("Bearer ")[1]
 
+async def firebase_identity(request: Request) -> FirebaseIdentity:
+    """Verify the Firebase token. Does not require a row in users."""
+    id_token = _bearer_token(request)
     try:
-        # Verify Firebase ID token
         decoded_token = auth.verify_id_token(id_token)
-        user = await get_user(email=assert_some(decoded_token.get("email")))
-        if user is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User not found",
-            )
-        return UserPublic.model_validate(user.model_dump())
-    except HTTPException:
-        raise
     except Exception as e:
         print(f"Token Verification Error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired ID token",
+        ) from e
+
+    email = decoded_token.get("email")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="This account has no email address",
         )
+    name = decoded_token.get("name") or str(email).split("@", 1)[0]
+    return FirebaseIdentity(email=str(email), name=str(name))
+
+
+async def firebase_user_authenticated(request: Request) -> UserPublic:
+    identity = await firebase_identity(request)
+    user = await get_user(email=identity.email)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+    return UserPublic.model_validate(user.model_dump())
 
 
 async def firebase_user_optional(request: Request) -> UserPublic | None:
