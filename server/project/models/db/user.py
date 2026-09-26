@@ -68,6 +68,7 @@ class UserToRegister(BaseModelORM):
     name: str
     password: str
     captcha_token: str
+    country: str | None = None
 
 
 class UserInDB(User):

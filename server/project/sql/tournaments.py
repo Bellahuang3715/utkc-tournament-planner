@@ -3,6 +3,7 @@ from typing import Any
 from fastapi import HTTPException
 
 from project.database import database
+from project.logic.default_imports import import_default_team_categories
 from project.models.db.tournament import (
     Tournament,
     TournamentBody,
@@ -224,5 +225,8 @@ async def sql_create_tournament(
         "auto_assign_courts": tournament.auto_assign_courts,
         "creator_id": creator_id,
     }
-    new_id = await database.fetch_val(query=query, values=values)
-    return TournamentId(new_id)
+    async with database.transaction():
+        new_id = await database.fetch_val(query=query, values=values)
+        tournament_id = TournamentId(new_id)
+        await import_default_team_categories(tournament_id)
+        return tournament_id

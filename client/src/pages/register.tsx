@@ -1,12 +1,14 @@
 import {
   Alert,
   Anchor,
+  Autocomplete,
   Box,
   Button,
   Center,
   Container,
   Group,
   Paper,
+  Text,
   TextInput,
   Title,
 } from "@mantine/core";
@@ -17,11 +19,14 @@ import { serverSideTranslations } from "next-i18next/pages/serverSideTranslation
 import { useRouter } from "next/router";
 import React, { useState } from "react";
 
+import { CircleFlag } from "react-circle-flags";
+
 import { useAuth } from "../context/AuthContext";
 import { PasswordStrength } from "../components/utils/password";
 import { ClientOnly } from "../components/utils/react";
 import { HCaptchaInput } from "../components/utils/util";
 import { registerUserDb } from "../services/user";
+import { COUNTRY_OPTIONS, DEFAULT_COUNTRY, countryCodeFromName } from "../utils/countries";
 import classes from './register.module.css';
 import { UserToRegisterInterface } from "../interfaces/user";
 
@@ -58,6 +63,7 @@ export default function CreateAccount() {
       name: "",
       email: "",
       password: "",
+      country: DEFAULT_COUNTRY,
     },
 
     validate: {
@@ -66,6 +72,7 @@ export default function CreateAccount() {
         /^\S+@\S+$/.test(value) ? null : t("empty_email_validation"),
       password: (value) =>
         value !== "" ? null : t("empty_password_validation"),
+      country: (value) => (value.trim() !== "" ? null : t("empty_country_validation", "Enter a country")),
     },
   });
 
@@ -101,8 +108,38 @@ export default function CreateAccount() {
             placeholder={t("name_input_placeholder")}
             required
             mt="lg"
-            mb="lg"
             {...form.getInputProps("name")}
+          />
+          <Autocomplete
+            label={t("country_input_label", "Country")}
+            placeholder={t("country_input_placeholder", "Start typing a country")}
+            description={t(
+              "register_country_description",
+              "Canadian accounts start with the default club list. You can edit or delete those clubs later.",
+            )}
+            data={COUNTRY_OPTIONS.map((c) => c.name)}
+            limit={12}
+            required
+            mt="lg"
+            mb="lg"
+            comboboxProps={{ withinPortal: true }}
+            leftSection={
+              <CircleFlag
+                countryCode={countryCodeFromName(form.values.country)}
+                height="16"
+                style={{ pointerEvents: "none" }}
+              />
+            }
+            renderOption={({ option }) => (
+              <Group gap="sm" wrap="nowrap">
+                <CircleFlag
+                  countryCode={countryCodeFromName(option.value)}
+                  height="18"
+                />
+                <Text size="sm">{option.value}</Text>
+              </Group>
+            )}
+            {...form.getInputProps("country")}
           />
           <PasswordStrength form={form} />
           <Group justify="space-between" mt="lg" className={classes.controls}>

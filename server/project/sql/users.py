@@ -109,8 +109,8 @@ async def get_expired_demo_users() -> list[UserPublic]:
 
 async def create_user(user: UserInsertable) -> User:
     query = """
-        INSERT INTO users (email, name, password_hash, created, account_type)
-        VALUES (:email, :name, :password_hash, :created, :account_type)
+        INSERT INTO users (email, name, password_hash, created, account_type, country)
+        VALUES (:email, :name, :password_hash, :created, :account_type, :country)
         RETURNING *
         """
     result = await database.fetch_one(
@@ -121,6 +121,7 @@ async def create_user(user: UserInsertable) -> User:
             "email": user.email,
             "created": user.created,
             "account_type": user.account_type.value,
+            "country": user.country,
         },
     )
     return User.model_validate(dict(assert_some(result)._mapping))

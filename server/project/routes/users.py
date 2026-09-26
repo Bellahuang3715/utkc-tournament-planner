@@ -5,6 +5,9 @@ from heliclockter import datetime_utc
 from starlette import status
 
 from project.config import config
+from project.database import database
+from project.defaults import resolve_country_name
+from project.logic.default_imports import import_default_clubs
 from project.logic.subscriptions import setup_demo_account
 from project.models.db.account import UserAccountType
 from project.models.db.user import (
@@ -83,17 +86,21 @@ async def register_user(user_to_register: UserToRegister) -> SuccessResponse:
     if not await verify_captcha_token(user_to_register.captcha_token):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Failed to validate captcha")
 
+    country = resolve_country_name(user_to_register.country)
     user = UserInsertable(
         email=user_to_register.email,
         password_hash=hash_password(user_to_register.password),
         name=user_to_register.name,
         created=datetime_utc.now(),
         account_type=UserAccountType.REGULAR,
+        country=country,
     )
-    if await check_whether_email_is_in_use(user.email):
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Email address already in use")
+    async with database.transaction():
+        if await check_whether_email_is_in_use(user.email):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Email address already in use")
 
-    user_created = await create_user(user)
+        user_created = await create_user(user)
+        await import_default_clubs(user_created.id, country)
     return SuccessResponse()
 
 

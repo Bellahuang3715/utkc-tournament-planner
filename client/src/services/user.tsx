@@ -36,6 +36,7 @@ export async function registerUserDb(user: UserToRegisterInterface, captchaToken
       email: user.email,
       name: user.name,
       password: user.password,
+      country: user.country,
       captcha_token: captchaToken,
     })
   } catch (error: any) {

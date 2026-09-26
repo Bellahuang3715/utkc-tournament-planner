@@ -81,15 +81,18 @@ async def sql_delete_club(club_id: ClubId) -> None:
     await database.execute(query=query, values={"club_id": club_id})
 
 
-async def get_clubs_for_user_id(user_id: UserId) -> list[Club]:
-    """Shared club directory — all organizers can read; mutate is owner-checked in routes."""
-    _ = user_id
+async def get_all_clubs() -> list[Club]:
     query = """
         SELECT clubs.* FROM clubs
         ORDER BY clubs.name ASC, clubs.id ASC
         """
     results = await database.fetch_all(query=query)
     return [Club.model_validate(dict(result._mapping)) for result in results]
+
+
+async def get_clubs_for_user_id(user_id: UserId) -> list[Club]:
+    """Clubs this user owns. Defaults copied at registration live here and can be edited."""
+    return await get_clubs_owned_by_user_id(user_id)
 
 
 async def get_clubs_owned_by_user_id(user_id: UserId) -> list[Club]:

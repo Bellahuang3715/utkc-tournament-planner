@@ -1,14 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from starlette import status
 
+from project.models.db.account import UserAccountType
 from project.models.db.club import Club, ClubCreateBody, ClubUpdateBody
 from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated, firebase_user_optional
 from project.routes.authorization import SCOREKEEPER_TOKEN_HEADER, require_club_owner
 from project.routes.models import ClubResponse, ClubsResponse, SuccessResponse
-from project.sql.clubs import create_club, get_clubs_for_user_id, sql_delete_club, sql_update_club
+from project.sql.clubs import (
+    create_club,
+    get_all_clubs,
+    get_clubs_owned_by_user_id,
+    sql_delete_club,
+    sql_update_club,
+)
+from project.sql.tournaments import sql_get_tournament_by_scorekeeper_token
 from project.utils.errors import ForeignKey, check_foreign_key_violation
-from project.utils.id_types import ClubId, UserId
+from project.utils.id_types import ClubId
 
 router = APIRouter()
 
@@ -18,15 +26,25 @@ async def get_clubs(
     request: Request,
     user: UserPublic | None = Depends(firebase_user_optional),
 ) -> ClubsResponse:
-    """Shared club directory. Requires login or a scorekeeper access token."""
-    if user is None and not request.headers.get(SCOREKEEPER_TOKEN_HEADER):
+    """Clubs owned by the logged-in user.
+
+    A scorekeeper token returns the tournament creator's clubs, so scoring
+    pages can resolve club names without owning those rows.
+    """
+    token = request.headers.get(SCOREKEEPER_TOKEN_HEADER)
+    if token:
+        tournament = await sql_get_tournament_by_scorekeeper_token(token)
+        if tournament is not None:
+            return ClubsResponse(data=await get_clubs_owned_by_user_id(tournament.creator_id))
+
+    if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing or invalid authorization header",
         )
-    return ClubsResponse(
-        data=await get_clubs_for_user_id(user.id if user is not None else UserId(0))
-    )
+    if user.account_type == UserAccountType.ADMIN:
+        return ClubsResponse(data=await get_all_clubs())
+    return ClubsResponse(data=await get_clubs_owned_by_user_id(user.id))
 
 
 @router.post("/clubs", response_model=ClubResponse)
