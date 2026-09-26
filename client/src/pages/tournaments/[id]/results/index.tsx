@@ -5,12 +5,13 @@ import {
   Stack,
   Text,
 } from '@mantine/core';
-import { IconMedal } from '@tabler/icons-react';
+import { IconMedal, IconTrophy } from '@tabler/icons-react';
 import { useTranslation } from 'next-i18next/pages';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
 import React from 'react';
 
 import { PageHeader } from '../../../../components/layout/page_header';
+import { EmptyRoster } from '../../../../components/no_content/empty_table_info';
 import { getTournamentIdFromRouter } from '../../../../components/utils/util';
 import TournamentLayout from '../../_tournament_layout';
 
@@ -43,53 +44,8 @@ type DivisionResults =
       placers: TeamPlacer[];
     };
 
-/** Mock podium results — replace with API data later. */
-const MOCK_DIVISION_RESULTS: DivisionResults[] = [
-  {
-    id: 1,
-    name: 'Men\'s Individuals A',
-    divisionType: 'INDIVIDUALS',
-    placers: [
-      { place: 1, playerName: 'Kenji Nakamura', clubName: 'University of Toronto Kendo Club' },
-      { place: 2, playerName: 'Alex Chen', clubName: 'York University Kendo Club' },
-      { place: 3, playerName: 'Marcus Lee', clubName: 'McMaster University Kendo Club' },
-      { place: 3, playerName: 'David Park', clubName: 'University of Waterloo Kendo Club' },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Women\'s Individuals',
-    divisionType: 'INDIVIDUALS',
-    placers: [
-      { place: 1, playerName: 'Yuki Tanaka', clubName: 'University of Toronto Kendo Club' },
-      { place: 2, playerName: 'Sarah Kim', clubName: 'Queen\'s University Kendo Club' },
-      { place: 3, playerName: 'Emily Wong', clubName: 'Western University Kendo Club' },
-      { place: 3, playerName: 'Hana Suzuki', clubName: 'Carleton University Kendo Club' },
-    ],
-  },
-  {
-    id: 3,
-    name: 'Men\'s Individuals B',
-    divisionType: 'INDIVIDUALS',
-    placers: [
-      { place: 1, playerName: 'Ryan Patel', clubName: 'Ryerson University Kendo Club' },
-      { place: 2, playerName: 'James Liu', clubName: 'University of Ottawa Kendo Club' },
-      { place: 3, playerName: 'Chris Nguyen', clubName: 'University of Guelph Kendo Club' },
-      { place: 3, playerName: 'Tom Hughes', clubName: 'Brock University Kendo Club' },
-    ],
-  },
-  {
-    id: 4,
-    name: 'Team Division',
-    divisionType: 'TEAMS',
-    placers: [
-      { place: 1, teamName: 'UOT A', clubName: 'University of Toronto Kendo Club' },
-      { place: 2, teamName: 'York A', clubName: 'York University Kendo Club' },
-      { place: 3, teamName: 'Mac A', clubName: 'McMaster University Kendo Club' },
-      { place: 3, teamName: 'Waterloo A', clubName: 'University of Waterloo Kendo Club' },
-    ],
-  },
-];
+/** Real placements will replace this once results are stored. */
+const DIVISION_RESULTS: DivisionResults[] = [];
 
 const PLACE_META: Record<
   Place,
@@ -199,11 +155,22 @@ export default function ResultsPage() {
           )}
         />
 
-        <Stack gap="md">
-          {MOCK_DIVISION_RESULTS.map((division) => (
-            <DivisionResultsCard key={division.id} division={division} />
-          ))}
-        </Stack>
+        {DIVISION_RESULTS.length === 0 ? (
+          <EmptyRoster
+            icon={<IconTrophy size={22} stroke={1.5} />}
+            title={t('no_results_title', 'No results yet')}
+            description={t(
+              'no_results_description',
+              'Final placements show up here after divisions are scored.',
+            )}
+          />
+        ) : (
+          <Stack gap="md">
+            {DIVISION_RESULTS.map((division) => (
+              <DivisionResultsCard key={division.id} division={division} />
+            ))}
+          </Stack>
+        )}
       </Stack>
     </TournamentLayout>
   );

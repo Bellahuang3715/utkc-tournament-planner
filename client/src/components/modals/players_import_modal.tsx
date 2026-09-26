@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Button,
   FileButton,
@@ -14,6 +14,7 @@ import {
   Badge,
   Title,
   Divider,
+  Modal,
 } from "@mantine/core";
 import { IconX, IconUpload } from "@tabler/icons-react";
 import { showNotification } from "@mantine/notifications";
@@ -185,8 +186,34 @@ export default function PlayersImportModal({
 
   const [uploads, setUploads] = useState<PlayersUpload[]>([]);
   const [clubModalOpen, setClubModalOpen] = useState(false);
-  const [teamCount, setTeamCount] = useState<number>(-1);
+  const [teamCount, setTeamCount] = useState<number | "">("");
   const [detectedPlayers, setDetectedPlayers] = useState<number | null>(null);
+  const [duplicateFile, setDuplicateFile] = useState<File | null>(null);
+  const [duplicateKind, setDuplicateKind] = useState<"added" | "imported" | null>(
+    null,
+  );
+  const fileResetRef = useRef<() => void>(null);
+  const preferredSheetRef = useRef("");
+
+  const importedFilesKey = `imported_player_excels:${tournamentData.id}`;
+
+  const normalizeFileName = (name: string) => name.trim().toLowerCase();
+
+  const readImportedFileNames = () => {
+    try {
+      const raw = localStorage.getItem(importedFilesKey);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.map((name) => String(name)) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const rememberImportedFileNames = (names: string[]) => {
+    const existing = new Set(readImportedFileNames());
+    names.forEach((name) => existing.add(normalizeFileName(name)));
+    localStorage.setItem(importedFilesKey, JSON.stringify([...existing]));
+  };
 
   // helpers -------------------------------------------------------
   const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
@@ -259,8 +286,9 @@ export default function PlayersImportModal({
       setWorkbook(wb);
       const names = wb.worksheets.map((ws) => ws.name);
       setSheetNames(names);
-      setSelectedSheet((prev) =>
-        prev && names.includes(prev) ? prev : (names[0] ?? ""),
+      const preferred = preferredSheetRef.current;
+      setSelectedSheet(
+        preferred && names.includes(preferred) ? preferred : (names[0] ?? ""),
       );
     })();
     return () => {
@@ -310,6 +338,7 @@ export default function PlayersImportModal({
     dataRow >= headerRow + 1 &&
     !!clubName &&
     !!selectedClub?.abbreviation &&
+    typeof teamCount === "number" &&
     teamCount >= 0 &&
     currentHeaders.length > 0 &&
     headersOk;
@@ -325,7 +354,7 @@ export default function PlayersImportModal({
 
     const selectedClub = clubByName.get(clubName!);
     const abbrev = selectedClub?.abbreviation?.trim();
-    if (!abbrev) return;
+    if (!abbrev || typeof teamCount !== "number") return;
 
     setUploads((u) => [
       ...u,
@@ -341,21 +370,89 @@ export default function PlayersImportModal({
       },
     ]);
 
-    // reset inputs for next add
+    // Keep sheet, header row, and data row for the next club.
+    preferredSheetRef.current = selectedSheet;
     setClubFile(null);
     setClubName(null);
-    setTeamCount(0);
+    setTeamCount("");
     setSheetNames([]);
-    setSelectedSheet("");
-    setHeaderRow(1);
-    setDataRow(1);
     setWorkbook(null);
     setCurrentHeaders([]);
     setDetectedPlayers(null);
   };
 
+  const handleFileSelected = (file: File | null) => {
+    fileResetRef.current?.();
+    if (!file) return;
+
+    const key = normalizeFileName(file.name);
+    const alreadyAdded = uploads.some(
+      (upload) => normalizeFileName(upload.file.name) === key,
+    );
+    const alreadyImported = readImportedFileNames().includes(key);
+    if (alreadyAdded || alreadyImported) {
+      setDuplicateKind(alreadyAdded ? "added" : "imported");
+      setDuplicateFile(file);
+      return;
+    }
+    setClubFile(file);
+  };
+
   return (
     <>
+      <Modal
+        opened={duplicateFile != null}
+        onClose={() => {
+          setDuplicateFile(null);
+          setDuplicateKind(null);
+        }}
+        title={t("duplicate_excel_title", "Same file name detected")}
+        centered
+        size="sm"
+      >
+        <Stack gap="lg">
+          <Text size="sm" lh={1.6}>
+            {duplicateKind === "added"
+              ? t(
+                  "duplicate_excel_added",
+                  "This file is already in this import.",
+                )
+              : t(
+                  "duplicate_excel_imported",
+                  "This file was already imported for this tournament.",
+                )}
+          </Text>
+          <Paper withBorder radius="md" p="sm">
+            <Text size="sm" fw={600} lh={1.5} style={{ wordBreak: "break-word" }}>
+              {duplicateFile?.name}
+            </Text>
+          </Paper>
+          <Text size="sm" lh={1.6}>
+            {t("duplicate_excel_continue", "Continue anyway?")}
+          </Text>
+          <Group justify="flex-end" gap="sm">
+            <Button
+              variant="default"
+              onClick={() => {
+                setDuplicateFile(null);
+                setDuplicateKind(null);
+              }}
+            >
+              {t("cancel_button", "Cancel")}
+            </Button>
+            <Button
+              color="orange"
+              onClick={() => {
+                if (duplicateFile) setClubFile(duplicateFile);
+                setDuplicateFile(null);
+                setDuplicateKind(null);
+              }}
+            >
+              {t("continue_button", "Continue")}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
       <ClubModal
         club={null}
         swrClubsResponse={swrClubs}
@@ -364,7 +461,11 @@ export default function PlayersImportModal({
       />
       <Stack gap="md" p="md">
         {/* 1) File Upload */}
-        <FileButton onChange={setClubFile} accept=".xlsx">
+        <FileButton
+          resetRef={fileResetRef}
+          onChange={handleFileSelected}
+          accept=".xlsx"
+        >
           {(props) => (
             <Button
               {...props}
@@ -461,13 +562,18 @@ export default function PlayersImportModal({
             label={t("team_count", "How many teams is this club sending?")}
             required
             value={teamCount}
-            onChange={(v) =>
-              typeof v === "number" && setTeamCount(Math.max(0, v))
-            }
+            onChange={(v) => {
+              if (v === "" || v == null) {
+                setTeamCount("");
+                return;
+              }
+              if (typeof v === "number") setTeamCount(Math.max(0, v));
+            }}
             disabled={!clubName}
             allowNegative={false}
             allowDecimal={false}
             min={0}
+            placeholder={t("team_count_placeholder", "Enter a number")}
             w="100%"
           />
 
@@ -648,7 +754,8 @@ export default function PlayersImportModal({
               }
             }
 
-            onImportAll(uploads);
+            await onImportAll(uploads);
+            rememberImportedFileNames(uploads.map((upload) => upload.file.name));
           }}
         >
           {t("import_all", "Import All Clubs")}

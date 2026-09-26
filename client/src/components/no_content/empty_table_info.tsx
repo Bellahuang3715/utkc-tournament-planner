@@ -28,6 +28,30 @@ export function EmptyTableInfo({
   );
 }
 
+export function EmptyRoster({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className={classes.roster}>
+      <span className={classes.rosterIcon}>{icon}</span>
+      <Title order={4} className={classes.rosterTitle}>
+        {title}
+      </Title>
+      {description && (
+        <Text size="sm" c="dimmed" ta="center" className={classes.rosterDescription}>
+          {description}
+        </Text>
+      )}
+    </div>
+  );
+}
+
 export function NoContent({
   title,
   description,

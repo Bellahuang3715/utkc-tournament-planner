@@ -22,6 +22,7 @@ import React from "react";
 import { SWRResponse, mutate } from "swr";
 
 import { PageHeader } from "../../../components/layout/page_header";
+import { toIsoFromPicker } from "../../../components/utils/datetime";
 import NotFoundTitle from "../../404";
 import { DropzoneButton } from "../../../components/utils/file_upload";
 import { GenericSkeletonThreeRows } from "../../../components/utils/skeletons";
@@ -101,7 +102,7 @@ function GeneralTournamentForm({
           values.dashboard_endpoint ?? "",
           values.players_can_be_in_multiple_teams,
           values.auto_assign_courts,
-          values.start_time.toISOString(),
+          toIsoFromPicker(values.start_time),
         );
 
         await swrTournamentResponse.mutate();

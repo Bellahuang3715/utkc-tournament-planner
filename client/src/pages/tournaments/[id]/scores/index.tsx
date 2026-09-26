@@ -9,11 +9,13 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
+import { IconScoreboard } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import { useRouter } from "next/router";
 
 import { PageHeader } from "../../../../components/layout/page_header";
+import { EmptyRoster } from "../../../../components/no_content/empty_table_info";
 import TournamentLayout from "../../_tournament_layout";
 import ScoreStatusBadge from "../../../../components/scores/ScoreStatusBadge";
 import { getTournamentIdFromRouter } from "../../../../components/utils/util";
@@ -189,7 +191,14 @@ export default function ScoresPage() {
             <Loader />
           </Center>
         ) : divisionOptions.length === 0 ? (
-          <Text c="dimmed">{t("no_divisions", "No divisions found.")}</Text>
+          <EmptyRoster
+            icon={<IconScoreboard size={22} stroke={1.5} />}
+            title={t("no_divisions_title", "No divisions yet")}
+            description={t(
+              "no_divisions_description",
+              "Generate brackets from Players or Teams to create your first division.",
+            )}
+          />
         ) : (
           <>
             <SimpleGrid

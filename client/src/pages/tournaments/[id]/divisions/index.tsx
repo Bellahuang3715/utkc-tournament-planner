@@ -8,7 +8,6 @@ import {
   Center,
   Group,
   Loader,
-  Paper,
   SegmentedControl,
   Stack,
   Tabs,
@@ -16,9 +15,10 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useTranslation } from "next-i18next/pages";
-import { IconDownload, IconPencil, IconTrash } from "@tabler/icons-react";
+import { IconBrackets, IconDownload, IconPencil, IconTrash } from "@tabler/icons-react";
 
 import { PageHeader } from "../../../../components/layout/page_header";
+import { EmptyRoster } from "../../../../components/no_content/empty_table_info";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import { useRouter } from "next/router";
 
@@ -268,17 +268,14 @@ export default function BracketsPage() {
         />
 
         {groups.length === 0 ? (
-          <Paper withBorder radius="md" p="xl">
-            <Stack gap="xs" align="flex-start">
-              <Text fw={600}>{t("no_divisions_title", "No divisions yet")}</Text>
-              <Text size="sm" c="dimmed">
-                {t(
-                  "no_divisions_description",
-                  "Generate brackets from Players or Teams to create your first division.",
-                )}
-              </Text>
-            </Stack>
-          </Paper>
+          <EmptyRoster
+            icon={<IconBrackets size={22} stroke={1.5} />}
+            title={t("no_divisions_title", "No divisions yet")}
+            description={t(
+              "no_divisions_description",
+              "Generate brackets from Players or Teams to create your first division.",
+            )}
+          />
         ) : (
           <Accordion
             variant="separated"

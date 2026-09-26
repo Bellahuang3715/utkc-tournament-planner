@@ -22,6 +22,7 @@ import {
   IconPencil,
   IconPlus,
   IconTrash,
+  IconUsersGroup,
 } from "@tabler/icons-react";
 import { mkConfig, generateCsv, download } from "export-to-csv";
 
@@ -32,7 +33,7 @@ import { categoryChipBackground, chipTextColor } from "../../utils/chipStyle";
 import { GenerateBracketsButtonTeams } from "../modals/bracket_create_modal";
 import CategoryConfigModal from "../modals/category_config_modal";
 import TeamModal from "../modals/team_modal";
-import { NoContent } from "../no_content/empty_table_info";
+import { EmptyRoster } from "../no_content/empty_table_info";
 import RequestErrorAlert from "../utils/error_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
 
@@ -291,14 +292,7 @@ export default function TeamsTable({
         onSaved={() => swrTeamsResponse.mutate()}
       />
       {teams.length === 0 ? (
-        <Stack gap="md" align="flex-start">
-          <NoContent
-            title={t("no_teams_title", "No teams yet")}
-            description={t(
-              "no_teams_description",
-              "Add teams to this tournament to get started.",
-            )}
-          />
+        <Stack gap="md">
           <Group gap="xs">
             <Button leftSection={<IconPlus size={16} />} onClick={openCreate}>
               {t("add_team_button", "Add team")}
@@ -311,6 +305,14 @@ export default function TeamsTable({
               {t("manage_teams_categories", "Manage Teams Categories")}
             </Button>
           </Group>
+          <EmptyRoster
+            icon={<IconUsersGroup size={22} stroke={1.5} />}
+            title={t("no_teams_title", "No teams yet")}
+            description={t(
+              "no_teams_description",
+              "Add teams to this tournament to get started.",
+            )}
+          />
         </Stack>
       ) : (
         <MantineReactTable table={table} />

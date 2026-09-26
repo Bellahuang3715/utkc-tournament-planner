@@ -11,7 +11,7 @@ import {
   TextInput,
 } from '@mantine/core';
 import { showNotification } from '@mantine/notifications';
-import { IconTrash } from '@tabler/icons-react';
+import { IconBrackets, IconLayoutColumns, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'next-i18next/pages';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -19,6 +19,7 @@ import { SWRResponse } from 'swr';
 import { v4 as uuidv4 } from 'uuid';
 
 import { PageHeader } from '../../../components/layout/page_header';
+import { EmptyRoster } from '../../../components/no_content/empty_table_info';
 import CourtModal from '../../../components/modals/create_court_modal';
 import CourtTimetable, {
   PaletteDragPayload,
@@ -408,14 +409,21 @@ export default function SchedulePage() {
         <Group align="flex-start" wrap="nowrap" style={{ alignItems: 'stretch' }}>
           <Box style={{ flex: '1 1 auto', minWidth: 0 }}>
             {!hasCourts && (
-              <Stack align="center" gap="md" py="xl">
-                <Text size="sm" c="dimmed">
-                  {t('no_courts_description')}
-                </Text>
-                <CourtModal
-                  tournamentId={tournamentData.id}
-                  swrCourtsResponse={swrCourts as SWRResponse}
-                  buttonSize="lg"
+              <Stack gap="md">
+                <Group>
+                  <CourtModal
+                    tournamentId={tournamentData.id}
+                    swrCourtsResponse={swrCourts as SWRResponse}
+                    buttonSize="lg"
+                  />
+                </Group>
+                <EmptyRoster
+                  icon={<IconLayoutColumns size={22} stroke={1.5} />}
+                  title={t('no_courts_title', 'No courts yet')}
+                  description={t(
+                    'no_courts_empty_description',
+                    'Add a court, then place division groups on the timetable.',
+                  )}
                 />
               </Stack>
             )}
@@ -594,9 +602,14 @@ export default function SchedulePage() {
                 ))}
 
               {blocks.length === 0 && (
-                <Text size="xs" c="dimmed">
-                  No divisions or brackets yet. Add them in Divisions.
-                </Text>
+                <EmptyRoster
+                  icon={<IconBrackets size={22} stroke={1.5} />}
+                  title={t('no_divisions_title', 'No divisions yet')}
+                  description={t(
+                    'no_schedule_blocks_description',
+                    'Generate brackets from Players or Teams, then drag groups onto a court.',
+                  )}
+                />
               )}
               {blocks.length > 0 &&
                 blocks.every((block) =>

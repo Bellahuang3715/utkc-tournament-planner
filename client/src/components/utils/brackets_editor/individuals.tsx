@@ -18,7 +18,10 @@ import { useRouter } from "next/router";
 import { useTranslation } from "next-i18next/pages";
 import { CollapsedLeft, CollapsedRight, Expanded } from "tournament-brackets-ui";
 
+import { IconBrackets } from "@tabler/icons-react";
+
 import TournamentLayout from "../../../pages/tournaments/_tournament_layout";
+import { EmptyRoster } from "../../no_content/empty_table_info";
 import { PageHeader } from "../../layout/page_header";
 import { getTournamentIdFromRouter } from "../util";
 import { getClubs, getDivisionLock } from "../../../services/adapter";
@@ -186,9 +189,11 @@ export function BracketPairsSection({
           </Stack>
         </Center>
       ) : pairs.length === 0 ? (
-        <Center style={{ minHeight: 120 }}>
-          <Text c="dimmed">No brackets found for this division.</Text>
-        </Center>
+        <EmptyRoster
+          icon={<IconBrackets size={22} stroke={1.5} />}
+          title="No brackets yet"
+          description="Generate brackets for this division to see them here."
+        />
       ) : (
         <Stack gap="md">
           {pairs.map(({ left, right }) => (
@@ -245,9 +250,11 @@ export function PosterGroupsSection({
 
   if (brackets.length === 0) {
     return (
-      <Center style={{ minHeight: 120 }}>
-        <Text c="dimmed">No brackets found for this division.</Text>
-      </Center>
+      <EmptyRoster
+        icon={<IconBrackets size={22} stroke={1.5} />}
+        title="No brackets yet"
+        description="Generate brackets for this division to see them here."
+      />
     );
   }
 

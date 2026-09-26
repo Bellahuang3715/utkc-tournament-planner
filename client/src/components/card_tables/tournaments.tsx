@@ -1,4 +1,5 @@
-import { Accordion, Button, Card, Group, Image, Select, Stack, Text } from '@mantine/core';
+import { Accordion, Button, Card, Group, Image, Select, Stack, Text, Tooltip } from '@mantine/core';
+import { IconCalendar, IconMapPin, IconUser } from '@tabler/icons-react';
 import { useTranslation } from 'next-i18next/pages';
 import Link from 'next/link';
 import React, { useState } from 'react';
@@ -23,16 +24,26 @@ export function TournamentLogo({ tournament }: { tournament: Tournament }) {
   );
 }
 
-function Stat({ title, value }: { title: string; value: any }) {
+function MetaRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+}) {
   return (
-    <div key={title}>
-      <Text size="xs" c="dimmed">
-        {title}
-      </Text>
-      <Text fw={500} size="sm">
+    <Group gap={8} wrap="nowrap" align="flex-start">
+      <Tooltip label={label} withArrow openDelay={300}>
+        <span className={classes.metaIcon} aria-label={label}>
+          {icon}
+        </span>
+      </Tooltip>
+      <Text size="sm" lh={1.4} style={{ flex: 1, minWidth: 0 }}>
         {value}
       </Text>
-    </div>
+    </Group>
   );
 }
 
@@ -81,25 +92,37 @@ export default function TournamentsCardTable({
             <TournamentLogo tournament={tournament} />
           </Card.Section>
 
-          <Text fw={500} mt="md" mb="xs">
+          <Text fw={600} size="lg" mt="md" lh={1.25}>
             {tournament.name}
           </Text>
 
-          <Card.Section className={classes.section}>
-            <Stat title={t('start_time')} value={<DateTime datetime={tournament.start_time} />} />
-          </Card.Section>
+          <Stack gap={8} mt="sm" mb="md">
+            <MetaRow
+              icon={<IconUser size={16} stroke={1.5} />}
+              label={t('organizer_input_label', 'Organizer')}
+              value={tournament.organizer || '—'}
+            />
+            <MetaRow
+              icon={<IconCalendar size={16} stroke={1.5} />}
+              label={t('start_time')}
+              value={<DateTime datetime={tournament.start_time} />}
+            />
+            <MetaRow
+              icon={<IconMapPin size={16} stroke={1.5} />}
+              label={t('location_input_label')}
+              value={tournament.location || '—'}
+            />
+          </Stack>
 
-          <Card.Section className={classes.section}>
-            <Button
-              component={Link}
-              color="blue"
-              fullWidth
-              radius="md"
-              href={`/tournaments/${tournament.id}/participants/players`}
-            >
-              {t("open_tournament", "OPEN")}
-            </Button>
-          </Card.Section>
+          <Button
+            component={Link}
+            color="blue"
+            fullWidth
+            radius="md"
+            href={`/tournaments/${tournament.id}/participants/players`}
+          >
+            {t("open_tournament", "OPEN")}
+          </Button>
         </Card>
       </Group>
     ));

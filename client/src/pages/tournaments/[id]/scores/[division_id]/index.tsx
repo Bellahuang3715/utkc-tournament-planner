@@ -16,7 +16,7 @@ import {
   Tabs,
   useComputedColorScheme,
 } from "@mantine/core";
-import { IconQuestionMark } from "@tabler/icons-react";
+import { IconBrackets, IconQuestionMark } from "@tabler/icons-react";
 import { useRouter } from "next/router";
 import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
@@ -24,6 +24,7 @@ import { Expanded, EXPANDED_SIZES_INDIVIDUALS, EXPANDED_SIZES_TEAMS } from "tour
 
 import { showNotification } from "@mantine/notifications";
 import { PageHeader } from "../../../../../components/layout/page_header";
+import { EmptyRoster } from "../../../../../components/no_content/empty_table_info";
 import TournamentLayout from "../../../_tournament_layout";
 import RequestErrorAlert from "../../../../../components/utils/error_alert";
 import { getTournamentIdFromRouter } from "../../../../../components/utils/util";
@@ -1009,7 +1010,14 @@ export default function DivisionScoresEditorPage() {
             <Loader />
           </Center>
         ) : groupsForCards.length === 0 && bracketsLoaded ? (
-          <Text c="dimmed">{t("no_groups", "No groups found.")}</Text>
+          <EmptyRoster
+            icon={<IconBrackets size={22} stroke={1.5} />}
+            title={t("no_groups_title", "No groups yet")}
+            description={t(
+              "no_groups_description",
+              "Generate brackets for this division to start scoring.",
+            )}
+          />
         ) : (
           <Tabs
             value={activeTab ?? undefined}

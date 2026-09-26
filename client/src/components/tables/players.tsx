@@ -14,6 +14,7 @@ import {
   IconPencil,
   IconPlus,
   IconTrash,
+  IconUsers,
 } from "@tabler/icons-react";
 import { mkConfig, generateCsv, download } from "export-to-csv";
 
@@ -25,7 +26,7 @@ import { Player } from "../../interfaces/player";
 import { FieldInsertable } from "../../interfaces/player_fields";
 import { TournamentMinimal } from "../../interfaces/tournament";
 import { deletePlayer } from "../../services/player";
-import { NoContent } from "../no_content/empty_table_info";
+import { EmptyRoster } from "../no_content/empty_table_info";
 import RequestErrorAlert from "../utils/error_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
 import { GenerateBracketsButton } from "../modals/bracket_create_modal";
@@ -285,14 +286,7 @@ export default function PlayersTable({
         }}
       />
       {players.length === 0 ? (
-        <Stack gap="md" align="flex-start">
-          <NoContent
-            title={t("no_players_title", "No players yet")}
-            description={t(
-              "no_players_description",
-              "Add players to this tournament to get started.",
-            )}
-          />
+        <Stack gap="md">
           <Group gap="xs">
             <Button
               leftSection={<IconPlus size={16} />}
@@ -308,6 +302,14 @@ export default function PlayersTable({
               {t("configure_template", "Manage Player Fields")}
             </Button>
           </Group>
+          <EmptyRoster
+            icon={<IconUsers size={22} stroke={1.5} />}
+            title={t("no_players_title", "No players yet")}
+            description={t(
+              "no_players_description",
+              "Add players to this tournament to get started.",
+            )}
+          />
         </Stack>
       ) : (
         <MantineReactTable table={table} />

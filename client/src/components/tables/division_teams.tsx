@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Alert, Badge, Button, Group } from "@mantine/core";
+import { IconUsersGroup } from "@tabler/icons-react";
 import {
   MantineReactTable,
   useMantineReactTable,
@@ -11,7 +12,7 @@ import { getDivisionTeams, getTeams, getDivisionLock } from "../../services/adap
 import AddNewTeamModal from "../modals/add_new_team_modal";
 import RequestErrorAlert from "../utils/error_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
-import { NoContent } from "../no_content/empty_table_info";
+import { EmptyRoster } from "../no_content/empty_table_info";
 import {
   addTeamsToDivision,
   removeTeamsFromDivision,
@@ -371,7 +372,14 @@ export default function DivisionTeamsTable({
             {t("add_teams_to_division", "Add teams to division")}
           </Button>
         </Group>
-        <NoContent title={t("no_teams_title", "No teams in this division")} />
+        <EmptyRoster
+          icon={<IconUsersGroup size={22} stroke={1.5} />}
+          title={t("no_teams_in_division_title", "No teams in this division")}
+          description={t(
+            "no_teams_in_division_description",
+            "Add teams to this division to build its bracket.",
+          )}
+        />
         <AddNewTeamModal
           tournamentId={tournamentId}
           opened={addNewTeamModalOpen}

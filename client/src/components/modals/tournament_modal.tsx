@@ -1,29 +1,24 @@
 import {
   Button,
-  Checkbox,
   Grid,
   Image,
   Modal,
-  Select,
   TextInput,
   Textarea,
-  Autocomplete,
 } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { GoPlus } from 'react-icons/go';
 import { IconCalendar } from "@tabler/icons-react";
-import assert from "assert";
 import { useTranslation } from "next-i18next/pages";
 import React, { useState } from "react";
 import { SWRResponse } from "swr";
 
-import { Club } from "../../interfaces/club";
 import { Tournament } from "../../interfaces/tournament";
-import { getBaseApiUrl, getClubs } from "../../services/adapter";
+import { getBaseApiUrl } from "../../services/adapter";
 import { createTournament } from "../../services/tournament";
 import SaveButton from "../buttons/save";
-import ClubModal from "./club_modal";
+import { toIsoFromPicker } from "../utils/datetime";
 
 export function TournamentLogo({
   tournament,
@@ -42,13 +37,9 @@ export function TournamentLogo({
 function GeneralTournamentForm({
   setOpened,
   swrTournamentsResponse,
-  clubs,
-  onAddNewClub,
 }: {
   setOpened: any;
   swrTournamentsResponse: SWRResponse;
-  clubs: Club[];
-  onAddNewClub: () => void;
 }) {
   const { t } = useTranslation();
   const form = useForm({
@@ -67,9 +58,9 @@ function GeneralTournamentForm({
       name: (value) =>
         value.length > 0 ? null : t("too_short_name_validation"),
       organizer: (value) =>
-        value && value.length > 0
+        value.trim().length > 0
           ? null
-          : t("organizer_choose_title", "Please choose an organizer"),
+          : t("organizer_enter_title", "Please enter an organizer"),
       location: (value) =>
         value && value.length > 0
           ? null
@@ -79,8 +70,6 @@ function GeneralTournamentForm({
     },
   });
 
-  const organizerFieldProps = form.getInputProps("organizer");
-
   return (
     <form
       onSubmit={form.onSubmit(async (values) => {
@@ -89,7 +78,7 @@ function GeneralTournamentForm({
           values.name,
           values.location,
           values.description,
-          values.start_time.toISOString(),
+          toIsoFromPicker(values.start_time),
           values.dashboard_public,
           values.players_can_be_in_multiple_teams,
           values.auto_assign_courts,
@@ -105,31 +94,20 @@ function GeneralTournamentForm({
         {...form.getInputProps("name")}
       />
 
-      <Select
+      <TextInput
         withAsterisk
-        data={[
-          ...clubs.map((p) => ({ value: p.name, label: p.name })),
-          {
-            value: "__add__",
-            label: `+ ${t("add_new_club", "Add new club…")}`,
-          },
-        ]}
-        label={t("organizer_select_label", "Organizer")}
-        placeholder={t(
-          "organizer_select_placeholder",
-          "Select the organizer for this tournament (or add new if not listed)",
-        )}
-        searchable
-        limit={20}
-        style={{ marginTop: 10 }}
-        {...organizerFieldProps}
-        onChange={(val) => {
-          if (val === "__add__") {
-            onAddNewClub();
-            return;
-          }
-          organizerFieldProps.onChange(val);
-        }}
+        label={t("organizer_input_label", "Organizer")}
+        placeholder={t("organizer_input_placeholder", "Organizer name")}
+        mt="lg"
+        {...form.getInputProps("organizer")}
+      />
+
+      <DateTimePicker
+        withAsterisk
+        label={t("start_time")}
+        leftSection={<IconCalendar size="1.1rem" stroke={1.5} />}
+        mt="lg"
+        {...form.getInputProps("start_time")}
       />
 
       <TextInput
@@ -145,18 +123,6 @@ function GeneralTournamentForm({
         mt="lg"
         {...form.getInputProps("description")}
       />
-
-      <Grid mt="1rem">
-        <Grid.Col span={{ sm: 6 }}>
-          <DateTimePicker
-            withAsterisk
-            label={t("start_time")}
-            leftSection={<IconCalendar size="1.1rem" stroke={1.5} />}
-            mx="auto"
-            {...form.getInputProps("start_time")}
-          />
-        </Grid.Col>
-      </Grid>
 
       <Grid mt={8}>
         <Grid.Col span={6}>
@@ -181,20 +147,10 @@ export default function TournamentModal({
 }) {
   const { t } = useTranslation();
   const [opened, setOpened] = useState(false);
-   const [clubModalOpen, setClubModalOpen] = useState(false);
   const operation_text = t("create_tournament_button");
-  const swrClubsResponse: SWRResponse = getClubs();
-  const clubs: Club[] =
-    swrClubsResponse.data != null ? swrClubsResponse.data.data : [];
 
   return (
     <>
-      <ClubModal
-        club={null}
-        swrClubsResponse={swrClubsResponse}
-        opened={clubModalOpen}
-        setOpened={setClubModalOpen}
-      />
       <Modal
         opened={opened}
         onClose={() => setOpened(false)}
@@ -204,8 +160,6 @@ export default function TournamentModal({
         <GeneralTournamentForm
           setOpened={setOpened}
           swrTournamentsResponse={swrTournamentsResponse}
-          clubs={clubs}
-          onAddNewClub={() => setClubModalOpen(true)}
         />
       </Modal>
       <SaveButton
