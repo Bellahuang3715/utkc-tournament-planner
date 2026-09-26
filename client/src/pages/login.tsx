@@ -1,13 +1,11 @@
 import {
   Anchor,
   Button,
-  Container,
-  Paper,
+  Divider,
   PasswordInput,
+  Stack,
   Text,
   TextInput,
-  Title,
-  Divider
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { showNotification } from "@mantine/notifications";
@@ -17,6 +15,7 @@ import { serverSideTranslations } from "next-i18next/pages/serverSideTranslation
 import { useRouter } from "next/router";
 import React, { useEffect } from "react";
 
+import { GuestEntryShell } from "../components/layout/guest_entry";
 import { useAuth } from "../context/AuthContext";
 import { auth } from "../services/firebase";
 
@@ -110,83 +109,68 @@ export default function Login() {
   });
 
   return (
-    <>
-      <Title ta="center" mt={100}>
-        {t("welcome_title")}{" "}
-        <Text inherit variant="gradient" component="span">
-          Bracket
-        </Text>
-      </Title>
-      <Container size={480} my={40}>
-        <Paper withBorder shadow="md" p={30} pt={8} mt={30} radius="md">
-          <Button
-            size="md"
-            fullWidth
-            mt="lg"
-            type="button"
-            variant="default"
-            leftSection={<GoogleMark />}
-            onClick={handleGoogleLogin}
-            styles={{
-              root: { fontWeight: 600 },
-              label: { color: "var(--mantine-color-text)" },
-            }}
-          >
-            Continue with Google Account
-          </Button>
-          <Divider label="Or continue with email" labelPosition="center" my="lg" />
-          <form
-            onSubmit={form.onSubmit(async (values) =>
-              attemptLogin(values.email, values.password)
-            )}
-          >
+    <GuestEntryShell
+      title={t("sign_in_title")}
+      description="Log in to create and manage tournaments."
+    >
+      <Stack gap="md">
+        <Button
+          size="md"
+          fullWidth
+          type="button"
+          variant="default"
+          leftSection={<GoogleMark />}
+          onClick={handleGoogleLogin}
+          styles={{
+            root: { fontWeight: 600 },
+            label: { color: "var(--mantine-color-text)" },
+          }}
+        >
+          Continue with Google Account
+        </Button>
+        <Divider label="Or continue with email" labelPosition="center" />
+        <form
+          onSubmit={form.onSubmit(async (values) =>
+            attemptLogin(values.email, values.password)
+          )}
+        >
+          <Stack gap="md">
             <TextInput
+              size="md"
               label={t("email_input_label")}
               placeholder={t("email_input_placeholder")}
               required
-              my="lg"
               type="email"
               {...form.getInputProps("email")}
             />
             <PasswordInput
+              size="md"
               label={t("password_input_label")}
               placeholder={t("password_input_placeholder")}
               required
-              mt="md"
               {...form.getInputProps("password")}
             />
-            <Button fullWidth mt="xl" type="submit">
+            <Button size="md" fullWidth type="submit">
               {t("sign_in_title")}
             </Button>
-          </form>
-          <Text c="dimmed" size="sm" ta="center" mt={15}>
-            <Anchor<"a">
-              onClick={() => router.push("/register")}
-              size="sm"
-            >
-              {t("create_account_button")}
-            </Anchor>
-            {" - "}
-            <Anchor<"a">
-              onClick={() => router.push("/password_reset")}
-              size="sm"
-            >
-              {t("forgot_password_button")}
-            </Anchor>
-          </Text>
-          <Text c="dimmed" size="sm" ta="center" mt={12}>
-            Looking for a tournament?{" "}
-            <Anchor<"a"> size="sm" onClick={() => router.push("/join")}>
-              Join as participant
-            </Anchor>
-            {" · "}
-            <Anchor<"a"> size="sm" onClick={() => router.push("/welcome")}>
-              Back
-            </Anchor>
-          </Text>
-        </Paper>
-      </Container>
-    </>
+          </Stack>
+        </form>
+        <Text c="dimmed" size="sm" ta="center">
+          <Anchor component="button" type="button" size="sm" onClick={() => router.push("/register")}>
+            {t("create_account_button")}
+          </Anchor>
+          {" · "}
+          <Anchor
+            component="button"
+            type="button"
+            size="sm"
+            onClick={() => router.push("/password_reset")}
+          >
+            {t("forgot_password_button")}
+          </Anchor>
+        </Text>
+      </Stack>
+    </GuestEntryShell>
   );
 }
 

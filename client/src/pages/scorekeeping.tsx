@@ -1,9 +1,10 @@
-import { Button, Center, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Alert, Button, Stack, TextInput } from "@mantine/core";
 import { GetStaticProps } from "next";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import { useRouter } from "next/router";
 import React, { useState } from "react";
 
+import { GuestEntryShell } from "../components/layout/guest_entry";
 import { redeemScorekeeperCode } from "../services/tournament";
 import { storeScorekeeperAccess } from "../utils/scorekeeper_access";
 
@@ -51,51 +52,47 @@ export default function ScorekeepingRedeemPage() {
   };
 
   return (
-    <Center mih="100vh" p="md">
-      <Paper shadow="sm" p="xl" radius="md" withBorder maw={420} w="100%">
-        <form onSubmit={onSubmit}>
-          <Stack gap="md">
-            <Title order={2}>Scorekeeper access</Title>
-            <Text size="sm" c="dimmed">
-              Enter the access code from the tournament organizer. Your name is
-              shown to others while you edit a group.
-            </Text>
-            <TextInput
-              label="Access code"
-              placeholder="Paste code"
-              value={code}
-              onChange={(e) => setCode(e.currentTarget.value)}
-              autoFocus
-            />
-            <TextInput
-              label="First name"
-              placeholder="First name"
-              value={firstName}
-              onChange={(e) => setFirstName(e.currentTarget.value)}
-              required
-            />
-            <TextInput
-              label="Last name"
-              placeholder="Last name"
-              value={lastName}
-              onChange={(e) => setLastName(e.currentTarget.value)}
-              required
-              error={error}
-            />
-            <Button type="submit" loading={submitting} fullWidth>
-              Continue
-            </Button>
-            <Button
-              variant="subtle"
-              fullWidth
-              onClick={() => router.push("/welcome")}
-            >
-              Back
-            </Button>
-          </Stack>
-        </form>
-      </Paper>
-    </Center>
+    <GuestEntryShell
+      title="Scorekeeper access"
+      description="Enter the access code from the tournament organizer. Your name is shown to others while you edit a group."
+    >
+      <form onSubmit={onSubmit}>
+        <Stack gap="md">
+          <TextInput
+            size="md"
+            label="Access code"
+            placeholder="Paste code"
+            value={code}
+            onChange={(e) => setCode(e.currentTarget.value)}
+            autoFocus
+          />
+          <TextInput
+            size="md"
+            label="First name"
+            placeholder="First name"
+            value={firstName}
+            onChange={(e) => setFirstName(e.currentTarget.value)}
+            required
+          />
+          <TextInput
+            size="md"
+            label="Last name"
+            placeholder="Last name"
+            value={lastName}
+            onChange={(e) => setLastName(e.currentTarget.value)}
+            required
+          />
+          {error && (
+            <Alert color="red" title="Could not continue">
+              {error}
+            </Alert>
+          )}
+          <Button type="submit" size="md" loading={submitting} fullWidth>
+            Continue
+          </Button>
+        </Stack>
+      </form>
+    </GuestEntryShell>
   );
 }
 

@@ -1,4 +1,4 @@
-import { Stack, Text } from '@mantine/core';
+import { Container, Stack, Text } from '@mantine/core';
 import { useTranslation } from 'next-i18next/pages';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
 import React, { useEffect, useState } from 'react';
@@ -97,16 +97,18 @@ export default function UserPage() {
 
   return (
     <Layout>
-      <Stack gap="lg">
-        <PageHeader
-          title={t('edit_profile_title', 'Profile')}
-          description={t(
-            'edit_profile_subtitle',
-            'Manage your account details and security.',
-          )}
-        />
-        {content}
-      </Stack>
+      <Container size={560} px={0}>
+        <Stack gap="lg">
+          <PageHeader
+            title={t('edit_profile_title', 'Profile')}
+            description={t(
+              'edit_profile_subtitle',
+              'Manage your account details and security.',
+            )}
+          />
+          {content}
+        </Stack>
+      </Container>
     </Layout>
   );
 }

@@ -1,18 +1,10 @@
-import {
-  Alert,
-  Anchor,
-  Button,
-  Container,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-} from '@mantine/core';
+import { Alert, Anchor, Button, Stack, Text, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
 import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react';
 
+import { GuestEntryShell } from '../components/layout/guest_entry';
 import { createPublicAxios, getBaseApiUrl } from '../services/adapter';
 
 const LAST_CODE_KEY = 'participant_last_tournament_code';
@@ -89,62 +81,43 @@ export default function JoinTournamentPage() {
   });
 
   return (
-    <Container
-      size="xs"
-      px="md"
-      style={{
-        minHeight: '100dvh',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        paddingTop: 24,
-        paddingBottom: 40,
-      }}
+    <GuestEntryShell
+      title="Enter tournament code"
+      description={
+        <>
+          Your organizer shares a short code (for example <code>utkc-spring-2026</code>). You can
+          also paste the full participant link.
+        </>
+      }
     >
-      <Stack gap="lg">
-        <div>
-          <Anchor component="button" type="button" size="sm" onClick={() => router.push('/welcome')}>
-            ← Back
-          </Anchor>
-          <Title order={1} mt="md" style={{ fontSize: 'clamp(1.6rem, 5.5vw, 2rem)' }}>
-            Enter tournament code
-          </Title>
-          <Text c="dimmed" mt="sm">
-            Your organizer shares a short code (for example <code>utkc-spring-2026</code>). You can
-            also paste the full participant link.
+      <form onSubmit={onSubmit}>
+        <Stack gap="md">
+          <TextInput
+            size="md"
+            label="Tournament code"
+            placeholder="utkc-spring-2026"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            {...form.getInputProps('code')}
+          />
+          {error && (
+            <Alert color="red" title="Could not join">
+              {error}
+            </Alert>
+          )}
+          <Button type="submit" size="md" fullWidth loading={submitting}>
+            Continue
+          </Button>
+          <Text size="sm" c="dimmed" ta="center">
+            Organizer?{' '}
+            <Anchor component="button" type="button" size="sm" onClick={() => router.push('/login')}>
+              Log in
+            </Anchor>
           </Text>
-        </div>
-
-        <form onSubmit={onSubmit}>
-          <Stack gap="md">
-            <TextInput
-              size="md"
-              label="Tournament code"
-              placeholder="utkc-spring-2026"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              {...form.getInputProps('code')}
-            />
-            {error && (
-              <Alert color="red" title="Could not join">
-                {error}
-              </Alert>
-            )}
-            <Button type="submit" size="md" fullWidth loading={submitting}>
-              Continue
-            </Button>
-          </Stack>
-        </form>
-
-        <Text size="sm" c="dimmed" ta="center">
-          Organizer?{' '}
-          <Anchor component="button" type="button" onClick={() => router.push('/login')}>
-            Sign in here
-          </Anchor>
-        </Text>
-      </Stack>
-    </Container>
+        </Stack>
+      </form>
+    </GuestEntryShell>
   );
 }
 
