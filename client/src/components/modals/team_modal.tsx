@@ -2,8 +2,10 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Button,
+  Center,
   Checkbox,
   Group,
+  Loader,
   Modal,
   MultiSelect,
   Select,
@@ -19,6 +21,7 @@ import { Player } from "../../interfaces/player";
 import { getClubs, getPlayers, getTeamCategories } from "../../services/adapter";
 import { createTeam, updateTeam } from "../../services/team";
 import CategoryConfigModal from "./category_config_modal";
+import NoPlayersForTeam from "./no_players_for_team";
 import { TeamInterface } from "../../interfaces/team";
 import type { Club } from "../../interfaces/club";
 import type { TeamCategoryInterface } from "../../interfaces/team_category";
@@ -51,8 +54,10 @@ export default function TeamModal({
 
   const [configOpen, setConfigOpen] = useState(false);
 
-  const { data } = getPlayers(tournament_id, false);
-  const players: Player[] = data?.data.players || [];
+  const playersResponse = getPlayers(tournament_id, false);
+  const players: Player[] = playersResponse.data?.data.players || [];
+  const playersLoaded = playersResponse.data != null;
+  const blockCreate = !isEdit && playersLoaded && players.length === 0;
   const swrClubs = getClubs();
   const clubs: Club[] = swrClubs.data?.data ?? [];
   const swrCats = getTeamCategories(tournament_id);
@@ -115,6 +120,7 @@ export default function TeamModal({
   const playerById = new Map(players.map((player) => [String(player.id), player]));
 
   const handleSubmit = form.onSubmit(async (values) => {
+    if (!isEdit && playersLoaded && players.length === 0) return;
     const cid = Number(values.category_id);
     if (!Number.isFinite(cid)) return;
 
@@ -148,13 +154,25 @@ export default function TeamModal({
         opened={opened}
         onClose={() => setOpened(false)}
         title={
-          isEdit
-            ? t("edit_team_title", "Edit Team")
-            : t("create_team", "Create Team")
+          blockCreate
+            ? t("no_players_title", "No players yet")
+            : isEdit
+              ? t("edit_team_title", "Edit Team")
+              : t("create_team", "Create Team")
         }
         size="lg"
         centered
       >
+        {!isEdit && !playersLoaded && !playersResponse.error ? (
+          <Center py="md">
+            <Loader size="sm" />
+          </Center>
+        ) : blockCreate ? (
+          <NoPlayersForTeam
+            tournamentId={tournament_id}
+            onClose={() => setOpened(false)}
+          />
+        ) : (
         <form onSubmit={handleSubmit}>
           <TextInput
             withAsterisk
@@ -271,6 +289,7 @@ export default function TeamModal({
             {t("save_button")}
           </Button>
         </form>
+        )}
       </Modal>
       <CategoryConfigModal
         tournament_id={tournament_id}

@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { Button, Modal, Stack, TextInput, Select } from "@mantine/core";
+import { Button, Center, Loader, Modal, Stack, TextInput, Select } from "@mantine/core";
 import { useTranslation } from "next-i18next/pages";
 
-import { getClubs, getTeamCategories } from "../../services/adapter";
+import { getClubs, getPlayers, getTeamCategories } from "../../services/adapter";
 import type { Club } from "../../interfaces/club";
 import { createTeam } from "../../services/team";
 import { resolveClubIdByName } from "../../utils/clubs";
 import type { TeamCategoryInterface } from "../../interfaces/team_category";
+import NoPlayersForTeam from "./no_players_for_team";
 
 export default function AddNewTeamModal({
   tournamentId,
@@ -39,6 +40,10 @@ export default function AddNewTeamModal({
   const clubs: Club[] = swrClubs.data?.data ?? [];
   const swrCats = getTeamCategories(tournamentId);
   const cats = swrCats.data?.data ?? [];
+  const playersResponse = getPlayers(tournamentId, false);
+  const playersLoaded = playersResponse.data != null;
+  const playerCount = playersResponse.data?.data?.players?.length ?? 0;
+  const blockCreate = playersLoaded && playerCount === 0;
 
   useEffect(() => {
     if (!opened || cats.length === 0) return;
@@ -60,6 +65,7 @@ export default function AddNewTeamModal({
   };
 
   const handleSubmit = async () => {
+    if (playersLoaded && playerCount === 0) return;
     const trimmedName = name.trim();
     if (!trimmedName) {
       setError(t("team_name_required", "Team name is required."));
@@ -114,9 +120,20 @@ export default function AddNewTeamModal({
     <Modal
       opened={opened}
       onClose={handleClose}
-      title={t("add_new_team", "Add new team")}
+      title={
+        blockCreate
+          ? t("no_players_title", "No players yet")
+          : t("add_new_team", "Add new team")
+      }
       centered
     >
+      {!playersLoaded && !playersResponse.error ? (
+        <Center py="md">
+          <Loader size="sm" />
+        </Center>
+      ) : blockCreate ? (
+        <NoPlayersForTeam tournamentId={tournamentId} onClose={handleClose} />
+      ) : (
       <Stack gap="md">
         <TextInput
           label={t("team_name", "Team name")}
@@ -152,6 +169,7 @@ export default function AddNewTeamModal({
           {t("create_team", "Create team")}
         </Button>
       </Stack>
+      )}
     </Modal>
   );
 }
