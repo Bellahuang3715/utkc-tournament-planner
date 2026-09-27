@@ -3,11 +3,13 @@ import { useEffect, useRef, useState } from "react";
 import {
   Button,
   Checkbox,
+  Group,
   Modal,
   MultiSelect,
   Select,
-  TextInput,
   Stack,
+  Text,
+  TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useTranslation } from "next-i18next/pages";
@@ -23,9 +25,8 @@ import type { TeamCategoryInterface } from "../../interfaces/team_category";
 
 interface TeamValues {
   code: string;
-  club_id: string;
+  club_ids: string[];
   category_id: string;
-  active: boolean;
   player_ids: string[];
   specifyPositions: boolean;
   positions?: Record<string, string>;
@@ -61,10 +62,14 @@ export default function TeamModal({
   const form = useForm<TeamValues>({
     initialValues: {
       code: team?.code || "",
-      club_id: team?.club_id != null ? String(team.club_id) : "",
+      club_ids:
+        team?.club_ids && team.club_ids.length > 0
+          ? team.club_ids.map(String)
+          : team?.club_id != null
+            ? [String(team.club_id)]
+            : [],
       category_id:
         team?.category_id != null ? String(team.category_id) : "",
-      active: true,
       player_ids: [],
       specifyPositions: false,
       positions: {},
@@ -75,6 +80,17 @@ export default function TeamModal({
         v && v.length > 0 ? null : t("category_required", "Select a category"),
     },
   });
+
+  useEffect(() => {
+    if (!opened) return;
+    const ids =
+      team?.club_ids && team.club_ids.length > 0
+        ? team.club_ids.map(String)
+        : team?.club_id != null
+          ? [String(team.club_id)]
+          : [];
+    form.setFieldValue("club_ids", ids);
+  }, [opened, team?.id, team?.club_id, team?.club_ids]);
 
   useEffect(() => {
     if (!opened) {
@@ -94,6 +110,10 @@ export default function TeamModal({
 
   const pos = ["Senpo", "Jihou", "Chuken", "Fukushou", "Taisho"];
 
+  const playerLabel = (player: Player) =>
+    player.club ? `${player.name} (${player.club})` : player.name;
+  const playerById = new Map(players.map((player) => [String(player.id), player]));
+
   const handleSubmit = form.onSubmit(async (values) => {
     const cid = Number(values.category_id);
     if (!Number.isFinite(cid)) return;
@@ -103,9 +123,8 @@ export default function TeamModal({
         tournament_id,
         team!.id,
         values.code,
-        values.active,
         values.player_ids,
-        values.club_id ? Number(values.club_id) : null,
+        values.club_ids.map(Number),
         cid,
         values.specifyPositions ? values.positions : undefined,
       );
@@ -113,9 +132,8 @@ export default function TeamModal({
       await createTeam(
         tournament_id,
         values.code,
-        values.active,
         values.player_ids,
-        values.club_id ? Number(values.club_id) : null,
+        values.club_ids.map(Number),
         cid,
         values.specifyPositions ? values.positions : undefined,
       );
@@ -144,19 +162,20 @@ export default function TeamModal({
             placeholder={t("team_name_input_placeholder")}
             {...form.getInputProps("code")}
           />
-          <Checkbox
-            mt="sm"
-            label={t("active_team_checkbox_label")}
-            {...form.getInputProps("active", { type: "checkbox" })}
-          />
-          <Select
-            label={t("club_label", "Club")}
-            placeholder={t("club_select_placeholder", "Select club")}
+          <MultiSelect
+            label={t("team_clubs_label", "Clubs")}
+            placeholder={t(
+              "team_clubs_placeholder",
+              "Select the clubs on this team",
+            )}
             mt="sm"
             clearable
-            data={clubs.map((c) => ({ value: String(c.id), label: c.name }))}
             searchable
-            {...form.getInputProps("club_id")}
+            data={[...clubs]
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((c) => ({ value: String(c.id), label: c.name }))}
+            comboboxProps={{ withinPortal: true }}
+            {...form.getInputProps("club_ids")}
           />
           <Select
             withAsterisk
@@ -185,9 +204,42 @@ export default function TeamModal({
             mt="sm"
           />
           <MultiSelect
-            data={players.map((p) => ({ value: `${p.id}`, label: "temp" }))}
+            data={[...players]
+              .sort(
+                (a, b) =>
+                  a.name.localeCompare(b.name) ||
+                  (a.club ?? "").localeCompare(b.club ?? ""),
+              )
+              .map((player) => ({
+                value: String(player.id),
+                label: playerLabel(player),
+              }))}
+            renderOption={({ option }) => {
+              const player = playerById.get(option.value);
+              if (!player) return <Text size="sm">{option.label}</Text>;
+              return (
+                <Group
+                  justify="space-between"
+                  wrap="nowrap"
+                  gap="lg"
+                  style={{ width: "100%" }}
+                >
+                  <Text size="sm" fw={500} lineClamp={1} style={{ minWidth: 0 }}>
+                    {player.name}
+                  </Text>
+                  {player.club && (
+                    <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
+                      {player.club}
+                    </Text>
+                  )}
+                </Group>
+              );
+            }}
             label={t("team_member_select_title")}
+            placeholder={t("team_member_select_placeholder", "Search players")}
             searchable
+            maxDropdownHeight={280}
+            comboboxProps={{ withinPortal: true }}
             mt="sm"
             {...form.getInputProps("player_ids")}
           />
@@ -200,15 +252,18 @@ export default function TeamModal({
 
           {form.values.specifyPositions && (
             <Stack gap="xs" mt="xs">
-              {form.values.player_ids.map((pid) => (
+              {form.values.player_ids.map((pid) => {
+                const selected = playerById.get(pid);
+                return (
                 <Select
                   key={pid}
-                  label="temp"
-                  placeholder={t("select_position")}
+                  label={selected ? playerLabel(selected) : pid}
+                  placeholder={t("select_position", "Select a position")}
                   data={pos.map((p) => ({ value: p, label: p }))}
                   {...form.getInputProps(`positions.${pid}` as any)}
                 />
-              ))}
+                );
+              })}
             </Stack>
           )}
 

@@ -66,7 +66,6 @@ export default function TeamsTable({
       club: team.club,
       category: team.category,
       created: team.created,
-      active: team.active,
       wins: team.wins,
     }));
     const csv = generateCsv(csvConfig)(rows as any);
@@ -109,17 +108,6 @@ export default function TeamsTable({
 
     return [
       {
-        accessorKey: "active",
-        header: t("status", "Status"),
-        enableColumnFilter: false,
-        Cell: ({ cell }) =>
-          cell.getValue<boolean>() ? (
-            <Badge color="green">{t("active", "Active")}</Badge>
-          ) : (
-            <Badge color="red">{t("inactive", "Inactive")}</Badge>
-          ),
-      },
-      {
         accessorKey: "code",
         header: t("name_table_header", "Name"),
         filterVariant: "text",
@@ -131,7 +119,7 @@ export default function TeamsTable({
       },
       {
         accessorKey: "club",
-        header: t("club_header", "Club"),
+        header: t("team_clubs_label", "Clubs"),
         enableSorting: false,
         filterVariant: "text",
         Cell: ({ cell }) => cell.getValue<string | null>() || "—",

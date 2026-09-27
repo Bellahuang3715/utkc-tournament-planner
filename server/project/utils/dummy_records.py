@@ -81,7 +81,6 @@ DUMMY_TEAM1 = TeamInsertable(
     club_id=ClubId(2),
     category_id=TeamCategoryId(1),
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
-    active=True,
 )
 
 DUMMY_TEAM2 = TeamInsertable(
@@ -91,7 +90,6 @@ DUMMY_TEAM2 = TeamInsertable(
     club_id=ClubId(2),
     category_id=TeamCategoryId(1),
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
-    active=True,
 )
 
 DUMMY_TEAM3 = TeamInsertable(
@@ -101,7 +99,6 @@ DUMMY_TEAM3 = TeamInsertable(
     club_id=ClubId(2),
     category_id=TeamCategoryId(1),
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
-    active=True,
 )
 
 DUMMY_TEAM4 = TeamInsertable(
@@ -111,7 +108,6 @@ DUMMY_TEAM4 = TeamInsertable(
     club_id=ClubId(2),
     category_id=TeamCategoryId(1),
     tournament_id=TournamentId(DB_PLACEHOLDER_ID),
-    active=True,
 )
 
 

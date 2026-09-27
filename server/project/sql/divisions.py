@@ -263,7 +263,16 @@ async def sql_get_teams_for_division(division_id: DivisionId) -> list[TeamInDivi
         SELECT
             t.id,
             t.code,
-            COALESCE(c.name, '') AS club,
+            COALESCE(
+                (
+                    SELECT string_agg(clubs.name, ', ' ORDER BY clubs.name)
+                    FROM teams_x_clubs txc
+                    JOIN clubs ON clubs.id = txc.club_id
+                    WHERE txc.team_id = t.id
+                ),
+                c.name,
+                ''
+            ) AS club,
             COALESCE(tc.name, '') AS category,
             COALESCE(tc.color, '') AS category_color,
             COALESCE(txd.bias, FALSE) AS bias

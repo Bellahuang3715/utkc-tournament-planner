@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Modal,
   Button,
@@ -26,21 +26,49 @@ import {
   PlayerFieldTypes,
 } from "../../interfaces/player_fields";
 import PlayersImportModal, { PlayersUpload } from "./players_import_modal";
+import PlayerDuplicateModal from "./player_duplicate_modal";
 import { inferFieldsFromSheet } from "../utils/excel";
+import {
+  DuplicateGroup,
+  PlayerSnapshot,
+  findDuplicateGroups,
+  playersToInsert,
+} from "../utils/player_duplicates";
 import { Player } from "../../interfaces/player";
 import type { Club } from "../../interfaces/club";
 import { resolveClubIdByName } from "../../utils/clubs";
+
+function savedSnapshots(players: Player[]): PlayerSnapshot[] {
+  return players.map((player) => ({
+    id: `saved:${player.id}`,
+    name: player.name,
+    clubId: player.club_id,
+    clubName: player.club ?? "",
+    data: player.data ?? {},
+    source: player.code
+      ? `Already in this tournament · ${player.code}`
+      : "Already in this tournament",
+    saved: true,
+    code: player.code,
+  }));
+}
 
 function SinglePlayerTab({
   tournament_id,
   swrPlayersResponse,
   setOpened,
   player,
+  confirmDuplicates,
 }: {
   tournament_id: number;
   swrPlayersResponse: SWRResponse;
   setOpened: (open: boolean) => void;
   player?: Player | null;
+  confirmDuplicates?: (
+    groups: DuplicateGroup[],
+    fields: FieldInsertable[],
+    context: "import" | "single",
+  ) => Promise<string[] | null>;
 }) {
   const { t } = useTranslation();
   const isEdit = Boolean(player);
@@ -101,9 +129,27 @@ function SinglePlayerTab({
       .forEach((f) => {
         data[f.key] = values[f.key];
       });
+    const clubName =
+      clubs.find((club) => String(club.id) === String(values.club_id))?.name ??
+      "";
+    const pending: PlayerSnapshot = {
+      id: "new",
+      name: values.name.trim(),
+      clubId: Number(values.club_id),
+      clubName,
+      data,
+      source: "The player you are adding",
+      saved: false,
+    };
+    const existing: Player[] = swrPlayersResponse.data?.data?.players ?? [];
+    const groups = findDuplicateGroups([pending], savedSnapshots(existing));
+    if (groups.length > 0 && confirmDuplicates) {
+      const kept = await confirmDuplicates(groups, playerFields, "single");
+      if (kept == null || !kept.includes("new")) return;
+    }
     const result = await createPlayer(tournament_id, {
-      name: values.name,
-      club_id: Number(values.club_id),
+      name: pending.name,
+      club_id: pending.clubId,
       data,
     });
     if (result == null) return;
@@ -209,7 +255,29 @@ export default function PlayerCreateModal({
   const [tab, setTab] = useState<"single" | "multi">(initialTab);
   const [importDirty, setImportDirty] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [review, setReview] = useState<{
+    groups: DuplicateGroup[];
+    fields: FieldInsertable[];
+    context: "import" | "single";
+  } | null>(null);
+  const reviewResolve = useRef<((ids: string[] | null) => void) | null>(null);
   const importing = !allowSingle || tab === "multi";
+
+  const confirmDuplicates = (
+    groups: DuplicateGroup[],
+    fields: FieldInsertable[],
+    context: "import" | "single",
+  ) =>
+    new Promise<string[] | null>((resolve) => {
+      reviewResolve.current = resolve;
+      setReview({ groups, fields, context });
+    });
+
+  const finishReview = (ids: string[] | null) => {
+    reviewResolve.current?.(ids);
+    reviewResolve.current = null;
+    setReview(null);
+  };
 
   useEffect(() => {
     if (opened) setTab(allowSingle ? initialTab : "multi");
@@ -219,6 +287,9 @@ export default function PlayerCreateModal({
     if (!opened) {
       setImportDirty(false);
       setConfirmLeave(false);
+      reviewResolve.current?.(null);
+      reviewResolve.current = null;
+      setReview(null);
     }
   }, [opened]);
 
@@ -237,7 +308,7 @@ export default function PlayerCreateModal({
 
   // import all club sheets
   const handleImportAll = async (uploads: PlayersUpload[]) => {
-    if (uploads.length === 0) return;
+    if (uploads.length === 0) return false;
     const clubs: Club[] = swrClubsForImport.data?.data ?? [];
     console.log("uploads", uploads);
 
@@ -249,6 +320,7 @@ export default function PlayerCreateModal({
     const existingPlayers =
       swrPlayersResponse.data?.data?.players ?? [];
     let schemaFields = existingFields;
+    let fieldsToSave: FieldInsertable[] | null = null;
     if (existingFields.length === 0) {
       if (existingPlayers.length > 0) {
         showNotification({
@@ -259,7 +331,7 @@ export default function PlayerCreateModal({
             "Set the player fields before importing. A spreadsheet can’t choose new columns once players are already in the tournament.",
           ),
         });
-        return;
+        return false;
       }
       const first = uploads[0];
       const inferred = await inferFieldsFromSheet(
@@ -267,15 +339,14 @@ export default function PlayerCreateModal({
         first.sheet,
         first.headerRow,
       );
-      const saved = await updatePlayerFields(tournament_id, inferred.fields);
-      if (saved == null) return;
       schemaFields = inferred.fields;
-      if (swrPlayerFieldsResponse) await swrPlayerFieldsResponse.mutate();
+      fieldsToSave = inferred.fields;
     }
     const keyByLabel = new Map(
       schemaFields.map((f) => [normLabel(f.label), f.key]),
     );
 
+    const pending: PlayerSnapshot[] = [];
     // now import every upload
     for (const upload of uploads) {
       const { headerMap, nameCols } = await inferFieldsFromSheet(
@@ -328,24 +399,48 @@ export default function PlayerCreateModal({
           break; // break at the first empty row
         }
 
-        const body = {
+        pending.push({
+          id: `${pending.length}`,
           name: nameValue,
-          club_id: resolveClubIdByName(clubs, upload.clubName, 2),
+          clubId: resolveClubIdByName(clubs, upload.clubName, 2),
+          clubName: upload.clubName,
           data: rowData,
-        };
+          source: `${upload.file.name} · row ${r}`,
+          saved: false,
+        });
+      }
+    }
 
-        console.log("posting player:", body);
-        const created = await createPlayer(tournament_id, body);
-        if (created == null) {
-          await swrPlayersResponse.mutate();
-          return;
-        }
+    const groups = findDuplicateGroups(pending, savedSnapshots(existingPlayers));
+    let toInsert = pending;
+    if (groups.length > 0) {
+      const kept = await confirmDuplicates(groups, schemaFields, "import");
+      if (kept == null) return false;
+      toInsert = playersToInsert(pending, groups, kept);
+    }
+
+    if (fieldsToSave) {
+      const saved = await updatePlayerFields(tournament_id, fieldsToSave);
+      if (saved == null) return false;
+      if (swrPlayerFieldsResponse) await swrPlayerFieldsResponse.mutate();
+    }
+
+    for (const player of toInsert) {
+      const created = await createPlayer(tournament_id, {
+        name: player.name,
+        club_id: player.clubId,
+        data: player.data,
+      });
+      if (created == null) {
+        await swrPlayersResponse.mutate();
+        return false;
       }
     }
 
     // refresh table
     await swrPlayersResponse.mutate();
     setOpened(false);
+    return true;
   };
 
   return (
@@ -383,6 +478,7 @@ export default function PlayerCreateModal({
                 swrPlayersResponse={swrPlayersResponse}
                 tournament_id={tournament_id}
                 setOpened={setOpened}
+                confirmDuplicates={confirmDuplicates}
               />
             </Tabs.Panel>
             <Tabs.Panel value="multi" pt="xs">
@@ -401,6 +497,13 @@ export default function PlayerCreateModal({
           />
         )}
       </Modal>
+      <PlayerDuplicateModal
+        groups={review?.groups ?? null}
+        fields={review?.fields ?? []}
+        context={review?.context ?? "import"}
+        onCancel={() => finishReview(null)}
+        onConfirm={(keptIds) => finishReview(keptIds)}
+      />
       <Modal
         opened={confirmLeave}
         onClose={() => setConfirmLeave(false)}

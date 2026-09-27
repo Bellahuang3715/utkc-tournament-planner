@@ -1,5 +1,5 @@
 import { useTranslation } from "next-i18next/pages";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { SWRResponse } from "swr";
 import {
   MantineReactTable,
@@ -184,6 +184,7 @@ export default function PlayersTable({
       header: t("actions_header", "Actions"),
       enableColumnFilter: false,
       enableSorting: false,
+      enableColumnOrdering: false,
       size: 100,
       Cell: ({ row }) => (
         <Group gap={4} wrap="nowrap">
@@ -280,6 +281,17 @@ export default function PlayersTable({
       </Group>
     ),
   });
+
+  useEffect(() => {
+    const order = table.getState().columnOrder;
+    if (!order.includes("actions") || order[order.length - 1] === "actions") {
+      return;
+    }
+    table.setColumnOrder([
+      ...order.filter((id) => id !== "actions"),
+      "actions",
+    ]);
+  }, [columns, table]);
 
   if (swrPlayersResponse.error || swrPlayerFieldsResponse.error) {
     return (

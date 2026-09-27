@@ -20,7 +20,7 @@ from project.routes.models import (
     TeamsWithPlayersResponse,
 )
 from project.routes.util import team_dependency, team_with_players_dependency
-from project.schema import players_x_teams, teams
+from project.schema import players_x_teams, teams, teams_x_clubs
 from project.sql.teams import (
     get_latest_team_for_tournament,
     get_team_by_id,
@@ -29,10 +29,25 @@ from project.sql.teams import (
     sql_delete_team,
 )
 from project.sql.validation import check_foreign_keys_belong_to_tournament
-from project.utils.id_types import PlayerId, TeamId, TournamentId
+from project.utils.id_types import ClubId, PlayerId, TeamId, TournamentId
 from project.utils.types import assert_some
 
 router = APIRouter(dependencies=[Depends(require_tournament_owner)])
+
+
+async def replace_team_clubs(team_id: TeamId, club_ids: list[ClubId]) -> None:
+    await database.execute(
+        query=teams_x_clubs.delete().where(teams_x_clubs.c.team_id == team_id),
+    )
+    for club_id in club_ids:
+        await database.execute(
+            query=teams_x_clubs.insert(),
+            values={"team_id": team_id, "club_id": club_id},
+        )
+    await database.execute(
+        query="UPDATE teams SET club_id = :club_id WHERE id = :team_id",
+        values={"team_id": team_id, "club_id": club_ids[0] if club_ids else None},
+    )
 
 
 def _position_to_enum(value: str) -> str | None:
@@ -94,8 +109,9 @@ async def update_team_by_id(
         query=teams.update().where(
             (teams.c.id == team.id) & (teams.c.tournament_id == tournament_id)
         ),
-        values=team_body.model_dump(exclude={"player_ids", "positions"}),
+        values=team_body.model_dump(exclude={"player_ids", "positions", "club_ids"}),
     )
+    await replace_team_clubs(team.id, team_body.resolved_club_ids())
 
     player_ids_set = set(team_body.player_ids)
     if player_ids_set:
@@ -134,9 +150,11 @@ async def create_team(
     existing_teams = await get_teams_with_members(tournament_id)
     check_requirement(existing_teams, user, "max_teams")
 
+    now = datetime_utc.now()
     insertable = TeamInsertable(
-        **team_to_insert.model_dump(exclude={"player_ids", "positions"}),
-        created=datetime_utc.now(),
+        **team_to_insert.model_dump(exclude={"player_ids", "positions", "club_ids"}),
+        created=now,
+        updated=now,
         tournament_id=tournament_id,
     )
     await database.execute(query=teams.insert(), values=insertable.model_dump())
@@ -146,6 +164,8 @@ async def create_team(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Team was created but could not be read back",
         )
+
+    await replace_team_clubs(team_result.id, team_to_insert.resolved_club_ids())
 
     player_ids_set = set(team_to_insert.player_ids)
     if player_ids_set:

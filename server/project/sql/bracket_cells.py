@@ -42,7 +42,15 @@ _TEAM_CELL_SELECT = """
           bc.team_id,
           t.code,
           t.code AS name,
-          c.name AS club
+          COALESCE(
+            (
+              SELECT string_agg(clubs.name, ', ' ORDER BY clubs.name)
+              FROM teams_x_clubs txc
+              JOIN clubs ON clubs.id = txc.club_id
+              WHERE txc.team_id = t.id
+            ),
+            c.name
+          ) AS club
         FROM team_bracket_cells bc
         LEFT JOIN teams t ON t.id = bc.team_id
         LEFT JOIN clubs c ON c.id = t.club_id

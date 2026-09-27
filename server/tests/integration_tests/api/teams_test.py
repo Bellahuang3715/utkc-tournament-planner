@@ -30,12 +30,12 @@ async def test_teams_endpoint(
                 "data": {
                     "teams": [
                         {
-                            "active": True,
                             "category": "Mixed",
                             "category_color": "#d0ebff",
                             "category_id": cat_mix.id,
                             "club": auth_context.club.name,
                             "club_id": auth_context.club.id,
+                            "club_ids": [auth_context.club.id],
                             "code": "UOT A",
                             "created": DUMMY_MOCK_TIME.isoformat().replace("+00:00", "Z"),
                             "id": team_inserted.id,
@@ -58,7 +58,6 @@ async def test_create_team(
             "code": "NEW",
             "club_id": auth_context.club.id,
             "category_id": cat_mix.id,
-            "active": True,
             "player_ids": [],
         }
         response = await send_tournament_request(HTTPMethod.POST, "teams", auth_context, None, body)
@@ -96,7 +95,6 @@ async def test_update_team(
             "code": "NEW",
             "club_id": auth_context.club.id,
             "category_id": cat_mix.id,
-            "active": True,
             "player_ids": [],
         }
         async with inserted_team(
@@ -128,7 +126,6 @@ async def test_update_team_invalid_players(
             "code": "NEW",
             "club_id": auth_context.club.id,
             "category_id": cat_mix.id,
-            "active": True,
             "player_ids": [-1],
         }
         async with inserted_team(

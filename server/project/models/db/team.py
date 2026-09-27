@@ -19,7 +19,6 @@ class TeamInsertable(BaseModelORM):
     created: datetime_utc
     updated: datetime_utc
     tournament_id: TournamentId
-    active: bool
     wins: int = 0
 
 
@@ -37,10 +36,10 @@ class TeamWithPlayers(BaseModel):
     code: str
     club_id: ClubId | None = None
     club: str | None = None
+    club_ids: list[ClubId] = Field(default_factory=list)
     category_id: TeamCategoryId
     category: str | None = None
     category_color: str | None = None
-    active: bool
     wins: int = 0
     players: list[Player] = Field(default_factory=list)
 
@@ -59,6 +58,20 @@ class TeamWithPlayers(BaseModel):
 
         return values
 
+    @field_validator("club_ids", mode="before")
+    @classmethod
+    def handle_club_ids(cls, value: object) -> list[int]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            inner = value.strip("{}")
+            if not inner:
+                return []
+            return [int(part) for part in inner.split(",") if part]
+        if isinstance(value, (list, tuple)):
+            return [int(club_id) for club_id in value]
+        return []
+
 
 class FullTeamWithPlayers(TeamWithPlayers, Team):
     pass
@@ -76,7 +89,14 @@ class TeamInDivision(BaseModelORM):
 class TeamBody(BaseModelORM):
     code: Annotated[str, StringConstraints(min_length=1, max_length=30)]
     club_id: ClubId | None = None
+    club_ids: list[ClubId] = Field(default_factory=list)
     category_id: TeamCategoryId
-    active: bool
     player_ids: list[PlayerId] = Field(default_factory=list)
     positions: dict[str, str] | None = None  # player_id (string) -> position name e.g. "Senpo"
+
+    def resolved_club_ids(self) -> list[ClubId]:
+        if self.club_ids:
+            return list(dict.fromkeys(self.club_ids))
+        if self.club_id is not None:
+            return [self.club_id]
+        return []

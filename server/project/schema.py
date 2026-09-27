@@ -144,9 +144,18 @@ teams = Table(
     Column("updated", DateTimeTZ, nullable=False, server_default=func.now()),
     # try this later: Column("updated", DateTimeTZ, nullable=False, server_default=func.now(), onupdate=func.now()),
     Column("tournament_id", BigInteger, ForeignKey("tournaments.id", ondelete="CASCADE"), index=True, nullable=False),
-    Column("active", Boolean, nullable=False, index=True, server_default="t"),
     Column("wins", Integer, nullable=False, server_default="0"),
     Index("ix_teams_team_category_id", "category_id"),
+)
+
+teams_x_clubs = Table(
+    "teams_x_clubs",
+    metadata,
+    Column("id", BigInteger, primary_key=True, index=True),
+    Column("team_id", BigInteger, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False),
+    Column("club_id", BigInteger, ForeignKey("clubs.id", ondelete="RESTRICT"), nullable=False),
+    UniqueConstraint("team_id", "club_id", name="uq_teams_x_clubs_team_club"),
+    Index("ix_teams_x_clubs_club_id", "club_id"),
 )
 
 players_x_teams = Table(

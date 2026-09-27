@@ -21,9 +21,16 @@ async def get_teams_by_id(team_ids: set[TeamId], tournament_id: TournamentId) ->
             t.created,
             t.updated,
             t.tournament_id,
-            t.active,
             t.wins,
-            c.name AS club
+            COALESCE(
+                (
+                    SELECT string_agg(clubs.name, ', ' ORDER BY clubs.name)
+                    FROM teams_x_clubs txc
+                    JOIN clubs ON clubs.id = txc.club_id
+                    WHERE txc.team_id = t.id
+                ),
+                c.name
+            ) AS club
         FROM teams t
         LEFT JOIN clubs c ON c.id = t.club_id
         LEFT JOIN teams_category tc ON tc.id = t.category_id
@@ -54,9 +61,16 @@ async def get_latest_team_for_tournament(tournament_id: TournamentId) -> Team | 
             t.created,
             t.updated,
             t.tournament_id,
-            t.active,
             t.wins,
-            c.name AS club
+            COALESCE(
+                (
+                    SELECT string_agg(clubs.name, ', ' ORDER BY clubs.name)
+                    FROM teams_x_clubs txc
+                    JOIN clubs ON clubs.id = txc.club_id
+                    WHERE txc.team_id = t.id
+                ),
+                c.name
+            ) AS club
         FROM teams t
         LEFT JOIN clubs c ON c.id = t.club_id
         LEFT JOIN teams_category tc ON tc.id = t.category_id
@@ -71,10 +85,8 @@ async def get_latest_team_for_tournament(tournament_id: TournamentId) -> Team | 
 async def get_teams_with_members(
     tournament_id: TournamentId,
     *,
-    only_active_teams: bool = False,
     team_id: TeamId | None = None,
 ) -> list[FullTeamWithPlayers]:
-    active_team_filter = "AND teams.active IS TRUE" if only_active_teams else ""
     team_id_filter = "AND teams.id = :team_id" if team_id is not None else ""
     query = f"""
         SELECT
@@ -87,9 +99,27 @@ async def get_teams_with_members(
             teams.created,
             teams.updated,
             teams.tournament_id,
-            teams.active,
             teams.wins,
-            MAX(c.name) AS club,
+            COALESCE(
+                (
+                    SELECT string_agg(clubs.name, ', ' ORDER BY clubs.name)
+                    FROM teams_x_clubs txc
+                    JOIN clubs ON clubs.id = txc.club_id
+                    WHERE txc.team_id = teams.id
+                ),
+                MAX(c.name)
+            ) AS club,
+            COALESCE(
+                (
+                    SELECT array_agg(txc.club_id ORDER BY txc.club_id)
+                    FROM teams_x_clubs txc
+                    WHERE txc.team_id = teams.id
+                ),
+                CASE
+                    WHEN teams.club_id IS NULL THEN ARRAY[]::bigint[]
+                    ELSE ARRAY[teams.club_id]
+                END
+            ) AS club_ids,
             to_json(array_agg(p.*)) AS players
         FROM teams
         LEFT JOIN clubs c ON c.id = teams.club_id
@@ -97,7 +127,6 @@ async def get_teams_with_members(
         LEFT JOIN players_x_teams pt on pt.team_id = teams.id
         LEFT JOIN players p on pt.player_id = p.id
         WHERE teams.tournament_id = :tournament_id
-        {active_team_filter}
         {team_id_filter}
         GROUP BY teams.id
         """
@@ -111,17 +140,11 @@ async def get_teams_with_members(
     return [FullTeamWithPlayers.model_validate(x) for x in result]
 
 
-async def get_team_count(
-    tournament_id: TournamentId,
-    *,
-    only_active_teams: bool = False,
-) -> int:
-    active_team_filter = "AND teams.active IS TRUE" if only_active_teams else ""
-    query = f"""
+async def get_team_count(tournament_id: TournamentId) -> int:
+    query = """
         SELECT count(*)
         FROM teams
         WHERE teams.tournament_id = :tournament_id
-        {active_team_filter}
         """
     values = dict_without_none({"tournament_id": tournament_id})
     return cast(int, await database.fetch_val(query=query, values=values))

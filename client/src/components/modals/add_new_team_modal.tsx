@@ -83,9 +83,8 @@ export default function AddNewTeamModal({
       const res = await createTeam(
         tournamentId,
         trimmedName,
-        true,
         [],
-        clubIdNum,
+        [clubIdNum],
         catNum,
       );
       const data = res?.data ?? res;

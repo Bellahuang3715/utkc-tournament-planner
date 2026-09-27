@@ -42,7 +42,7 @@ export interface PlayersUpload {
 }
 
 interface PlayersImportModalProps {
-  onImportAll: (uploads: PlayersUpload[]) => void;
+  onImportAll: (uploads: PlayersUpload[]) => Promise<boolean>;
   onDirtyChange?: (dirty: boolean) => void;
 }
 
@@ -452,11 +452,11 @@ export default function PlayersImportModal({
             {duplicateKind === "added"
               ? t(
                   "duplicate_excel_added",
-                  "This file is already in this import.",
+                  "A file with the same name is already in this import.",
                 )
               : t(
                   "duplicate_excel_imported",
-                  "This file was already imported for this tournament.",
+                  "A file with the same name has already been imported for this tournament.",
                 )}
           </Text>
           <Paper withBorder radius="md" p="sm">
@@ -628,7 +628,10 @@ export default function PlayersImportModal({
                   {t("detected_headers", "Detected headers")}
                 </Title>
                 {dataRow >= 1 && detectedPlayers !== null && (
-                  <Badge variant="light">
+                  <Badge
+                    variant="light"
+                    color={detectedPlayers === 0 ? "red" : "green"}
+                  >
                     {t("detected_players", "Detected players")}:{" "}
                     {detectedPlayers}
                   </Badge>
@@ -775,6 +778,9 @@ export default function PlayersImportModal({
               });
               return;
             }
+            const imported = await onImportAll(uploads);
+            if (!imported) return;
+
             for (const u of uploads) {
               const clubName = u.clubName || u.clubAbbrev || "";
               for (let i = 0; i < u.teamCount; i++) {
@@ -782,15 +788,13 @@ export default function PlayersImportModal({
                 await createTeam(
                   tournamentData.id,
                   name,
-                  true,
                   [],
-                  resolveClubIdByName(clubs, clubName, 2),
+                  [resolveClubIdByName(clubs, clubName, 2)],
                   defaultCatId,
                 );
               }
             }
 
-            await onImportAll(uploads);
             rememberImportedFileNames(uploads.map((upload) => upload.file.name));
           }}
         >
