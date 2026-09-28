@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "5bf0ea74fea95e2fcfeb75c0a4ae2d133ece3e8bf98567214bfdfbc7b5b199ca"
+            "sha256": "85886ca6e1c14eadc5e661a68b18d0cb510f4341370e661a482c04e199f68212"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -829,12 +829,12 @@
         },
         "fastapi-sso": {
             "hashes": [
-                "sha256:7b6bc60a510a117dfbd2a3d97871159738677dceb00fd3ad1bfc9c4751226924",
-                "sha256:94a71869097fba7c1d36a24939b9fe31cc59ba1c31d25ac661a35f6c810968ea"
+                "sha256:7dd537adc836142e8b64def86a901fead21c9d42d4001872a18e6f9316bc4ec0",
+                "sha256:be2858b30603a6337ad59aba82049099f5536ebc1eb41b036ad498a95f06ce29"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.10' and python_version < '4.0'",
-            "version": "==0.22.0"
+            "version": "==0.23.0"
         },
         "firebase-admin": {
             "hashes": [
