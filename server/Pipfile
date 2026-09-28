@@ -11,7 +11,7 @@ aiopg = ">=1.4.0"
 alembic = ">=1.19.2"
 bcrypt = "5.0.0"
 click = ">=8.5.0"
-databases = {extras = ["asyncpg"], version = "<=0.8.0"}
+databases = {extras = ["asyncpg"], version = "<=0.9.0"}
 fastapi = "0.141.1"
 fastapi-cache2 = ">=0.2.0"
 fastapi-sso = ">=0.22.0"
