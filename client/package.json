@@ -94,6 +94,6 @@
     "postcss-simple-vars": "^7.0.1",
     "style-loader": "^4.0.0",
     "typescript": "^7.0.2",
-    "webpack": "^5.111.0"
+    "webpack": "^5.111.1"
   }
 }
