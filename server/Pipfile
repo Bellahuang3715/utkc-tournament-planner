@@ -30,7 +30,7 @@ sqlalchemy-stubs = ">=0.4"
 starlette = ">=1.7.0"
 types-passlib = "*"
 types-simplejson = ">=4.2.0.20261006"
-uvicorn = ">=0.52.4"
+uvicorn = ">=0.54.0"
 firebase-admin = "*"
 
 [dev-packages]
