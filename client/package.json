@@ -16,7 +16,7 @@
     "@mantine/utils": "^6.0.22",
     "@mui/icons-material": "^7.3.0",
     "@mui/material": "^7.3.0",
-    "@mui/system": "^7.3.0",
+    "@mui/system": "^9.5.0",
     "@mui/x-date-pickers": "^9.15.0",
     "@next/bundle-analyzer": "^16.4.2",
     "@tabler/icons-react": "^3.49.0",
