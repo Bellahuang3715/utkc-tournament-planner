@@ -2,7 +2,6 @@ import { Group, SimpleGrid, Stack, Text, UnstyledButton } from '@mantine/core';
 import {
   IconCalendar,
   IconList,
-  IconMapPin,
   IconScoreboard,
   IconSearch,
   IconTrophy,
@@ -21,7 +20,6 @@ const SHORTCUTS = [
   { href: '/matches', label: 'Find my matches', desc: 'Search by name or code', icon: IconSearch },
   { href: '/participants', label: 'Players', desc: 'Who is competing', icon: IconUsers },
   { href: '/schedule', label: 'Schedule', desc: 'When each block runs', icon: IconCalendar },
-  { href: '/courts', label: 'Courts', desc: 'What is on each court', icon: IconMapPin },
   { href: '/brackets', label: 'Brackets', desc: 'Groups and seeding', icon: IconList },
   { href: '/scores', label: 'Scores', desc: 'Live match scores', icon: IconScoreboard },
   { href: '/results', label: 'Results', desc: 'Final placements', icon: IconTrophy },

@@ -110,11 +110,13 @@ export type CourtTimetableProps = {
   placements: SchedulePlacement[];
   config: TimetableConfig;
   scheduleDate: Date;
-  onPlacementsChange: (next: SchedulePlacement[] | ((prev: SchedulePlacement[]) => SchedulePlacement[])) => void;
-  onRemovePlacement: (id: string) => void;
+  /** Hide drag, resize, and court-editing controls. */
+  readOnly?: boolean;
+  onPlacementsChange?: (next: SchedulePlacement[] | ((prev: SchedulePlacement[]) => SchedulePlacement[])) => void;
+  onRemovePlacement?: (id: string) => void;
   /** External palette drag (set by sidebar on pointer down). */
-  paletteDrag: PaletteDragPayload | null;
-  onPaletteDragEnd: () => void;
+  paletteDrag?: PaletteDragPayload | null;
+  onPaletteDragEnd?: () => void;
   onRenameCourt?: (court: Court) => void;
   onDeleteCourt?: (court: Court) => void;
   onMoveCourt?: (courtId: number, direction: -1 | 1) => void;
@@ -155,10 +157,11 @@ export default function CourtTimetable({
   placements,
   config,
   scheduleDate,
-  onPlacementsChange,
-  onRemovePlacement,
-  paletteDrag,
-  onPaletteDragEnd,
+  readOnly = false,
+  onPlacementsChange = () => {},
+  onRemovePlacement = () => {},
+  paletteDrag = null,
+  onPaletteDragEnd = () => {},
   onRenameCourt,
   onDeleteCourt,
   onMoveCourt,
@@ -272,7 +275,7 @@ export default function CourtTimetable({
 
   // Palette drag over grid
   useEffect(() => {
-    if (!paletteDrag) {
+    if (readOnly || !paletteDrag) {
       setGhost(null);
       updatePreview(null);
       return;
@@ -324,11 +327,11 @@ export default function CourtTimetable({
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
-  }, [paletteDrag, resolveDrop, onPlacementsChange, onPaletteDragEnd, updatePreview]);
+  }, [readOnly, paletteDrag, resolveDrop, onPlacementsChange, onPaletteDragEnd, updatePreview]);
 
   // Move / resize / empty-create drag
   useEffect(() => {
-    if (!activeDrag) return;
+    if (readOnly || !activeDrag) return;
 
     const onMove = (e: PointerEvent) => {
       const placementsNow = placementsRef.current;
@@ -463,6 +466,7 @@ export default function CourtTimetable({
       window.removeEventListener('pointerup', onUp);
     };
   }, [
+    readOnly,
     activeDrag,
     resolveDrop,
     yToMins,
@@ -592,6 +596,11 @@ export default function CourtTimetable({
               minWidth: 0,
             }}
           >
+            {readOnly ? (
+              <Text size="sm" fw={700} truncate ta="center" py={4}>
+                {c.name}
+              </Text>
+            ) : (
             <Group gap={2} wrap="nowrap" justify="space-between" align="center">
               <ActionIcon
                 variant="subtle"
@@ -641,6 +650,7 @@ export default function CourtTimetable({
                 </Menu>
               </Group>
             </Group>
+            )}
           </Box>
         ))}
       </Box>
@@ -714,10 +724,10 @@ export default function CourtTimetable({
                 backgroundSize: `100% ${30 * PX_PER_MIN}px`,
                 backgroundPosition: `0 ${AXIS_PAD}px`,
                 backgroundRepeat: 'repeat-y',
-                cursor: paletteDrag ? 'copy' : 'crosshair',
+                cursor: readOnly ? 'default' : paletteDrag ? 'copy' : 'crosshair',
               }}
               onPointerDown={(e) => {
-                if (paletteDrag) return;
+                if (readOnly || paletteDrag) return;
                 if ((e.target as HTMLElement).closest('[data-schedule-block]')) return;
                 const mins = yToMins(e.clientY);
                 if (mins == null) return;
@@ -784,13 +794,14 @@ export default function CourtTimetable({
                       color: '#fff',
                       boxShadow: '0 1px 3px rgba(0,0,0,0.18)',
                       overflow: 'hidden',
-                      cursor: 'grab',
+                      cursor: readOnly ? 'default' : 'grab',
                       zIndex: 2,
                       opacity: isDragging ? 0.35 : 1,
                       display: 'flex',
                       flexDirection: 'column',
                     }}
                     onPointerDown={(e) => {
+                      if (readOnly) return;
                       if ((e.target as HTMLElement).dataset.resizeHandle) return;
                       if ((e.target as HTMLElement).closest('button')) return;
                       e.preventDefault();
@@ -831,6 +842,7 @@ export default function CourtTimetable({
                         <Text size="xs" fw={700} lineClamp={2} style={{ lineHeight: 1.2 }}>
                           {p.label}
                         </Text>
+                        {!readOnly && (
                         <button
                           type="button"
                           title="Remove"
@@ -853,11 +865,13 @@ export default function CourtTimetable({
                         >
                           ×
                         </button>
+                        )}
                       </Box>
                       <Text size="xs" style={{ opacity: 0.9 }}>
                         {p.durationMins} mins
                       </Text>
                     </Box>
+                    {!readOnly && (
                     <Box
                       data-resize-handle
                       onPointerDown={(e) => {
@@ -876,6 +890,7 @@ export default function CourtTimetable({
                         flexShrink: 0,
                       }}
                     />
+                    )}
                   </Box>
                 );
               })}

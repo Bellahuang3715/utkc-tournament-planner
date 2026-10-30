@@ -1,4 +1,4 @@
-import { ColorSchemeScript, MantineProvider, createTheme } from '@mantine/core';
+import { MantineProvider, createTheme } from '@mantine/core';
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import '@mantine/dropzone/styles.css';
@@ -12,6 +12,7 @@ import 'mantine-react-table-open/styles.css';
 
 import { AuthProvider } from '../context/AuthContext';
 import { BracketSpotlight } from '../components/modals/spotlight';
+import { isMarketingPath, MARKETING_TITLES } from '../components/marketing/routes';
 import PrivateRoute from "../components/protector/private_route";
 
 // import "bootstrap/dist/css/bootstrap.min.css";
@@ -38,8 +39,9 @@ const App = ({ Component, pageProps }: any) => {
   const router = useRouter();
 
   // Guest / participant entry points — never wrap in organizer PrivateRoute
+  const isMarketing = isMarketingPath(router.pathname);
   const isPublicRoute =
-    router.pathname === "/welcome" ||
+    isMarketing ||
     router.pathname === "/join" ||
     router.pathname === "/scorekeeping" ||
     router.pathname === "/login" ||
@@ -50,14 +52,12 @@ const App = ({ Component, pageProps }: any) => {
   return (
     <AuthProvider>
       <Head>
-        <title>Bracket</title>
+        <title>{isMarketing ? MARKETING_TITLES[router.pathname] : "Bracket"}</title>
         <meta charSet="UTF-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="shortcut icon" href="/favicon.svg" />
         {/* <AnalyticsScript /> */}
-
-        <ColorSchemeScript defaultColorScheme="auto" />
       </Head>
 
       <MantineProvider defaultColorScheme="auto" theme={theme}>

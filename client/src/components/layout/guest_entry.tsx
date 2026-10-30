@@ -19,15 +19,15 @@ export function GuestEntryShell({
 }) {
   return (
     <div className={classes.page}>
-      <Paper className={classes.card} radius={20} withBorder>
+      <Paper className={classes.card} radius={16} withBorder>
         <Stack gap="xl">
           <Stack gap={8}>
-            <Text className={classes.eyebrow}>Kendo tournaments</Text>
+            <Text className={classes.eyebrow}>KenManage</Text>
             <Title order={1} className={classes.title}>
               {title}
             </Title>
             {description && (
-              <Text c="dimmed" size="sm" className={classes.description}>
+              <Text size="sm" className={classes.description}>
                 {description}
               </Text>
             )}

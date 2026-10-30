@@ -141,6 +141,7 @@ async def public_get_schedule_timetable(
                     "label": p.label,
                     "division_id": p.division_id,
                     "bracket_id": p.bracket_id,
+                    "color": p.color,
                 }
                 for p in placements
             ],
