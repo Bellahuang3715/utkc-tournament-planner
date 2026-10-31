@@ -99,6 +99,12 @@ players_field = Table(
     Column("key", String, nullable=False),
     Column("label", String, nullable=False),
     Column("include", Boolean, nullable=False, server_default="t"), # checkbox state to include in table
+    Column(
+        "import_required",
+        Boolean,
+        nullable=False,
+        server_default="t",
+    ),  # must appear in Excel imports
     Column("type", 
            Enum(
                "TEXT",

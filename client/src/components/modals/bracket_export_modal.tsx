@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from "react";
 import {
-  Button,
   Checkbox,
-  Group,
   Modal,
   Stack,
   Text,
 } from "@mantine/core";
 import { useTranslation } from "next-i18next/pages";
 import type { BracketExportFormat } from "../export/bracket_templates";
+import ModalFooter from "./modal_footer";
 
 export default function BracketExportModal({
   opened,
@@ -51,6 +50,7 @@ export default function BracketExportModal({
       onClose={onClose}
       title={t("export_brackets_title", "Export brackets")}
       centered
+      closeOnClickOutside={false}
     >
       <Stack gap="md">
         <Text size="sm" c="dimmed">
@@ -86,18 +86,13 @@ export default function BracketExportModal({
             />
           </Stack>
         </Checkbox.Group>
-        <Group justify="flex-end" mt="sm">
-          <Button variant="default" onClick={onClose} disabled={busy}>
-            {t("cancel", "Cancel")}
-          </Button>
-          <Button
-            onClick={() => void handleExport()}
-            disabled={formats.length === 0}
-            loading={busy}
-          >
-            {t("download", "Download")}
-          </Button>
-        </Group>
+        <ModalFooter
+          onCancel={onClose}
+          primaryLabel={t("download", "Download")}
+          primaryDisabled={formats.length === 0 || busy}
+          primaryLoading={busy}
+          onPrimary={() => void handleExport()}
+        />
       </Stack>
     </Modal>
   );

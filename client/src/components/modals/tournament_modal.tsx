@@ -1,8 +1,7 @@
 import {
-  Button,
-  Grid,
   Image,
   Modal,
+  Stack,
   TextInput,
   Textarea,
 } from "@mantine/core";
@@ -19,6 +18,7 @@ import { getBaseApiUrl } from "../../services/adapter";
 import { createTournament } from "../../services/tournament";
 import SaveButton from "../buttons/save";
 import { toIsoFromPicker } from "../utils/datetime";
+import ModalFooter from "./modal_footer";
 
 export function TournamentLogo({
   tournament,
@@ -87,55 +87,46 @@ function GeneralTournamentForm({
         setOpened(false);
       })}
     >
-      <TextInput
-        withAsterisk
-        label={t("name_input_label")}
-        placeholder={t("tournament_name_input_placeholder")}
-        {...form.getInputProps("name")}
-      />
+      <Stack gap="md">
+        <TextInput
+          withAsterisk
+          label={t("name_input_label")}
+          placeholder={t("tournament_name_input_placeholder")}
+          {...form.getInputProps("name")}
+        />
 
-      <TextInput
-        withAsterisk
-        label={t("organizer_input_label", "Organizer")}
-        placeholder={t("organizer_input_placeholder", "Organizer name")}
-        mt="lg"
-        {...form.getInputProps("organizer")}
-      />
+        <TextInput
+          withAsterisk
+          label={t("organizer_input_label", "Organizer")}
+          placeholder={t("organizer_input_placeholder", "Organizer name")}
+          {...form.getInputProps("organizer")}
+        />
 
-      <DateTimePicker
-        withAsterisk
-        label={t("start_time")}
-        leftSection={<IconCalendar size="1.1rem" stroke={1.5} />}
-        mt="lg"
-        {...form.getInputProps("start_time")}
-      />
+        <DateTimePicker
+          withAsterisk
+          label={t("start_time")}
+          leftSection={<IconCalendar size="1.1rem" stroke={1.5} />}
+          {...form.getInputProps("start_time")}
+        />
 
-      <TextInput
-        label={t("location_input_label")}
-        placeholder={t("location_input_placeholder")}
-        mt="lg"
-        {...form.getInputProps("location")}
-      />
+        <TextInput
+          label={t("location_input_label")}
+          placeholder={t("location_input_placeholder")}
+          {...form.getInputProps("location")}
+        />
 
-      <Textarea
-        label={t("description_input_label")}
-        placeholder={t("description_input_placeholder")}
-        mt="lg"
-        {...form.getInputProps("description")}
-      />
+        <Textarea
+          label={t("description_input_label")}
+          placeholder={t("description_input_placeholder")}
+          {...form.getInputProps("description")}
+        />
+      </Stack>
 
-      <Grid mt={8}>
-        <Grid.Col span={6}>
-          <Button fullWidth color="green" type="submit">
-            {t("save_button")}
-          </Button>
-        </Grid.Col>
-        <Grid.Col span={6}>
-          <Button fullWidth color="red" onClick={() => setOpened(false)}>
-            {t("cancel_button")}
-          </Button>
-        </Grid.Col>
-      </Grid>
+      <ModalFooter
+        onCancel={() => setOpened(false)}
+        primaryLabel={t("save_button")}
+        primaryType="submit"
+      />
     </form>
   );
 }
@@ -156,6 +147,8 @@ export default function TournamentModal({
         onClose={() => setOpened(false)}
         title={operation_text}
         size="50rem"
+        centered
+        closeOnClickOutside={false}
       >
         <GeneralTournamentForm
           setOpened={setOpened}

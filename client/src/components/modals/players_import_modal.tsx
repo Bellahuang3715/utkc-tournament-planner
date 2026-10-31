@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Alert,
   Button,
+  Checkbox,
   FileButton,
   Select,
   Group,
@@ -9,7 +10,6 @@ import {
   ActionIcon,
   Paper,
   Stack,
-  useMantineTheme,
   Loader,
   NumberInput,
   Badge,
@@ -32,6 +32,7 @@ import ClubModal from "./club_modal";
 import { Club } from "../../interfaces/club";
 import { getTournamentIdFromRouter } from "../utils/util";
 import type { FieldInsertable } from "../../interfaces/player_fields";
+import ModalFooter from "./modal_footer";
 
 export interface PlayersUpload {
   file: File;
@@ -40,6 +41,8 @@ export interface PlayersUpload {
   headerRow: number;
   dataRow: number;
   playerCount?: number;
+  /** Headers chosen on first import to define tournament columns. */
+  selectedLabels?: string[];
 }
 
 interface PlayersImportModalProps {
@@ -136,7 +139,6 @@ export default function PlayersImportModal({
   onImportAll,
   onDirtyChange,
 }: PlayersImportModalProps) {
-  const theme = useMantineTheme();
   const { t } = useTranslation();
 
   const swrClubs = getClubs();
@@ -149,10 +151,10 @@ export default function PlayersImportModal({
   const playerFields: FieldInsertable[] = swrPlayerFields.data?.fields ?? [];
   const hasDefinedFields = playerFields.length > 0;
 
-  const expectedHeaders = useMemo(
+  const requiredImportHeaders = useMemo(
     () =>
       playerFields
-        .filter((f) => f.include)
+        .filter((f) => f.import_required !== false)
         .sort((a, b) => a.position - b.position)
         .map((f) => f.label),
     [playerFields],
@@ -178,6 +180,7 @@ export default function PlayersImportModal({
 
   const [currentHeaders, setCurrentHeaders] = useState<string[]>([]);
   const [baselineHeaders, setBaselineHeaders] = useState<string[] | null>(null);
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
 
   const [uploads, setUploads] = useState<PlayersUpload[]>([]);
   const [clubModalOpen, setClubModalOpen] = useState(false);
@@ -309,32 +312,44 @@ export default function PlayersImportModal({
     setCurrentHeaders(parseHeaders(workbook, selectedSheet, headerRow));
   }, [workbook, selectedSheet, headerRow]);
 
+  const selectableHeaders = useMemo(
+    () => stripFixedHeaders(currentHeaders),
+    [currentHeaders],
+  );
+
+  // First import: default-select all data columns when headers change.
+  useEffect(() => {
+    if (hasDefinedFields || uploads.length > 0) return;
+    setSelectedLabels(selectableHeaders);
+  }, [selectableHeaders, hasDefinedFields, uploads.length]);
+
   const headersOk = useMemo(() => {
     if (!currentHeaders.length) return false;
     if (!hasNameHeader(currentHeaders)) return false;
 
-    // Existing columns must match. There is no override that writes a new schema.
+    // Later imports: only import-required fields must be present; extras are OK.
     if (hasDefinedFields) {
-      const { missing, added } = diffHeaders(
-        stripFixedHeaders(expectedHeaders),
+      const { missing } = diffHeaders(
+        stripFixedHeaders(requiredImportHeaders),
         stripFixedHeaders(currentHeaders),
       );
-      return missing.length === 0 && added.length === 0;
+      return missing.length === 0;
     }
 
-    // First file in an empty tournament defines the columns.
+    // First file in an empty tournament defines the columns via the picker.
     if (uploads.length === 0) return true;
 
+    // Later files in the same first-import batch must include the chosen columns.
     const base = baselineHeaders ?? [];
-    const { missing, added } = diffHeaders(
+    const { missing } = diffHeaders(
       stripFixedHeaders(base),
       stripFixedHeaders(currentHeaders),
     );
-    return missing.length === 0 && added.length === 0;
+    return missing.length === 0;
   }, [
     currentHeaders,
     hasDefinedFields,
-    expectedHeaders,
+    requiredImportHeaders,
     uploads.length,
     baselineHeaders,
   ]);
@@ -363,9 +378,14 @@ export default function PlayersImportModal({
   const handleAdd = () => {
     if (!canAdd) return;
 
-    // first file: ensure name-ish header exists
+    const labelsForUpload =
+      uploads.length === 0
+        ? selectedLabels
+        : (baselineHeaders ?? selectedLabels);
+
+    // first file: chosen columns become the batch baseline
     if (uploads.length === 0) {
-      setBaselineHeaders(currentHeaders);
+      setBaselineHeaders(labelsForUpload);
     }
 
     setUploads((u) => [
@@ -377,6 +397,7 @@ export default function PlayersImportModal({
         headerRow,
         dataRow,
         playerCount: detectedPlayers ?? undefined,
+        selectedLabels: labelsForUpload,
       },
     ]);
 
@@ -387,6 +408,7 @@ export default function PlayersImportModal({
     setSheetNames([]);
     setWorkbook(null);
     setCurrentHeaders([]);
+    setSelectedLabels([]);
     setDetectedPlayers(null);
   };
 
@@ -417,6 +439,7 @@ export default function PlayersImportModal({
         }}
         title={t("duplicate_excel_title", "Same file name detected")}
         centered
+        closeOnClickOutside={false}
         size="sm"
       >
         <Stack gap="lg">
@@ -443,27 +466,19 @@ export default function PlayersImportModal({
           <Text size="sm" lh={1.6}>
             {t("duplicate_excel_continue", "Continue anyway?")}
           </Text>
-          <Group justify="flex-end" gap="sm">
-            <Button
-              variant="default"
-              onClick={() => {
-                setDuplicateFile(null);
-                setDuplicateKind(null);
-              }}
-            >
-              {t("cancel_button", "Cancel")}
-            </Button>
-            <Button
-              color="orange"
-              onClick={() => {
-                if (duplicateFile) setClubFile(duplicateFile);
-                setDuplicateFile(null);
-                setDuplicateKind(null);
-              }}
-            >
-              {t("continue_button", "Continue")}
-            </Button>
-          </Group>
+          <ModalFooter
+            onCancel={() => {
+              setDuplicateFile(null);
+              setDuplicateKind(null);
+            }}
+            primaryLabel={t("continue_button", "Continue")}
+            primaryColor="orange"
+            onPrimary={() => {
+              if (duplicateFile) setClubFile(duplicateFile);
+              setDuplicateFile(null);
+              setDuplicateKind(null);
+            }}
+          />
         </Stack>
       </Modal>
       <ClubModal
@@ -595,15 +610,6 @@ export default function PlayersImportModal({
                 )}
               </Group>
 
-              {/* Show the detected headers as badges */}
-              <Group gap="xs">
-                {currentHeaders.map((h, i) => (
-                  <Badge key={i} variant="light">
-                    {h}
-                  </Badge>
-                ))}
-              </Group>
-
               {!hasNameHeader(currentHeaders) && (
                 <Alert
                   variant="light"
@@ -617,27 +623,72 @@ export default function PlayersImportModal({
                 </Alert>
               )}
 
-              {/* Guidance depends on whether fields already exist */}
-              {!hasDefinedFields ? (
-                <Alert
-                  variant="light"
-                  color="blue"
-                  icon={<IconInfoCircle size={16} />}
-                >
-                  {t(
-                    "headers_template_note",
-                    "These headers will be used as the template for all subsequent files.",
+              {/* First import: pick which Excel columns become tournament fields */}
+              {!hasDefinedFields && uploads.length === 0 ? (
+                <Stack gap="xs">
+                  <Alert
+                    variant="light"
+                    color="blue"
+                    icon={<IconInfoCircle size={16} />}
+                  >
+                    {t(
+                      "headers_picker_note",
+                      "Choose which spreadsheet columns to keep as player fields. Name and club are always included. Later files must include the columns you select here; extra columns are ignored.",
+                    )}
+                  </Alert>
+                  {selectableHeaders.length === 0 ? (
+                    <Text size="sm" c="dimmed">
+                      {t(
+                        "no_extra_excel_headers",
+                        "No extra columns detected beyond name/club.",
+                      )}
+                    </Text>
+                  ) : (
+                    <Stack gap={6}>
+                      <Group gap="xs">
+                        <Button
+                          variant="subtle"
+                          size="compact-xs"
+                          onClick={() => setSelectedLabels(selectableHeaders)}
+                        >
+                          {t("select_all", "Select all")}
+                        </Button>
+                        <Button
+                          variant="subtle"
+                          size="compact-xs"
+                          onClick={() => setSelectedLabels([])}
+                        >
+                          {t("select_none", "Select none")}
+                        </Button>
+                      </Group>
+                      {selectableHeaders.map((header) => (
+                        <Checkbox
+                          key={header}
+                          label={header}
+                          checked={selectedLabels.includes(header)}
+                          onChange={(e) => {
+                            const checked = e.currentTarget.checked;
+                            setSelectedLabels((current) =>
+                              checked
+                                ? [...current, header]
+                                : current.filter((h) => h !== header),
+                            );
+                          }}
+                        />
+                      ))}
+                    </Stack>
                   )}
-                </Alert>
+                </Stack>
               ) : (
                 (() => {
-                  // Compare detected vs expected (from existing player fields)
+                  const required = hasDefinedFields
+                    ? stripFixedHeaders(requiredImportHeaders)
+                    : stripFixedHeaders(baselineHeaders ?? []);
                   const { missing, added } = diffHeaders(
-                    stripFixedHeaders(expectedHeaders),
+                    required,
                     stripFixedHeaders(currentHeaders),
                   );
 
-                  // If everything matches, show success note
                   if (missing.length === 0 && added.length === 0) {
                     return (
                       <Alert
@@ -646,14 +697,38 @@ export default function PlayersImportModal({
                         icon={<IconCircleCheck size={16} />}
                       >
                         {t(
-                          "headers_match_expected",
-                          "Detected headers match the expected player fields for this tournament.",
+                          "headers_match_required",
+                          "Detected headers include all required player fields.",
                         )}
                       </Alert>
                     );
                   }
 
-                  // Otherwise, show a compact diff
+                  if (missing.length === 0 && added.length > 0) {
+                    return (
+                      <Alert
+                        variant="light"
+                        color="blue"
+                        icon={<IconInfoCircle size={16} />}
+                      >
+                        <Stack gap={4}>
+                          <Text size="sm">
+                            {t(
+                              "headers_extra_ok",
+                              "Required columns are present. Extra columns will be ignored.",
+                            )}
+                          </Text>
+                          <Text size="xs">
+                            <strong>
+                              {t("new_headers", "Contains new headers:")}
+                            </strong>{" "}
+                            {added.join(", ")}
+                          </Text>
+                        </Stack>
+                      </Alert>
+                    );
+                  }
+
                   return (
                     <Alert
                       variant="light"
@@ -663,18 +738,16 @@ export default function PlayersImportModal({
                       <Stack gap={4}>
                         <Text size="sm">
                           {t(
-                            "headers_mismatch_expected",
-                            "Headers don’t match the expected player fields for this tournament.",
+                            "headers_missing_required",
+                            "This file is missing required player fields.",
                           )}
                         </Text>
-                        {missing.length > 0 && (
-                          <Text size="xs">
-                            <strong>
-                              {t("missing_headers", "Missing headers:")}
-                            </strong>{" "}
-                            {missing.join(", ")}
-                          </Text>
-                        )}
+                        <Text size="xs">
+                          <strong>
+                            {t("missing_headers", "Missing headers:")}
+                          </strong>{" "}
+                          {missing.join(", ")}
+                        </Text>
                         {added.length > 0 && (
                           <Text size="xs">
                             <strong>
@@ -683,12 +756,6 @@ export default function PlayersImportModal({
                             {added.join(", ")}
                           </Text>
                         )}
-                        <Text size="xs">
-                          {t(
-                            "expected_headers_hint",
-                            "Expected headers come from this tournament’s player fields. This file stays blocked until they match. Change the fields while there are no players, or fix the spreadsheet.",
-                          )}
-                        </Text>
                       </Stack>
                     </Alert>
                   );
@@ -717,7 +784,11 @@ export default function PlayersImportModal({
                   </Stack>
                   <ActionIcon
                     onClick={() =>
-                      setUploads((list) => list.filter((_, i) => i !== idx))
+                      setUploads((list) => {
+                        const next = list.filter((_, i) => i !== idx);
+                        if (next.length === 0) setBaselineHeaders(null);
+                        return next;
+                      })
                     }
                     aria-label={t("remove", "Remove")}
                   >
@@ -730,18 +801,16 @@ export default function PlayersImportModal({
         )}
 
         {/* 5) Final Import */}
-        <Button
-          fullWidth
-          color="green"
-          disabled={uploads.length === 0}
-          onClick={async () => {
+        <ModalFooter
+          hideCancel
+          primaryLabel={t("import_all", "Import All Clubs")}
+          primaryDisabled={uploads.length === 0}
+          onPrimary={async () => {
             const imported = await onImportAll(uploads);
             if (!imported) return;
             rememberImportedFileNames(uploads.map((upload) => upload.file.name));
           }}
-        >
-          {t("import_all", "Import All Clubs")}
-        </Button>
+        />
       </Stack>
     </>
   );

@@ -33,6 +33,7 @@ import { getClubs, getPlayers, getTeamCategories } from "../../services/adapter"
 import { createTeam, updateTeam } from "../../services/team";
 import CategoryConfigModal from "./category_config_modal";
 import NoPlayersForTeam from "./no_players_for_team";
+import ModalFooter from "./modal_footer";
 import { TeamInterface } from "../../interfaces/team";
 import type { Club } from "../../interfaces/club";
 import type { TeamCategoryInterface } from "../../interfaces/team_category";
@@ -538,9 +539,11 @@ export default function TeamModal({
         </Stack>
       )}
 
-      <Button fullWidth mt="xl" color="green" type="submit">
-        {t("save_button")}
-      </Button>
+      <ModalFooter
+        onCancel={() => setOpened(false)}
+        primaryLabel={t("save_button")}
+        primaryType="submit"
+      />
     </form>
   );
 
@@ -711,15 +714,13 @@ export default function TeamModal({
           {multiError}
         </Alert>
       )}
-      <Button
-        fullWidth
-        color="green"
-        loading={multiSubmitting}
-        disabled={!multiClubId || drafts.length === 0}
-        onClick={() => void handleMultiSubmit()}
-      >
-        {t("create_teams", "Create teams")}
-      </Button>
+      <ModalFooter
+        onCancel={() => setOpened(false)}
+        primaryLabel={t("create_teams", "Create teams")}
+        primaryLoading={multiSubmitting}
+        primaryDisabled={!multiClubId || drafts.length === 0}
+        onPrimary={() => void handleMultiSubmit()}
+      />
     </Stack>
   );
 

@@ -34,6 +34,7 @@ import { fetchDivisionPlayers } from "../../services/division";
 import { postDivisionBrackets, postDivisionBracketsTeams } from "../../services/bracket";
 import { assignTeamBrackets, getTeamBracketSizeOptions } from "../utils/seeding_teams";
 import { updatePlayerCodes } from "../../services/player";
+import ModalFooter from "./modal_footer";
 
 type PlayerRow = {
   id: string | number;
@@ -324,6 +325,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
         title={t("generate_modal_title", "Generate Brackets")}
         size="lg"
         centered
+        closeOnClickOutside={false}
         overlayProps={{ blur: 2 }}
       >
         <Stepper
@@ -355,20 +357,14 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
 
               <Divider />
 
-              <Group justify="space-between">
-                <Button
-                  variant="default"
-                  onClick={() => {
-                    close();
-                    resetWizard();
-                  }}
-                >
-                  {t("cancel", "Cancel")}
-                </Button>
-                <Button onClick={() => setActive(1)}>
-                  {t("next", "Next")}
-                </Button>
-              </Group>
+              <ModalFooter
+                onCancel={() => {
+                  close();
+                  resetWizard();
+                }}
+                primaryLabel={t("next", "Next")}
+                onPrimary={() => setActive(1)}
+              />
             </Stack>
           </Stepper.Step>
 
@@ -418,22 +414,27 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
                 </Stack>
               </ScrollArea>
 
-              <Group justify="space-between" mt="sm">
-                <Button variant="subtle" onClick={clearBias}>
-                  {t("clear_selection", "Clear selection")}
-                </Button>
-                <Group>
-                  <Button variant="default" onClick={() => setActive(0)}>
-                    {t("back", "Back")}
-                  </Button>
-                  <Button onClick={() => setActive(2)}>
-                    {t("next", "Next")}
-                  </Button>
-                  <Button variant="light" onClick={() => setActive(2)}>
-                    {t("skip", "Skip")}
-                  </Button>
-                </Group>
-              </Group>
+              <ModalFooter
+                onCancel={() => {
+                  close();
+                  resetWizard();
+                }}
+                primaryLabel={t("next", "Next")}
+                onPrimary={() => setActive(2)}
+                leftSection={
+                  <>
+                    <Button variant="default" onClick={() => setActive(0)}>
+                      {t("back", "Back")}
+                    </Button>
+                    <Button variant="subtle" onClick={clearBias}>
+                      {t("clear_selection", "Clear selection")}
+                    </Button>
+                    <Button variant="light" onClick={() => setActive(2)}>
+                      {t("skip", "Skip")}
+                    </Button>
+                  </>
+                }
+              />
             </Stack>
           </Stepper.Step>
 
@@ -519,14 +520,19 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
                   </Stack>
                 );
               })()}
-              <Group justify="space-between" mt="sm">
-                <Button variant="default" onClick={() => setActive(1)}>
-                  {t("back", "Back")}
-                </Button>
-                <Button onClick={() => setActive(3)}>
-                  {t("next", "Next")}
-                </Button>
-              </Group>
+              <ModalFooter
+                onCancel={() => {
+                  close();
+                  resetWizard();
+                }}
+                primaryLabel={t("next", "Next")}
+                onPrimary={() => setActive(3)}
+                leftSection={
+                  <Button variant="default" onClick={() => setActive(1)}>
+                    {t("back", "Back")}
+                  </Button>
+                }
+              />
             </Stack>
           </Stepper.Step>
 
@@ -570,12 +576,19 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
                   />
                 </Group>
 
-                <Group justify="space-between" mt="sm">
-                  <Button variant="default" onClick={() => setActive(2)}>
-                    {t("back", "Back")}
-                  </Button>
-                  <Button type="submit">{t("generate", "Generate")}</Button>
-                </Group>
+                <ModalFooter
+                  onCancel={() => {
+                    close();
+                    resetWizard();
+                  }}
+                  primaryLabel={t("generate", "Generate")}
+                  primaryType="submit"
+                  leftSection={
+                    <Button variant="default" onClick={() => setActive(2)}>
+                      {t("back", "Back")}
+                    </Button>
+                  }
+                />
               </Stack>
             </form>
           </Stepper.Step>
@@ -728,6 +741,7 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
         title={t("generate_modal_title", "Generate Brackets")}
         size="lg"
         centered
+        closeOnClickOutside={false}
         overlayProps={{ blur: 2 }}
       >
         <Stepper
@@ -755,12 +769,14 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
                 <Text c="dimmed">{t("no_filters", "No filters applied")}</Text>
               )}
               <Divider />
-              <Group justify="space-between">
-                <Button variant="default" onClick={() => { close(); resetWizard(); }}>
-                  {t("cancel", "Cancel")}
-                </Button>
-                <Button onClick={() => setActive(1)}>{t("next", "Next")}</Button>
-              </Group>
+              <ModalFooter
+                onCancel={() => {
+                  close();
+                  resetWizard();
+                }}
+                primaryLabel={t("next", "Next")}
+                onPrimary={() => setActive(1)}
+              />
             </Stack>
           </Stepper.Step>
 
@@ -793,12 +809,19 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
                   })}
                 </Stack>
               </ScrollArea.Autosize>
-              <Group justify="space-between">
-                <Button variant="default" onClick={() => setActive(0)}>
-                  {t("back", "Back")}
-                </Button>
-                <Button onClick={() => setActive(2)}>{t("next", "Next")}</Button>
-              </Group>
+              <ModalFooter
+                onCancel={() => {
+                  close();
+                  resetWizard();
+                }}
+                primaryLabel={t("next", "Next")}
+                onPrimary={() => setActive(2)}
+                leftSection={
+                  <Button variant="default" onClick={() => setActive(0)}>
+                    {t("back", "Back")}
+                  </Button>
+                }
+              />
             </Stack>
           </Stepper.Step>
 
@@ -883,14 +906,19 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
                   </Stack>
                 );
               })()}
-              <Group justify="space-between" mt="sm">
-                <Button variant="default" onClick={() => setActive(1)}>
-                  {t("back", "Back")}
-                </Button>
-                <Button onClick={() => setActive(3)}>
-                  {t("next", "Next")}
-                </Button>
-              </Group>
+              <ModalFooter
+                onCancel={() => {
+                  close();
+                  resetWizard();
+                }}
+                primaryLabel={t("next", "Next")}
+                onPrimary={() => setActive(3)}
+                leftSection={
+                  <Button variant="default" onClick={() => setActive(1)}>
+                    {t("back", "Back")}
+                  </Button>
+                }
+              />
             </Stack>
           </Stepper.Step>
 
@@ -917,12 +945,19 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
                     {...form.getInputProps("marginMinutes")}
                   />
                 </Group>
-                <Group justify="space-between" mt="sm">
-                  <Button variant="default" onClick={() => setActive(2)}>
-                    {t("back", "Back")}
-                  </Button>
-                  <Button type="submit">{t("generate", "Generate")}</Button>
-                </Group>
+                <ModalFooter
+                  onCancel={() => {
+                    close();
+                    resetWizard();
+                  }}
+                  primaryLabel={t("generate", "Generate")}
+                  primaryType="submit"
+                  leftSection={
+                    <Button variant="default" onClick={() => setActive(2)}>
+                      {t("back", "Back")}
+                    </Button>
+                  }
+                />
               </Stack>
             </form>
           </Stepper.Step>

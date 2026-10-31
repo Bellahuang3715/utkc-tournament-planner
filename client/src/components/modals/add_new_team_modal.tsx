@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Center, Loader, Modal, Stack, TextInput, Select } from "@mantine/core";
+import { Center, Loader, Modal, Stack, TextInput, Select, Text } from "@mantine/core";
 import { useTranslation } from "next-i18next/pages";
 
 import { getClubs, getPlayers, getTeamCategories } from "../../services/adapter";
@@ -8,6 +8,7 @@ import { createTeam } from "../../services/team";
 import { resolveClubIdByName } from "../../utils/clubs";
 import type { TeamCategoryInterface } from "../../interfaces/team_category";
 import NoPlayersForTeam from "./no_players_for_team";
+import ModalFooter from "./modal_footer";
 
 export default function AddNewTeamModal({
   tournamentId,
@@ -137,12 +138,12 @@ export default function AddNewTeamModal({
       ) : (
       <Stack gap="md">
         <TextInput
+          withAsterisk
           label={t("team_name", "Team name")}
           placeholder={t("team_name_placeholder", "e.g. Club A")}
           value={name}
           onChange={(e) => setName(e.currentTarget.value)}
           error={error && !name.trim() ? error : undefined}
-          required
         />
         <Select
           label={t("category_table_header", "Category")}
@@ -167,11 +168,16 @@ export default function AddNewTeamModal({
           onChange={(v) => setClubId(v ?? "")}
         />
         {error && name.trim() ? (
-          <span style={{ color: "var(--mantine-color-red-6)", fontSize: 14 }}>{error}</span>
+          <Text size="sm" c="red">
+            {error}
+          </Text>
         ) : null}
-        <Button onClick={handleSubmit} loading={submitting}>
-          {t("create_team", "Create team")}
-        </Button>
+        <ModalFooter
+          onCancel={handleClose}
+          primaryLabel={t("create_team", "Create team")}
+          primaryLoading={submitting}
+          onPrimary={() => void handleSubmit()}
+        />
       </Stack>
       )}
     </Modal>

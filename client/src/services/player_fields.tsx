@@ -14,6 +14,7 @@ export async function updatePlayerFields(
             key:      f.key,
             label:    f.label,
             include:  f.include,
+            import_required: f.import_required !== false,
             type:     f.type,
             options:  f.options,
             position: idx,

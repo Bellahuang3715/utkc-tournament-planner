@@ -21,6 +21,7 @@ import {
   IconListDetails,
   IconPencil,
   IconPlus,
+  IconRefresh,
   IconTrash,
   IconUsers,
 } from "@tabler/icons-react";
@@ -34,6 +35,7 @@ import { Player } from "../../interfaces/player";
 import { FieldInsertable } from "../../interfaces/player_fields";
 import { TournamentMinimal } from "../../interfaces/tournament";
 import { deletePlayer } from "../../services/player";
+import { updatePlayerFields } from "../../services/player_fields";
 import { EmptyRoster } from "../no_content/empty_table_info";
 import RequestErrorAlert from "../utils/error_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
@@ -76,6 +78,25 @@ export default function PlayersTable({
       return;
     }
     openCreate("single");
+  };
+
+  const resetColumns = async () => {
+    if (players.length > 0) return;
+    const saved = await updatePlayerFields(tournamentData.id, []);
+    if (saved == null) return;
+    await swrPlayerFieldsResponse.mutate();
+  };
+
+  const handleResetColumns = async () => {
+    if (players.length > 0) return;
+    const ok = window.confirm(
+      t(
+        "confirm_reset_player_fields",
+        "Reset player columns? The next Excel import will let you choose columns again.",
+      ),
+    );
+    if (!ok) return;
+    await resetColumns();
   };
 
   const csvConfig = mkConfig({
@@ -276,14 +297,19 @@ export default function PlayersTable({
   });
 
   useEffect(() => {
-    const order = table.getState().columnOrder;
-    if (!order.includes("actions") || order[order.length - 1] === "actions") {
-      return;
+    const leafIds = table.getAllLeafColumns().map((col) => col.id);
+    const current = table.getState().columnOrder;
+    const base = (current.length ? current : leafIds).filter(
+      (id) => id !== "actions" && leafIds.includes(id),
+    );
+    for (const id of leafIds) {
+      if (id !== "actions" && !base.includes(id)) base.push(id);
     }
-    table.setColumnOrder([
-      ...order.filter((id) => id !== "actions"),
-      "actions",
-    ]);
+    const next = [...base, "actions"];
+    const same =
+      next.length === current.length &&
+      next.every((id, index) => id === current[index]);
+    if (!same) table.setColumnOrder(next);
   }, [columns, table]);
 
   if (swrPlayersResponse.error || swrPlayerFieldsResponse.error) {
@@ -320,6 +346,8 @@ export default function PlayersTable({
         tournament_id={tournamentData.id}
         opened={fieldsModalOpen}
         onClose={() => setFieldsModalOpen(false)}
+        allowReset={players.length === 0 && hasFields}
+        onReset={resetColumns}
         onSave={async () => {
           setFieldsModalOpen(false);
           await swrPlayerFieldsResponse.mutate();
@@ -349,6 +377,14 @@ export default function PlayersTable({
                   onClick={() => setFieldsModalOpen(true)}
                 >
                   {t("configure_template", "Manage Player Fields")}
+                </Button>
+                <Button
+                  leftSection={<IconRefresh size={16} />}
+                  variant="light"
+                  color="orange"
+                  onClick={() => void handleResetColumns()}
+                >
+                  {t("reset_player_fields", "Reset columns")}
                 </Button>
               </>
             ) : (

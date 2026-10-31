@@ -24,6 +24,7 @@ import type { Player } from "../../interfaces/player";
 import type { DivisionPlayer } from "../../interfaces/division";
 import type { FieldInsertable, PlayerFieldTypes } from "../../interfaces/player_fields";
 import type { Club } from "../../interfaces/club";
+import ModalFooter from "./modal_footer";
 
 /** Infer division code prefix from name (e.g. "Division E" -> "E") when prefix is empty. */
 function effectivePrefix(divisionName: string, divisionPrefix: string | null | undefined): string {
@@ -218,6 +219,7 @@ export default function AddPlayersToDivisionModal({
       opened={opened}
       onClose={onClose}
       closeOnClickOutside={false}
+      centered
       title={t("add_players_to_division", "Add players to division")}
       size="md"
     >
@@ -253,9 +255,13 @@ export default function AddPlayersToDivisionModal({
                   searchable
                   clearable
                 />
-                <Button onClick={handleAddExisting} disabled={!canAddExisting} loading={adding}>
-                  {t("add_selected", "Add selected")}
-                </Button>
+                <ModalFooter
+                  onCancel={onClose}
+                  primaryLabel={t("add_selected", "Add selected")}
+                  primaryDisabled={!canAddExisting}
+                  primaryLoading={adding}
+                  onPrimary={() => void handleAddExisting()}
+                />
               </>
             )}
           </Stack>
@@ -325,9 +331,12 @@ export default function AddPlayersToDivisionModal({
                       return null;
                   }
                 })}
-              <Button type="submit" loading={adding}>
-                {t("create_and_add", "Create and add to division")}
-              </Button>
+              <ModalFooter
+                onCancel={onClose}
+                primaryLabel={t("create_and_add", "Create and add to division")}
+                primaryType="submit"
+                primaryLoading={adding}
+              />
             </Stack>
           </form>
         </Tabs.Panel>

@@ -23,6 +23,7 @@ import {
 } from "../../interfaces/player_fields";
 import { updatePlayerFields } from "../../services/player_fields";
 import { getPlayerFields } from "../../services/adapter";
+import ModalFooter from "./modal_footer";
 
 export interface PlayerFieldsConfig {
   fields: FieldInsertable[];
@@ -33,6 +34,9 @@ interface PlayerFieldsConfigProps {
   opened: boolean;
   onClose: () => void;
   onSave: (config: PlayerFieldsConfig) => void;
+  /** When true, show Reset columns (roster must already be empty). */
+  allowReset?: boolean;
+  onReset?: () => Promise<void> | void;
 }
 
 export default function PlayerFieldsConfigModal({
@@ -40,6 +44,8 @@ export default function PlayerFieldsConfigModal({
   opened,
   onClose,
   onSave,
+  allowReset = false,
+  onReset,
 }: PlayerFieldsConfigProps) {
   const theme = useMantineTheme();
   const { t } = useTranslation();
@@ -57,13 +63,25 @@ export default function PlayerFieldsConfigModal({
 
   useEffect(() => {
     if (playerFields) {
-      setFields(playerFields);
+      setFields(
+        playerFields.map((field) => ({
+          ...field,
+          import_required: field.import_required !== false,
+        })),
+      );
     }
   }, [playerFields]);
 
   const toggleInclude = (key: string) =>
     setFields((f) =>
       f.map((x) => (x.key === key ? { ...x, include: !x.include } : x))
+    );
+
+  const toggleImportRequired = (key: string) =>
+    setFields((f) =>
+      f.map((x) =>
+        x.key === key ? { ...x, import_required: !x.import_required } : x,
+      ),
     );
 
   const updateType = (key: string, type: PlayerFieldTypes) =>
@@ -115,6 +133,7 @@ export default function PlayerFieldsConfigModal({
         key,
         label,
         include: true,
+        import_required: false,
         type: "TEXT",
         options: [],
         position: current.length,
@@ -179,12 +198,12 @@ export default function PlayerFieldsConfigModal({
       >
         {t(
           "configure_instr",
-          "Name and club are always included. Add any other columns, then choose how each one is filtered.",
+          "Name and club are always included. Show in table controls the players page. Required on Excel import means later club spreadsheets must include that column.",
         )}
       </Alert>
       <Flex mb="md" gap="xs">
         <TextInput
-          placeholder={t("add_field_placeholder", "Add a field, such as Rank")}
+          placeholder={t("add_field_placeholder", "Add a field, such as Notes")}
           value={newFieldLabel}
           onChange={(e) => setNewFieldLabel(e.currentTarget.value)}
           onKeyDown={(e) => {
@@ -208,7 +227,7 @@ export default function PlayerFieldsConfigModal({
         >
           {t(
             "no_extra_fields",
-            "No extra columns yet. Add a field here, or import a spreadsheet and its headers will become the columns.",
+            "No extra columns yet. Import a spreadsheet and pick columns, or add a table-only field here.",
           )}
         </Alert>
       )}
@@ -219,19 +238,33 @@ export default function PlayerFieldsConfigModal({
         mb="sm"
         style={{ backgroundColor: theme.colors.gray[0] }}
       >
-        <Flex justify="space-between">
-          <Text fw={600}>{t("field_name", "Field Name")}</Text>
-          <Text fw={600}>{t("filter_type", "Filter type")}</Text>
+        <Flex justify="space-between" gap="md">
+          <Text fw={600} style={{ flex: 1 }}>
+            {t("field_name", "Field Name")}
+          </Text>
+          <Text fw={600} w={140} ta="right">
+            {t("filter_type", "Filter type")}
+          </Text>
         </Flex>
       </Paper>
       {fields.map((field) => (
         <Box key={field.key} mb="md">
-          <Flex justify="space-between" align="center">
-            <Checkbox
-              label={field.label}
-              checked={field.include}
-              onChange={() => toggleInclude(field.key)}
-            />
+          <Flex justify="space-between" align="flex-start" gap="md">
+            <Stack gap={6} style={{ flex: 1 }}>
+              <Text fw={600} size="sm">
+                {field.label}
+              </Text>
+              <Checkbox
+                label={t("show_in_table", "Show in table")}
+                checked={field.include}
+                onChange={() => toggleInclude(field.key)}
+              />
+              <Checkbox
+                label={t("import_required", "Required on Excel import")}
+                checked={field.import_required !== false}
+                onChange={() => toggleImportRequired(field.key)}
+              />
+            </Stack>
             <Select
               data={[
                 { value: "TEXT", label: t("filter_text", "Text") },
@@ -313,14 +346,33 @@ export default function PlayerFieldsConfigModal({
         </Box>
       ))}
 
-      <Group justify="space-between" mt="md">
-        <Button variant="outline" onClick={requestClose}>
-          {t("cancel", "Cancel")}
-        </Button>
-        <Button onClick={handleSave} disabled={emptyDropdowns.length > 0}>
-          {t("save", "Save")}
-        </Button>
-      </Group>
+      <ModalFooter
+        onCancel={requestClose}
+        primaryLabel={t("save", "Save")}
+        primaryDisabled={emptyDropdowns.length > 0}
+        onPrimary={() => void handleSave()}
+        leftSection={
+          allowReset && onReset ? (
+            <Button
+              variant="light"
+              color="orange"
+              onClick={async () => {
+                const ok = window.confirm(
+                  t(
+                    "confirm_reset_player_fields",
+                    "Reset player columns? The next Excel import will let you choose columns again.",
+                  ),
+                );
+                if (!ok) return;
+                await onReset();
+                onClose();
+              }}
+            >
+              {t("reset_player_fields", "Reset columns")}
+            </Button>
+          ) : null
+        }
+      />
     </Modal>
     <Modal
       opened={confirmLeave}
@@ -329,21 +381,20 @@ export default function PlayerFieldsConfigModal({
       centered
       size="sm"
     >
-      <Stack gap="lg">
+      <Stack gap="md">
         <Text size="sm" lh={1.6}>
           {t(
             "leave_fields_message",
             "You have unsaved changes. If you leave, they will be lost.",
           )}
         </Text>
-        <Group justify="flex-end" gap="sm">
-          <Button variant="default" onClick={() => setConfirmLeave(false)}>
-            {t("stay_button", "Stay")}
-          </Button>
-          <Button color="red" onClick={discardAndClose}>
-            {t("leave_button", "Leave")}
-          </Button>
-        </Group>
+        <ModalFooter
+          onCancel={() => setConfirmLeave(false)}
+          cancelLabel={t("stay_button", "Stay")}
+          primaryLabel={t("leave_button", "Leave")}
+          primaryColor="red"
+          onPrimary={discardAndClose}
+        />
       </Stack>
     </Modal>
     </>

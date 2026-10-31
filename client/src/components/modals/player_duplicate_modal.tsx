@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import {
   Alert,
   Badge,
-  Button,
   Checkbox,
   Divider,
   Group,
@@ -20,6 +19,7 @@ import {
   DuplicateGroup,
   PlayerSnapshot,
 } from "../utils/player_duplicates";
+import ModalFooter from "./modal_footer";
 
 function formatValue(value: unknown) {
   if (value == null || value === "") return "—";
@@ -203,22 +203,17 @@ export default function PlayerDuplicateModal({
             ))}
           </Stack>
         </ScrollArea.Autosize>
-        <Group justify="flex-end" gap="sm">
-          <Button variant="default" onClick={onCancel}>
-            {t("cancel", "Cancel")}
-          </Button>
-          <Button
-            onClick={() =>
-              onConfirm(
-                Object.entries(checked)
-                  .filter(([, value]) => value)
-                  .map(([id]) => id),
-              )
-            }
-          >
-            {t("continue_button", "Continue")}
-          </Button>
-        </Group>
+        <ModalFooter
+          onCancel={onCancel}
+          primaryLabel={t("continue_button", "Continue")}
+          onPrimary={() =>
+            onConfirm(
+              Object.entries(checked)
+                .filter(([, value]) => value)
+                .map(([id]) => id),
+            )
+          }
+        />
       </Stack>
     </Modal>
   );

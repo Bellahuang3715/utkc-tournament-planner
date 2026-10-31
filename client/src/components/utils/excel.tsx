@@ -31,7 +31,9 @@ export type NameCols = { name?: number; first?: number; last?: number };
 export async function inferFieldsFromSheet(
   file: File,
   sheetName: string,
-  headerRow: number
+  headerRow: number,
+  /** When set, only these headers become fields / mapped columns. */
+  selectedLabels?: string[],
 ): Promise<{
   fields: FieldInsertable[];
   headerMap: HeaderMapEntry[];
@@ -41,6 +43,11 @@ export async function inferFieldsFromSheet(
   await wb.xlsx.load(await file.arrayBuffer());
   const ws = wb.getWorksheet(sheetName);
   if (!ws) throw new Error(`Sheet "${sheetName}" not found`);
+
+  const selectedNorm =
+    selectedLabels != null
+      ? new Set(selectedLabels.map((label) => norm(label)))
+      : null;
 
   // build the headerMap
   const rawHeader = ws.getRow(headerRow).values as any[];
@@ -74,6 +81,7 @@ export async function inferFieldsFromSheet(
 
     // skip blank headers or ones in the skip list
     if (!shouldSkip(header)) {
+      if (selectedNorm && !selectedNorm.has(hNorm)) continue;
       headerMap.push({ col, header });
     }
   }
@@ -115,6 +123,7 @@ export async function inferFieldsFromSheet(
       key: header.toLowerCase().replace(/\s+/g, "_"),
       label: header,
       include: true,
+      import_required: true,
       type,
       options,
       position: idx,

@@ -27,6 +27,7 @@ import {
 } from "../../interfaces/player_fields";
 import PlayersImportModal, { PlayersUpload } from "./players_import_modal";
 import PlayerDuplicateModal from "./player_duplicate_modal";
+import ModalFooter from "./modal_footer";
 import { inferFieldsFromSheet } from "../utils/excel";
 import {
   DuplicateGroup,
@@ -228,9 +229,13 @@ function SinglePlayerTab({
             }
           })}
 
-        <Button fullWidth mt="md" color="green" type="submit">
-          {isEdit ? t("save_button", "Save") : t("create_button", "Create")}
-        </Button>
+        <ModalFooter
+          onCancel={() => setOpened(false)}
+          primaryLabel={
+            isEdit ? t("save_button", "Save") : t("create_button", "Create")
+          }
+          primaryType="submit"
+        />
       </Stack>
     </form>
   );
@@ -341,6 +346,7 @@ export default function PlayerCreateModal({
         first.file,
         first.sheet,
         first.headerRow,
+        first.selectedLabels,
       );
       schemaFields = inferred.fields;
       fieldsToSave = inferred.fields;
@@ -514,7 +520,7 @@ export default function PlayerCreateModal({
         centered
         size="sm"
       >
-        <Stack gap="lg">
+        <Stack gap="md">
           <Alert
             variant="light"
             color="orange"
@@ -525,14 +531,13 @@ export default function PlayerCreateModal({
               "Are you sure you want to leave? You will lose your progress.",
             )}
           </Alert>
-          <Group justify="flex-end" gap="sm">
-            <Button variant="default" onClick={() => setConfirmLeave(false)}>
-              {t("stay_button", "Stay")}
-            </Button>
-            <Button color="red" onClick={leaveImport}>
-              {t("leave_button", "Leave")}
-            </Button>
-          </Group>
+          <ModalFooter
+            onCancel={() => setConfirmLeave(false)}
+            cancelLabel={t("stay_button", "Stay")}
+            primaryLabel={t("leave_button", "Leave")}
+            primaryColor="red"
+            onPrimary={leaveImport}
+          />
         </Stack>
       </Modal>
     </>

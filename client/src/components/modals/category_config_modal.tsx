@@ -19,6 +19,7 @@ import {
   deleteTeamCategory,
   updateTeamCategory,
 } from "../../services/team_categories";
+import ModalFooter from "./modal_footer";
 
 export default function CategoryConfigModal({
   tournament_id,
@@ -131,6 +132,8 @@ export default function CategoryConfigModal({
       opened={opened}
       onClose={onClose}
       size="lg"
+      centered
+      closeOnClickOutside={false}
       title={t("manage_teams_categories", "Manage Teams Categories")}
     >
       {opened && isLoading && !data ? (
@@ -168,14 +171,12 @@ export default function CategoryConfigModal({
         </Stack>
       )}
 
-      <Group justify="flex-end" mt="lg">
-        <Button variant="default" onClick={onClose}>
-          {t("cancel", "Cancel")}
-        </Button>
-        <Button color="green" onClick={handleSave} loading={saving}>
-          {t("save_changes", "Save changes")}
-        </Button>
-      </Group>
+      <ModalFooter
+        onCancel={onClose}
+        primaryLabel={t("save_changes", "Save changes")}
+        primaryLoading={saving}
+        onPrimary={() => void handleSave()}
+      />
     </Modal>
   );
 }

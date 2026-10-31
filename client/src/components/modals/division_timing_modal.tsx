@@ -14,6 +14,7 @@ import { IconInfoCircle } from "@tabler/icons-react";
 import { showNotification } from "@mantine/notifications";
 import { useTranslation } from "next-i18next/pages";
 import { mutate } from "swr";
+import ModalFooter from "./modal_footer";
 
 import type { DivisionType } from "../../interfaces/division";
 import type { TournamentSchedulePayload } from "../../interfaces/schedule_timetable";
@@ -331,6 +332,7 @@ export default function DivisionTimingModal({
           : t("edit_timing", "Match timing")
       }
       centered
+      closeOnClickOutside={false}
       size="lg"
     >
       {confirm ? (
@@ -389,21 +391,22 @@ export default function DivisionTimingModal({
               )}
             </Alert>
           )}
-          <Group justify="flex-end" wrap="wrap">
-            <Button variant="default" onClick={() => setConfirm(null)} disabled={saving}>
-              {t("back", "Back")}
-            </Button>
-            <Button
-              variant="default"
-              onClick={() => void applyConfirm(false)}
-              loading={saving}
-            >
-              {t("update_division_only", "Update division only")}
-            </Button>
-            <Button onClick={() => void applyConfirm(true)} loading={saving}>
-              {t("update_block_lengths", "Update block lengths")}
-            </Button>
-          </Group>
+          <ModalFooter
+            onCancel={() => setConfirm(null)}
+            cancelLabel={t("back", "Back")}
+            primaryLabel={t("update_block_lengths", "Update block lengths")}
+            primaryLoading={saving}
+            onPrimary={() => void applyConfirm(true)}
+            leftSection={
+              <Button
+                variant="default"
+                onClick={() => void applyConfirm(false)}
+                loading={saving}
+              >
+                {t("update_division_only", "Update division only")}
+              </Button>
+            }
+          />
         </Stack>
       ) : (
         <Stack gap="md">
@@ -456,14 +459,13 @@ export default function DivisionTimingModal({
               ))}
             </Stack>
           )}
-          <Group justify="flex-end">
-            <Button variant="default" onClick={close} disabled={saving}>
-              {t("cancel")}
-            </Button>
-            <Button onClick={() => void handleSave()} loading={saving} disabled={!timingValid}>
-              {t("save")}
-            </Button>
-          </Group>
+          <ModalFooter
+            onCancel={close}
+            primaryLabel={t("save")}
+            primaryLoading={saving}
+            primaryDisabled={!timingValid || saving}
+            onPrimary={() => void handleSave()}
+          />
         </Stack>
       )}
     </Modal>

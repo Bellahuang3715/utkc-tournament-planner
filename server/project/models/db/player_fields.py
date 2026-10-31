@@ -15,6 +15,7 @@ class FieldInsertable(BaseModelORM):
     key:      str
     label:    str
     include:  bool
+    import_required: bool = True
     type:     PlayerFieldTypes
     options:  list[str] = []
     position: int

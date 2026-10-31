@@ -1,4 +1,4 @@
-import { Button, Modal, TextInput } from '@mantine/core';
+import { Button, Modal, Stack, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { GoPlus } from 'react-icons/go';
 import { useTranslation } from 'next-i18next/pages';
@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { SWRResponse } from 'swr';
 
 import { createCourt } from '../../services/court';
+import ModalFooter from './modal_footer';
 
 export default function CourtModal({
   tournamentId,
@@ -30,7 +31,13 @@ export default function CourtModal({
 
   return (
     <>
-      <Modal opened={opened} onClose={() => setOpened(false)} title={t('add_court_title')}>
+      <Modal
+        opened={opened}
+        onClose={() => setOpened(false)}
+        title={t('add_court_title')}
+        centered
+        closeOnClickOutside={false}
+      >
         <form
           onSubmit={form.onSubmit(async (values) => {
             await createCourt(tournamentId, values.name);
@@ -38,16 +45,19 @@ export default function CourtModal({
             setOpened(false);
           })}
         >
-          <TextInput
-            withAsterisk
-            label={t('name_input_label')}
-            placeholder={t('court_name_input_placeholder')}
-            {...form.getInputProps('name')}
+          <Stack gap="md">
+            <TextInput
+              withAsterisk
+              label={t('name_input_label')}
+              placeholder={t('court_name_input_placeholder')}
+              {...form.getInputProps('name')}
+            />
+          </Stack>
+          <ModalFooter
+            onCancel={() => setOpened(false)}
+            primaryLabel={t('save_button')}
+            primaryType="submit"
           />
-
-          <Button fullWidth style={{ marginTop: 10 }} color="green" type="submit">
-            {t('save_button')}
-          </Button>
         </form>
       </Modal>
       <Button

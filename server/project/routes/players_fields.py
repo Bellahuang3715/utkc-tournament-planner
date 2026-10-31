@@ -30,6 +30,7 @@ async def update_player_fields(
         "key":           f.key,
         "label":         f.label,
         "include":       f.include,
+        "import_required": f.import_required,
         "type":          f.type.value,  # serialize enum to string value
         "options":       f.options,
         "position":      f.position,
