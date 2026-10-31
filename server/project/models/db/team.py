@@ -7,7 +7,7 @@ from typing import Annotated
 from heliclockter import datetime_utc
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 
-from project.models.db.player import Player
+from project.models.db.player import TeamPlayer
 from project.models.db.shared import BaseModelORM
 from project.utils.id_types import ClubId, PlayerId, TeamCategoryId, TeamId, TournamentId
 
@@ -41,7 +41,7 @@ class TeamWithPlayers(BaseModel):
     category: str | None = None
     category_color: str | None = None
     wins: int = 0
-    players: list[Player] = Field(default_factory=list)
+    players: list[TeamPlayer] = Field(default_factory=list)
 
     @property
     def player_ids(self) -> list[PlayerId]:
@@ -49,14 +49,16 @@ class TeamWithPlayers(BaseModel):
 
     @field_validator("players", mode="before")
     @classmethod
-    def handle_players(cls, values: list[Player] | str) -> list[Player]:  # type: ignore[misc]
+    def handle_players(cls, values: list[TeamPlayer] | str | list[dict] | None) -> list:  # type: ignore[misc]
+        if values is None:
+            return []
         if isinstance(values, str):
             values_json = json.loads(values)
             if values_json == [None]:
                 return []
-            return values_json
+            return [row for row in values_json if row is not None]
 
-        return values
+        return [row for row in values if row is not None]
 
     @field_validator("club_ids", mode="before")
     @classmethod

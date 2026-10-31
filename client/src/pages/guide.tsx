@@ -14,7 +14,7 @@ const GUIDES = [
     cta: "Log in as an organizer",
     steps: [
       "Create an account and start a tournament.",
-      "Import players from Excel, or add them by hand. Teams are built from those players.",
+      "Import players from Excel first (that sets the columns). After that you can add players by hand. Teams are built from those players.",
       "Create a division: a name, how long a match runs, and the margin between blocks.",
       "Generate brackets. KenManage separates players who share a club, and keeps players you mark as biased apart.",
       "Assign division blocks to courts. Each block’s length comes from the match time and the margin.",

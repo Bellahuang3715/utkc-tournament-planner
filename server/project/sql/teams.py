@@ -120,12 +120,31 @@ async def get_teams_with_members(
                     ELSE ARRAY[teams.club_id]
                 END
             ) AS club_ids,
-            to_json(array_agg(p.*)) AS players
+            COALESCE(
+                (
+                    SELECT json_agg(
+                        json_build_object(
+                            'id', p.id,
+                            'tournament_id', p.tournament_id,
+                            'name', p.name,
+                            'club_id', p.club_id,
+                            'code', p.code,
+                            'created', p.created,
+                            'wins', p.wins,
+                            'data', p.data,
+                            'position', pt.position
+                        )
+                        ORDER BY p.name
+                    )
+                    FROM players_x_teams pt
+                    JOIN players p ON p.id = pt.player_id
+                    WHERE pt.team_id = teams.id
+                ),
+                '[]'::json
+            ) AS players
         FROM teams
         LEFT JOIN clubs c ON c.id = teams.club_id
         LEFT JOIN teams_category tc ON tc.id = teams.category_id
-        LEFT JOIN players_x_teams pt on pt.team_id = teams.id
-        LEFT JOIN players p on pt.player_id = p.id
         WHERE teams.tournament_id = :tournament_id
         {team_id_filter}
         GROUP BY teams.id

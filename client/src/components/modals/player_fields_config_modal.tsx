@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
+  Alert,
   Modal,
   Button,
   Checkbox,
@@ -14,7 +15,7 @@ import {
   Paper,
   useMantineTheme,
 } from "@mantine/core";
-import { IconX, IconPlus } from "@tabler/icons-react";
+import { IconInfoCircle, IconPlus, IconX } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next/pages";
 import {
   PlayerFieldTypes,
@@ -170,13 +171,17 @@ export default function PlayerFieldsConfigModal({
       size="lg"
       title={t("configure_template", "Manage Fields")}
     >
-      {/* instruction */}
-      <Text size="sm" color={theme.colors.blue[7]} mb="lg">
+      <Alert
+        variant="light"
+        color="blue"
+        icon={<IconInfoCircle size={16} />}
+        mb="lg"
+      >
         {t(
           "configure_instr",
-          "Name and club are always included. Add any other columns, then choose how each one is filtered."
+          "Name and club are always included. Add any other columns, then choose how each one is filtered.",
         )}
-      </Text>
+      </Alert>
       <Flex mb="md" gap="xs">
         <TextInput
           placeholder={t("add_field_placeholder", "Add a field, such as Rank")}
@@ -195,12 +200,17 @@ export default function PlayerFieldsConfigModal({
         </Button>
       </Flex>
       {fields.length === 0 && (
-        <Text size="sm" c="dimmed" mb="md">
+        <Alert
+          variant="light"
+          color="gray"
+          icon={<IconInfoCircle size={16} />}
+          mb="md"
+        >
           {t(
             "no_extra_fields",
-            "No extra columns yet. Add a field here, or import a spreadsheet and its headers will become the columns."
+            "No extra columns yet. Add a field here, or import a spreadsheet and its headers will become the columns.",
           )}
-        </Text>
+        </Alert>
       )}
       {/* Header labels */}
       <Paper

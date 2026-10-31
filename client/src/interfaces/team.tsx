@@ -1,3 +1,5 @@
+import type { Player } from "./player";
+
 export interface TeamInterface {
   id: number;
   code: string;
@@ -10,6 +12,8 @@ export interface TeamInterface {
   category: string;
   /** Hex color from teams_category; used for category chip. */
   category_color?: string | null;
+  /** Roster from players_x_teams join. */
+  players?: Player[];
   created: string;
   wins: number;
 }

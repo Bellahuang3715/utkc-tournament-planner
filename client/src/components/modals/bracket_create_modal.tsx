@@ -18,6 +18,7 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from "@mantine/form";
 import BuildIcon from "@mui/icons-material/Build";
+import { IconInfoCircle } from "@tabler/icons-react";
 import { useRouter } from "next/router";
 import { useTranslation } from "next-i18next/pages";
 
@@ -374,7 +375,11 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
           {/* Step 2: Player Bias (optional) */}
           <Stepper.Step label={t("player_bias", "Strong Player Bias")}>
             <Stack gap="sm">
-              <Alert variant="light">
+              <Alert
+                variant="light"
+                color="blue"
+                icon={<IconInfoCircle size={16} />}
+              >
                 <Text size="sm">
                   {t(
                     "player_bias_note",
@@ -435,13 +440,17 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
           {/* Step 2: Bracket size combination */}
           <Stepper.Step label={t("bracket_layout", "Bracket Layout")}>
             <Stack gap="md">
-              <Text size="sm" c="dimmed">
+              <Alert
+                variant="light"
+                color="blue"
+                icon={<IconInfoCircle size={16} />}
+              >
                 {t(
                   "bracket_layout_description",
                   "Choose how to split {{count}} players into brackets. Sizes are kept roughly equal.",
-                  { count: selectedCount }
+                  { count: selectedCount },
                 )}
-              </Text>
+              </Alert>
               <Select
                 label={t("bracket_sizes", "Bracket size combination")}
                 data={[
@@ -757,12 +766,16 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
 
           <Stepper.Step label={t("strong_teams", "Strong teams")}>
             <Stack gap="md">
-              <Text c="dimmed" size="sm">
+              <Alert
+                variant="light"
+                color="blue"
+                icon={<IconInfoCircle size={16} />}
+              >
                 {t(
                   "strong_teams_hint",
-                  "Optionally mark stronger teams so they are spread across brackets and get bye priority."
+                  "Optionally mark stronger teams so they are spread across brackets and get bye priority.",
                 )}
-              </Text>
+              </Alert>
               <ScrollArea.Autosize mah={220}>
                 <Stack gap="xs">
                   {selectedRows.map((row) => {
@@ -791,13 +804,17 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
 
           <Stepper.Step label={t("bracket_layout", "Bracket Layout")}>
             <Stack gap="md">
-              <Text size="sm" c="dimmed">
+              <Alert
+                variant="light"
+                color="blue"
+                icon={<IconInfoCircle size={16} />}
+              >
                 {t(
                   "bracket_layout_description_teams",
                   "Choose how to split {{count}} teams into brackets. Sizes are kept roughly equal.",
-                  { count: selectedCount }
+                  { count: selectedCount },
                 )}
-              </Text>
+              </Alert>
               <Select
                 label={t("bracket_sizes", "Bracket size combination")}
                 data={[

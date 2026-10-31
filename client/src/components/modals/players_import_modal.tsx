@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
+  Alert,
   Button,
   FileButton,
   Select,
@@ -16,41 +17,34 @@ import {
   Divider,
   Modal,
 } from "@mantine/core";
-import { IconX, IconUpload } from "@tabler/icons-react";
-import { showNotification } from "@mantine/notifications";
+import {
+  IconAlertCircle,
+  IconCircleCheck,
+  IconInfoCircle,
+  IconUpload,
+  IconX,
+} from "@tabler/icons-react";
 import { useTranslation } from "next-i18next/pages";
 import ExcelJS from "exceljs";
 
-import { getClubs, getPlayerFields, getTeamCategories } from "../../services/adapter";
+import { getClubs, getPlayerFields } from "../../services/adapter";
 import ClubModal from "./club_modal";
 import { Club } from "../../interfaces/club";
-import type { TeamCategoryInterface } from "../../interfaces/team_category";
 import { getTournamentIdFromRouter } from "../utils/util";
 import type { FieldInsertable } from "../../interfaces/player_fields";
-import { createTeam } from "../../services/team";
-import { resolveClubIdByName } from "../../utils/clubs";
 
 export interface PlayersUpload {
   file: File;
   clubName: string;
-  clubAbbrev: string;
   sheet: string;
   headerRow: number;
   dataRow: number;
-  teamCount: number;
   playerCount?: number;
 }
 
 interface PlayersImportModalProps {
   onImportAll: (uploads: PlayersUpload[]) => Promise<boolean>;
   onDirtyChange?: (dirty: boolean) => void;
-}
-
-const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-function teamName(abbrev: string, idx: number) {
-  const letter = letters[idx] ?? `${idx + 1}`; // after Z -> 27, 28...
-  return `${abbrev} ${letter}`;
 }
 
 // ExcelJS cell -> displayed text (handles formulas)
@@ -151,7 +145,6 @@ export default function PlayersImportModal({
   const isErrorClubs = !!swrClubs.error;
 
   const { tournamentData } = getTournamentIdFromRouter();
-  const swrCats = getTeamCategories(tournamentData.id);
   const swrPlayerFields = getPlayerFields(tournamentData.id);
   const playerFields: FieldInsertable[] = swrPlayerFields.data?.fields ?? [];
   const hasDefinedFields = playerFields.length > 0;
@@ -188,7 +181,6 @@ export default function PlayersImportModal({
 
   const [uploads, setUploads] = useState<PlayersUpload[]>([]);
   const [clubModalOpen, setClubModalOpen] = useState(false);
-  const [teamCount, setTeamCount] = useState<number | "">("");
   const [detectedPlayers, setDetectedPlayers] = useState<number | null>(null);
   const [duplicateFile, setDuplicateFile] = useState<File | null>(null);
   const [duplicateKind, setDuplicateKind] = useState<"added" | "imported" | null>(
@@ -200,7 +192,6 @@ export default function PlayersImportModal({
       uploads.length > 0 ||
       clubFile != null ||
       clubName != null ||
-      teamCount !== "" ||
       headerRow !== 1 ||
       dataRow !== 1;
     onDirtyChange?.(dirty);
@@ -208,7 +199,6 @@ export default function PlayersImportModal({
     uploads.length,
     clubFile,
     clubName,
-    teamCount,
     headerRow,
     dataRow,
     onDirtyChange,
@@ -265,12 +255,6 @@ export default function PlayersImportModal({
     const added = Array.from(c).filter((x) => !b.has(x));
     return { missing, added };
   };
-
-  const clubByName = useMemo(() => {
-    const m = new Map<string, Club>();
-    clubs.forEach((c) => m.set(c.name, c));
-    return m;
-  }, [clubs]);
 
   const parseHeaders = (
     wb: ExcelJS.Workbook | null,
@@ -364,8 +348,6 @@ export default function PlayersImportModal({
       countPlayersUntilEmptyName(workbook, selectedSheet, headerRow, dataRow),
     );
   }, [workbook, selectedSheet, headerRow, dataRow]);
-  const selectedClub = clubName ? clubByName.get(clubName) : null;
-
   // UI guards
   const canAdd =
     !!clubFile &&
@@ -374,9 +356,6 @@ export default function PlayersImportModal({
     dataRow >= 1 &&
     dataRow >= headerRow + 1 &&
     !!clubName &&
-    !!selectedClub?.abbreviation &&
-    typeof teamCount === "number" &&
-    teamCount >= 0 &&
     currentHeaders.length > 0 &&
     headersOk;
 
@@ -389,20 +368,14 @@ export default function PlayersImportModal({
       setBaselineHeaders(currentHeaders);
     }
 
-    const selectedClub = clubByName.get(clubName!);
-    const abbrev = selectedClub?.abbreviation?.trim();
-    if (!abbrev || typeof teamCount !== "number") return;
-
     setUploads((u) => [
       ...u,
       {
         file: clubFile!,
         clubName: clubName!,
-        clubAbbrev: abbrev,
         sheet: selectedSheet,
         headerRow,
         dataRow,
-        teamCount,
         playerCount: detectedPlayers ?? undefined,
       },
     ]);
@@ -411,7 +384,6 @@ export default function PlayersImportModal({
     preferredSheetRef.current = selectedSheet;
     setClubFile(null);
     setClubName(null);
-    setTeamCount("");
     setSheetNames([]);
     setWorkbook(null);
     setCurrentHeaders([]);
@@ -448,7 +420,11 @@ export default function PlayersImportModal({
         size="sm"
       >
         <Stack gap="lg">
-          <Text size="sm" lh={1.6}>
+          <Alert
+            variant="light"
+            color="orange"
+            icon={<IconAlertCircle size={16} />}
+          >
             {duplicateKind === "added"
               ? t(
                   "duplicate_excel_added",
@@ -458,7 +434,7 @@ export default function PlayersImportModal({
                   "duplicate_excel_imported",
                   "A file with the same name has already been imported for this tournament.",
                 )}
-          </Text>
+          </Alert>
           <Paper withBorder radius="md" p="sm">
             <Text size="sm" fw={600} lh={1.5} style={{ wordBreak: "break-word" }}>
               {duplicateFile?.name}
@@ -595,25 +571,6 @@ export default function PlayersImportModal({
             />
           )}
 
-          <NumberInput
-            label={t("team_count", "How many teams is this club sending?")}
-            required
-            value={teamCount}
-            onChange={(v) => {
-              if (v === "" || v == null) {
-                setTeamCount("");
-                return;
-              }
-              if (typeof v === "number") setTeamCount(Math.max(0, v));
-            }}
-            disabled={!clubName}
-            allowNegative={false}
-            allowDecimal={false}
-            min={0}
-            placeholder={t("team_count_placeholder", "Enter a number")}
-            w="100%"
-          />
-
           <Button onClick={handleAdd} disabled={!canAdd}>
             {t("add_club", "Add")}
           </Button>
@@ -648,22 +605,30 @@ export default function PlayersImportModal({
               </Group>
 
               {!hasNameHeader(currentHeaders) && (
-                <Text c="red" size="sm">
+                <Alert
+                  variant="light"
+                  color="red"
+                  icon={<IconAlertCircle size={16} />}
+                >
                   {t(
                     "missing_name_header_msg",
                     'You must include at least one Name field (e.g. "Name", "First Name", "Last Name").',
                   )}
-                </Text>
+                </Alert>
               )}
 
               {/* Guidance depends on whether fields already exist */}
               {!hasDefinedFields ? (
-                <Text size="xs" c="dimmed">
+                <Alert
+                  variant="light"
+                  color="blue"
+                  icon={<IconInfoCircle size={16} />}
+                >
                   {t(
                     "headers_template_note",
                     "These headers will be used as the template for all subsequent files.",
                   )}
-                </Text>
+                </Alert>
               ) : (
                 (() => {
                   // Compare detected vs expected (from existing player fields)
@@ -675,47 +640,57 @@ export default function PlayersImportModal({
                   // If everything matches, show success note
                   if (missing.length === 0 && added.length === 0) {
                     return (
-                      <Text size="sm" c="teal">
+                      <Alert
+                        variant="light"
+                        color="teal"
+                        icon={<IconCircleCheck size={16} />}
+                      >
                         {t(
                           "headers_match_expected",
                           "Detected headers match the expected player fields for this tournament.",
                         )}
-                      </Text>
+                      </Alert>
                     );
                   }
 
                   // Otherwise, show a compact diff
                   return (
-                    <Stack gap={4}>
-                      <Text size="sm" c="red">
-                        {t(
-                          "headers_mismatch_expected",
-                          "Headers don’t match the expected player fields for this tournament.",
-                        )}
-                      </Text>
-                      {missing.length > 0 && (
-                        <Text size="xs">
-                          <strong>
-                            {t("missing_headers", "Missing headers:")}
-                          </strong>{" "}
-                          {missing.join(", ")}
+                    <Alert
+                      variant="light"
+                      color="red"
+                      icon={<IconAlertCircle size={16} />}
+                    >
+                      <Stack gap={4}>
+                        <Text size="sm">
+                          {t(
+                            "headers_mismatch_expected",
+                            "Headers don’t match the expected player fields for this tournament.",
+                          )}
                         </Text>
-                      )}
-                      {added.length > 0 && (
-                        <Text size="xs">
-                          <strong>
-                            {t("new_headers", "Contains new headers:")}
-                          </strong>{" "}
-                          {added.join(", ")}
-                        </Text>
-                      )}
-                      <Text size="xs" c="dimmed">
-                        {t(
-                          "expected_headers_hint",
-                          "Expected headers come from this tournament’s player fields. This file stays blocked until they match. Change the fields while there are no players, or fix the spreadsheet.",
+                        {missing.length > 0 && (
+                          <Text size="xs">
+                            <strong>
+                              {t("missing_headers", "Missing headers:")}
+                            </strong>{" "}
+                            {missing.join(", ")}
+                          </Text>
                         )}
-                      </Text>
-                    </Stack>
+                        {added.length > 0 && (
+                          <Text size="xs">
+                            <strong>
+                              {t("new_headers", "Contains new headers:")}
+                            </strong>{" "}
+                            {added.join(", ")}
+                          </Text>
+                        )}
+                        <Text size="xs">
+                          {t(
+                            "expected_headers_hint",
+                            "Expected headers come from this tournament’s player fields. This file stays blocked until they match. Change the fields while there are no players, or fix the spreadsheet.",
+                          )}
+                        </Text>
+                      </Stack>
+                    </Alert>
                   );
                 })()
               )}
@@ -737,8 +712,7 @@ export default function PlayersImportModal({
                     </Text>
                     <Text size="xs" c="dimmed">
                       {t("players_count_label", "Players")}:{" "}
-                      {u.playerCount ?? "—"} | {t("teams_count_label", "Teams")}
-                      : {u.teamCount}
+                      {u.playerCount ?? "—"}
                     </Text>
                   </Stack>
                   <ActionIcon
@@ -761,40 +735,8 @@ export default function PlayersImportModal({
           color="green"
           disabled={uploads.length === 0}
           onClick={async () => {
-            const cats = swrCats.data?.data ?? [];
-            const defaultCatId =
-              cats.find(
-                (c: TeamCategoryInterface) =>
-                  c.name.toLowerCase() === "mixed",
-              )?.id ?? cats[0]?.id;
-            if (defaultCatId == null) {
-              showNotification({
-                color: "red",
-                title: t("error", "Error"),
-                message: t(
-                  "team_categories_required",
-                  "Add team categories for this tournament first.",
-                ),
-              });
-              return;
-            }
             const imported = await onImportAll(uploads);
             if (!imported) return;
-
-            for (const u of uploads) {
-              const clubName = u.clubName || u.clubAbbrev || "";
-              for (let i = 0; i < u.teamCount; i++) {
-                const name = teamName(u.clubAbbrev, i);
-                await createTeam(
-                  tournamentData.id,
-                  name,
-                  [],
-                  [resolveClubIdByName(clubs, clubName, 2)],
-                  defaultCatId,
-                );
-              }
-            }
-
             rememberImportedFileNames(uploads.map((upload) => upload.file.name));
           }}
         >

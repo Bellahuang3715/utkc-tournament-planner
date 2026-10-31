@@ -17,7 +17,7 @@ const QUESTIONS = [
   },
   {
     q: "Can I import players from Excel?",
-    a: "Yes. Organizers can import a player roster from a spreadsheet, or add players one at a time. Teams are built from players already in the tournament.",
+    a: "Yes. Organizers import a roster from a spreadsheet first—that sets the player columns. After that, they can add players one at a time. Teams are built from players already in the tournament.",
   },
   {
     q: "Can a tournament have individuals and teams?",

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
+  Alert,
   Modal,
   Button,
   Checkbox,
@@ -9,11 +10,10 @@ import {
   Select,
   Stack,
   Group,
-  Text,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { showNotification } from "@mantine/notifications";
-import { IconUser, IconUsers } from "@tabler/icons-react";
+import { IconAlertCircle, IconUser, IconUsers } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next/pages";
 import { SWRResponse } from "swr";
 import ExcelJS from "exceljs";
@@ -170,7 +170,10 @@ function SinglePlayerTab({
           withAsterisk
           label={t("club_label", "Club")}
           placeholder={t("club_name_input_placeholder")}
-          data={clubs.map((c) => ({ value: String(c.id), label: c.name }))}
+          data={clubs.map((c) => ({
+            value: String(c.id),
+            label: `${c.name} (${c.abbreviation})`,
+          }))}
           searchable
           {...form.getInputProps("club_id")}
         />
@@ -448,7 +451,7 @@ export default function PlayerCreateModal({
       <Modal
         opened={opened}
         onClose={requestClose}
-        closeOnClickOutside={!importing}
+        closeOnClickOutside={false}
         title={
           allowSingle
             ? t("create_player_modal_title")
@@ -512,12 +515,16 @@ export default function PlayerCreateModal({
         size="sm"
       >
         <Stack gap="lg">
-          <Text size="sm" lh={1.6}>
+          <Alert
+            variant="light"
+            color="orange"
+            icon={<IconAlertCircle size={16} />}
+          >
             {t(
               "leave_import_message",
               "Are you sure you want to leave? You will lose your progress.",
             )}
-          </Text>
+          </Alert>
           <Group justify="flex-end" gap="sm">
             <Button variant="default" onClick={() => setConfirmLeave(false)}>
               {t("stay_button", "Stay")}
@@ -552,6 +559,7 @@ export function PlayerEditModal({
       <Modal
         opened={opened}
         onClose={() => setOpened(false)}
+        closeOnClickOutside={false}
         title={t("create_player_modal_title")}
         size="lg"
         centered

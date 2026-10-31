@@ -120,6 +120,7 @@ export default function AddNewTeamModal({
     <Modal
       opened={opened}
       onClose={handleClose}
+      closeOnClickOutside={false}
       title={
         blockCreate
           ? t("no_players_title", "No players yet")
@@ -157,7 +158,10 @@ export default function AddNewTeamModal({
         <Select
           label={t("club_header", "Club")}
           placeholder={t("club_select_placeholder", "Select club")}
-          data={clubs.map((c) => ({ value: String(c.id), label: c.name }))}
+          data={clubs.map((c) => ({
+            value: String(c.id),
+            label: `${c.name} (${c.abbreviation})`,
+          }))}
           searchable
           value={clubId || null}
           onChange={(v) => setClubId(v ?? "")}

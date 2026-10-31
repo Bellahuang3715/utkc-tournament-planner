@@ -10,6 +10,7 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
+import { IconInfoCircle } from "@tabler/icons-react";
 import { showNotification } from "@mantine/notifications";
 import { useTranslation } from "next-i18next/pages";
 import { mutate } from "swr";
@@ -358,7 +359,11 @@ export default function DivisionTimingModal({
             </Stack>
           </ScrollArea.Autosize>
           {confirm.overlaps ? (
-            <Alert color="yellow">
+            <Alert
+              variant="light"
+              color="yellow"
+              icon={<IconInfoCircle size={16} />}
+            >
               <Stack gap="xs">
                 <Text size="sm">
                   {t(
@@ -377,12 +382,12 @@ export default function DivisionTimingModal({
               </Stack>
             </Alert>
           ) : (
-            <Text size="sm" c="dimmed">
+            <Alert variant="light" color="blue" icon={<IconInfoCircle size={16} />}>
               {t(
                 "timing_keep_starts",
                 "Start times stay where they are. Update block lengths to match the new estimate, or keep the blocks you already placed.",
               )}
-            </Text>
+            </Alert>
           )}
           <Group justify="flex-end" wrap="wrap">
             <Button variant="default" onClick={() => setConfirm(null)} disabled={saving}>

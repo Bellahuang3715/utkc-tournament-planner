@@ -59,11 +59,29 @@ export default function TeamsTable({
     useKeysAsHeaders: true,
   });
 
+  const formatPosition = (position?: string | null) => {
+    if (!position) return null;
+    return position.charAt(0) + position.slice(1).toLowerCase();
+  };
+
+  const memberLabel = (player: NonNullable<TeamInterface["players"]>[number]) => {
+    const name = player?.name?.trim();
+    if (!name) return null;
+    const position = formatPosition(player.position);
+    return position ? `${name} (${position})` : name;
+  };
+
+  const memberLabels = (team: TeamInterface) =>
+    (team.players ?? [])
+      .map(memberLabel)
+      .filter((label): label is string => Boolean(label));
+
   const handleExportAll = () => {
     const rows = teams.map((team) => ({
       id: team.id,
       code: team.code,
       club: team.club,
+      members: memberLabels(team).join(", "),
       category: team.category,
       created: team.created,
       wins: team.wins,
@@ -125,14 +143,27 @@ export default function TeamsTable({
         Cell: ({ cell }) => cell.getValue<string | null>() || "—",
       },
       {
-        accessorKey: "members",
+        id: "members",
         header: t("members_table_header", "Members"),
         enableSorting: false,
         filterVariant: "text",
-        Cell: ({ cell }) => {
-          const value = cell.getValue<unknown>();
-          if (value == null || value === "") return "—";
-          return String(value);
+        accessorFn: (row) => memberLabels(row).join(" "),
+        Cell: ({ row }) => {
+          const players = row.original.players ?? [];
+          if (!players.length) return "—";
+          return (
+            <Stack gap={2}>
+              {players.map((player) => {
+                const label = memberLabel(player);
+                if (!label) return null;
+                return (
+                  <Text key={player.id} size="sm" lh={1.35}>
+                    {label}
+                  </Text>
+                );
+              })}
+            </Stack>
+          );
         },
       },
       {

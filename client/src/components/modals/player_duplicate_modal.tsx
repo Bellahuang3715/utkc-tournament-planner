@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Badge,
   Button,
   Checkbox,
@@ -11,6 +12,7 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
+import { IconAlertTriangle, IconInfoCircle } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next/pages";
 
 import { FieldInsertable } from "../../interfaces/player_fields";
@@ -118,74 +120,71 @@ export default function PlayerDuplicateModal({
     setChecked(initial);
   }, [groups]);
 
+  const groupCount = groups?.length ?? 0;
+
   return (
     <Modal
       opened={groups != null}
       onClose={onCancel}
       closeOnClickOutside={false}
-      title={t("duplicate_players_title", "Same name and club")}
+      title={t(
+        "duplicate_players_title",
+        "Duplicate players detected",
+      )}
       centered
       size="lg"
     >
       <Stack gap="md">
-        <Text size="sm" lh={1.6}>
+        <Alert
+          variant="light"
+          color="orange"
+          icon={<IconAlertTriangle size={18} />}
+          title={
+            context === "import"
+              ? t(
+                  "duplicate_players_heading",
+                  "Same name and club found in this import",
+                )
+              : t(
+                  "duplicate_player_single_heading",
+                  "Same name and club already in this tournament",
+                )
+          }
+        >
           {context === "import"
             ? t(
                 "duplicate_players_intro",
-                "These players share a name and club. A club can have more than one player with the same name, so choose which ones to keep. Other players in this import are not listed here and will still be added.",
+                "A club can have more than one player with the same name. Select every copy you want to keep.",
               )
             : t(
                 "duplicate_player_single_intro",
-                "This name and club is already in the tournament. A club can have more than one player with the same name. The saved player stays, and you can add this one too.",
+                "A club can have more than one player with the same name. The saved player stays, and you can add this one too.",
               )}
-        </Text>
+        </Alert>
         <ScrollArea.Autosize mah={480} type="auto" offsetScrollbars>
           <Stack gap="lg">
             {groups?.map((group, index) => (
               <Stack key={group.key} gap="sm">
                 {index > 0 && <Divider />}
-                <Group justify="space-between" align="flex-start" wrap="nowrap">
-                  <Stack gap={4}>
-                    <Text fw={600}>
-                      {group.name}
-                      <Text span c="dimmed" fw={400}>
-                        {" "}
-                        · {group.clubName}
+                <Stack gap="xs">
+                  <Group gap="xs" wrap="wrap">
+                    {groupCount > 1 && (
+                      <Text size="sm" c="dimmed">
+                        {t("duplicate_group_of", "{{current}} of {{total}}", {
+                          current: index + 1,
+                          total: groupCount,
+                        })}
                       </Text>
+                    )}
+                  </Group>
+                  <Text fw={700} size="lg">
+                    {group.name}
+                    <Text span c="dimmed" fw={500} size="md">
+                      {" "}
+                      · {group.clubName}
                     </Text>
-                    <Text size="sm" c="dimmed" lh={1.5}>
-                      {group.saved.length > 0
-                        ? group.pending.length > 1
-                          ? t(
-                              "duplicate_players_saved_many_hint",
-                              "Already in this tournament, and this import has more than one match. The saved player stays. Select any new players you also want to add.",
-                            )
-                          : t(
-                              "duplicate_players_saved_hint",
-                              "Already in this tournament. That saved player stays. Select the new player if you also want to add them.",
-                            )
-                        : t(
-                            "duplicate_players_pending_hint",
-                            "Not saved yet. Select every copy you want to keep. You can keep more than one.",
-                          )}
-                    </Text>
-                  </Stack>
-                  {group.pending.length > 1 && (
-                    <Button
-                      variant="subtle"
-                      size="compact-sm"
-                      onClick={() =>
-                        setChecked((current) => {
-                          const next = { ...current };
-                          for (const player of group.pending) next[player.id] = true;
-                          return next;
-                        })
-                      }
-                    >
-                      {t("select_all_players", "Select all")}
-                    </Button>
-                  )}
-                </Group>
+                  </Text>
+                </Stack>
                 {group.saved.map((player) => (
                   <PlayerCard key={player.id} player={player} fields={fields} />
                 ))}

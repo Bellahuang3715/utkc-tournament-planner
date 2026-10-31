@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
+  Alert,
   Modal,
   Tabs,
   Button,
@@ -9,10 +10,10 @@ import {
   Select,
   Checkbox,
   Group,
-  Text,
   ScrollArea,
   MultiSelect,
 } from "@mantine/core";
+import { IconInfoCircle } from "@tabler/icons-react";
 import { useForm } from "@mantine/form";
 import { useTranslation } from "next-i18next/pages";
 import { getClubs, getPlayerFields } from "../../services/adapter";
@@ -216,6 +217,7 @@ export default function AddPlayersToDivisionModal({
     <Modal
       opened={opened}
       onClose={onClose}
+      closeOnClickOutside={false}
       title={t("add_players_to_division", "Add players to division")}
       size="md"
     >
@@ -230,9 +232,16 @@ export default function AddPlayersToDivisionModal({
         <Tabs.Panel value="existing" pt="md">
           <Stack gap="md">
             {availableToAdd.length === 0 ? (
-              <Text size="sm" c="dimmed">
-                {t("no_available_players_to_add", "There are no additional players to add to this division.")}
-              </Text>
+              <Alert
+                variant="light"
+                color="gray"
+                icon={<IconInfoCircle size={16} />}
+              >
+                {t(
+                  "no_available_players_to_add",
+                  "There are no additional players to add to this division.",
+                )}
+              </Alert>
             ) : (
               <>
                 <MultiSelect
@@ -254,9 +263,17 @@ export default function AddPlayersToDivisionModal({
 
         <Tabs.Panel value="new" pt="md">
           {!prefix ? (
-            <Text size="sm" c="dimmed">
-              {t("add_players_no_prefix", "Set a division prefix (e.g. E, F) in division details to auto-assign codes.")}
-            </Text>
+            <Alert
+              variant="light"
+              color="orange"
+              icon={<IconInfoCircle size={16} />}
+              mb="sm"
+            >
+              {t(
+                "add_players_no_prefix",
+                "Set a division prefix (e.g. E, F) in division details to auto-assign codes.",
+              )}
+            </Alert>
           ) : null}
           <form onSubmit={handleAddNew}>
             <Stack gap="sm">
@@ -269,7 +286,10 @@ export default function AddPlayersToDivisionModal({
                 withAsterisk
                 label={t("club_header", "Club")}
                 placeholder={t("club_select_placeholder", "Select club")}
-                data={clubs.map((c) => ({ value: String(c.id), label: c.name }))}
+                data={clubs.map((c) => ({
+                  value: String(c.id),
+                  label: `${c.name} (${c.abbreviation})`,
+                }))}
                 searchable
                 {...form.getInputProps("club_id")}
               />

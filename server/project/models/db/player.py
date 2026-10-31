@@ -28,6 +28,12 @@ class Player(PlayerInsertable):
         return self.id
 
 
+class TeamPlayer(Player):
+    """Player on a team roster; position comes from players_x_teams."""
+
+    position: Optional[str] = None
+
+
 class PlayerBody(BaseModelORM):
     name: str
     club_id: ClubId

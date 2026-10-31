@@ -62,17 +62,14 @@ async def update_team_members(
     player_ids: set[PlayerId],
     positions: dict[PlayerId, str] | None = None,
 ) -> None:
-    [team] = await get_teams_with_members(tournament_id, team_id=team_id)
+    # Confirm the team belongs to this tournament before rewriting membership.
+    await get_teams_with_members(tournament_id, team_id=team_id)
 
-    # Remove old members from the team
+    # Replace membership in full so re-saves do not insert duplicate rows.
     await database.execute(
-        query=players_x_teams.delete().where(
-            (players_x_teams.c.player_id.not_in(player_ids))  # type: ignore[attr-defined]
-            & (players_x_teams.c.team_id == team_id)
-        ),
+        query=players_x_teams.delete().where(players_x_teams.c.team_id == team_id),
     )
 
-    # Add members with optional position
     for player_id in player_ids:
         pos = None
         if positions and player_id in positions:
@@ -113,16 +110,17 @@ async def update_team_by_id(
     )
     await replace_team_clubs(team.id, team_body.resolved_club_ids())
 
-    player_ids_set = set(team_body.player_ids)
-    if player_ids_set:
-        positions_by_id = (
-            {PlayerId(int(k)): v for k, v in (team_body.positions or {}).items()}
-            if team_body.positions
-            else None
-        )
-        await update_team_members(
-            team.id, tournament_id, player_ids_set, positions=positions_by_id
-        )
+    positions_by_id = (
+        {PlayerId(int(k)): v for k, v in (team_body.positions or {}).items()}
+        if team_body.positions
+        else None
+    )
+    await update_team_members(
+        team.id,
+        tournament_id,
+        set(team_body.player_ids),
+        positions=positions_by_id,
+    )
 
     return SingleTeamResponse(
         data=assert_some(await get_team_by_id(team.id, tournament_id))

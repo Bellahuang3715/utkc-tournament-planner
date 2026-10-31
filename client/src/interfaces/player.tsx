@@ -11,6 +11,8 @@ export interface Player {
   created: string;
   wins: number;
   data: Record<string, any>;
+  /** Roster position when this player is returned on a team (e.g. SENPO). */
+  position?: string | null;
 }
 
 export interface PlayerBody {
