@@ -109,3 +109,10 @@ export const SCORE_STATUS_COLOR: Record<ScoreStatus, string> = {
   in_progress: "yellow",
   completed: "green",
 };
+
+/** Left-rail accent for participant score cards (CSS color values). */
+export const SCORE_STATUS_ACCENT: Record<ScoreStatus, string> = {
+  not_started: "var(--mantine-color-gray-5)",
+  in_progress: "var(--mantine-color-yellow-6)",
+  completed: "var(--mantine-color-green-6)",
+};

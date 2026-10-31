@@ -103,7 +103,7 @@ export default function ParticipantSchedulePage() {
 
   return (
     <ParticipantTournamentLayout>
-      <Stack gap="lg">
+      <Stack gap="md">
         <ParticipantPageTitle
           title="Schedule"
           subtitle="Court timetable for the day."
@@ -118,6 +118,7 @@ export default function ParticipantSchedulePage() {
         {!loading && hasSchedule && (
           <CourtTimetable
             readOnly
+            compact
             courts={courts}
             placements={placements}
             config={config}

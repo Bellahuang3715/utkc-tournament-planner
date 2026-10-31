@@ -112,6 +112,8 @@ export type CourtTimetableProps = {
   scheduleDate: Date;
   /** Hide drag, resize, and court-editing controls. */
   readOnly?: boolean;
+  /** Denser layout for participant / mobile viewing. */
+  compact?: boolean;
   onPlacementsChange?: (next: SchedulePlacement[] | ((prev: SchedulePlacement[]) => SchedulePlacement[])) => void;
   onRemovePlacement?: (id: string) => void;
   /** External palette drag (set by sidebar on pointer down). */
@@ -158,6 +160,7 @@ export default function CourtTimetable({
   config,
   scheduleDate,
   readOnly = false,
+  compact = false,
   onPlacementsChange = () => {},
   onRemovePlacement = () => {},
   paletteDrag = null,
@@ -166,6 +169,14 @@ export default function CourtTimetable({
   onDeleteCourt,
   onMoveCourt,
 }: CourtTimetableProps) {
+  const pxPerMin = compact ? PX_PER_MIN * 0.62 : PX_PER_MIN;
+  const timeGutter = compact ? 52 : TIME_GUTTER;
+  const courtMinWidth = compact ? 104 : COURT_MIN_WIDTH;
+  const axisPad = compact ? 10 : AXIS_PAD;
+  const minBlockHeight = compact ? 14 : 18;
+  const headerTextSize = compact ? 'xs' : 'sm';
+  const blockPadX = compact ? 4 : 6;
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const gridBodyRef = useRef<HTMLDivElement>(null);
   const courtColRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -196,8 +207,8 @@ export default function CourtTimetable({
     [scheduleDate, config.endTime]
   );
   const totalMins = Math.max(30, minutesBetween(windowStart, windowEnd));
-  const contentHeight = Number.isFinite(totalMins) ? totalMins * PX_PER_MIN : 30 * PX_PER_MIN;
-  const gridHeight = contentHeight + AXIS_PAD * 2;
+  const contentHeight = Number.isFinite(totalMins) ? totalMins * pxPerMin : 30 * pxPerMin;
+  const gridHeight = contentHeight + axisPad * 2;
 
   const hourMarks = useMemo(
     () => halfHourMarksBetween(scheduleDate, config.startTime, config.endTime),
@@ -230,10 +241,10 @@ export default function CourtTimetable({
       if (!body) return null;
       const rect = body.getBoundingClientRect();
       const yInGrid = clientY - rect.top;
-      const mins = (yInGrid - AXIS_PAD) / PX_PER_MIN;
+      const mins = (yInGrid - axisPad) / pxPerMin;
       return Math.min(Math.max(mins, 0), totalMins);
     },
-    [totalMins]
+    [totalMins, axisPad, pxPerMin]
   );
 
   const clientToCourtId = useCallback(
@@ -557,8 +568,8 @@ export default function CourtTimetable({
   };
 
   const blockStyle = (start: Date, durationMins: number) => {
-    const top = AXIS_PAD + minutesBetween(windowStart, start) * PX_PER_MIN;
-    const height = Math.max(durationMins * PX_PER_MIN, 18);
+    const top = axisPad + minutesBetween(windowStart, start) * pxPerMin;
+    const height = Math.max(durationMins * pxPerMin, minBlockHeight);
     return { top, height };
   };
 
@@ -577,7 +588,7 @@ export default function CourtTimetable({
       <Box
         style={{
           display: 'grid',
-          gridTemplateColumns: `${TIME_GUTTER}px repeat(${courts.length}, minmax(${COURT_MIN_WIDTH}px, 1fr))`,
+          gridTemplateColumns: `${timeGutter}px repeat(${courts.length}, minmax(${courtMinWidth}px, 1fr))`,
           borderBottom: '1px solid var(--mantine-color-default-border)',
           background: 'var(--mantine-color-default-hover)',
           position: 'sticky',
@@ -589,15 +600,15 @@ export default function CourtTimetable({
         {courts.map((c, index) => (
           <Box
             key={c.id}
-            px={6}
-            py={6}
+            px={compact ? 4 : 6}
+            py={compact ? 4 : 6}
             style={{
               borderRight: '1px solid var(--mantine-color-default-border)',
               minWidth: 0,
             }}
           >
             {readOnly ? (
-              <Text size="sm" fw={700} truncate ta="center" py={4}>
+              <Text size={headerTextSize} fw={700} truncate ta="center" py={compact ? 2 : 4}>
                 {c.name}
               </Text>
             ) : (
@@ -612,7 +623,7 @@ export default function CourtTimetable({
               >
                 <IconChevronLeft size={14} />
               </ActionIcon>
-              <Text size="sm" fw={700} truncate style={{ flex: 1, textAlign: 'center' }}>
+              <Text size={headerTextSize} fw={700} truncate style={{ flex: 1, textAlign: 'center' }}>
                 {c.name}
               </Text>
               <Group gap={0} wrap="nowrap">
@@ -658,7 +669,7 @@ export default function CourtTimetable({
       <Box
         ref={scrollRef}
         style={{
-          maxHeight: 560,
+          maxHeight: compact ? 640 : 560,
           overflow: 'auto',
         }}
       >
@@ -666,7 +677,7 @@ export default function CourtTimetable({
           ref={gridBodyRef}
           style={{
             display: 'grid',
-            gridTemplateColumns: `${TIME_GUTTER}px repeat(${courts.length}, minmax(${COURT_MIN_WIDTH}px, 1fr))`,
+            gridTemplateColumns: `${timeGutter}px repeat(${courts.length}, minmax(${courtMinWidth}px, 1fr))`,
             gridTemplateRows: `${gridHeight}px`,
             width: '100%',
             height: gridHeight,
@@ -685,7 +696,7 @@ export default function CourtTimetable({
             }}
           >
             {axisMarks.map((mark) => {
-              const top = AXIS_PAD + minutesBetween(windowStart, mark) * PX_PER_MIN;
+              const top = axisPad + minutesBetween(windowStart, mark) * pxPerMin;
               const isEnd = mark.getTime() === windowEnd.getTime();
               return (
                 <Text
@@ -695,8 +706,9 @@ export default function CourtTimetable({
                   style={{
                     position: 'absolute',
                     top: isEnd ? top - 12 : top - 8,
-                    right: 8,
+                    right: compact ? 4 : 8,
                     lineHeight: 1,
+                    fontSize: compact ? 10 : undefined,
                   }}
                 >
                   {formatTimeLabelForAxis(mark)}
@@ -721,8 +733,8 @@ export default function CourtTimetable({
                 borderRight: '1px solid var(--mantine-color-default-border)',
                 backgroundImage:
                   'linear-gradient(to bottom, transparent calc(100% - 1px), var(--mantine-color-default-border) calc(100% - 1px))',
-                backgroundSize: `100% ${30 * PX_PER_MIN}px`,
-                backgroundPosition: `0 ${AXIS_PAD}px`,
+                backgroundSize: `100% ${30 * pxPerMin}px`,
+                backgroundPosition: `0 ${axisPad}px`,
                 backgroundRepeat: 'repeat-y',
                 cursor: readOnly ? 'default' : paletteDrag ? 'copy' : 'crosshair',
               }}
@@ -741,7 +753,7 @@ export default function CourtTimetable({
             >
               {/* Hour lines overlay */}
               {axisMarks.map((mark) => {
-                const top = AXIS_PAD + minutesBetween(windowStart, mark) * PX_PER_MIN;
+                const top = axisPad + minutesBetween(windowStart, mark) * pxPerMin;
                 const isHour = mark.getMinutes() === 0;
                 const isEnd = mark.getTime() === windowEnd.getTime();
                 return (
@@ -828,8 +840,8 @@ export default function CourtTimetable({
                     }}
                   >
                     <Box
-                      px={6}
-                      pt={4}
+                      px={blockPadX}
+                      pt={compact ? 2 : 4}
                       style={{
                         flex: 1,
                         minHeight: 0,
@@ -839,7 +851,12 @@ export default function CourtTimetable({
                       }}
                     >
                       <Box style={{ display: 'flex', justifyContent: 'space-between', gap: 4 }}>
-                        <Text size="xs" fw={700} lineClamp={2} style={{ lineHeight: 1.2 }}>
+                        <Text
+                          size="xs"
+                          fw={700}
+                          lineClamp={2}
+                          style={{ lineHeight: 1.15, fontSize: compact ? 10 : undefined }}
+                        >
                           {p.label}
                         </Text>
                         {!readOnly && (
@@ -867,7 +884,7 @@ export default function CourtTimetable({
                         </button>
                         )}
                       </Box>
-                      <Text size="xs" style={{ opacity: 0.9 }}>
+                      <Text size="xs" style={{ opacity: 0.9, fontSize: compact ? 9 : undefined }}>
                         {p.durationMins} mins
                       </Text>
                     </Box>

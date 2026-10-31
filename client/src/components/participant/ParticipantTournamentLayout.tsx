@@ -2,28 +2,13 @@ import {
   Alert,
   Anchor,
   AppShell,
-  Burger,
-  Center,
   Container,
-  Divider,
-  Group,
   Stack,
   Text,
-  Title,
   Tooltip,
   UnstyledButton,
 } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
-import {
-  Icon,
-  IconCalendar,
-  IconHome,
-  IconList,
-  IconScoreboard,
-  IconSearch,
-  IconTrophy,
-  IconUsers,
-} from '@tabler/icons-react';
+import { Icon, IconCalendar, IconHome, IconList } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React, { ReactNode, useMemo } from 'react';
@@ -31,22 +16,24 @@ import React, { ReactNode, useMemo } from 'react';
 import { PageHeader } from '../layout/page_header';
 import { TournamentPublic } from '../../interfaces/tournament';
 import { getPublicTournamentByEndpoint } from '../../services/adapter';
-import linkClasses from '../navbar/_main_links.module.css';
-import headerClasses from '../../pages/_layout.module.css';
 import { responseIsValid } from '../utils/util';
+import classes from './participant_layout.module.css';
+
+type NavItem = {
+  href: string;
+  label: string;
+  shortLabel: string;
+  icon: Icon;
+};
 
 /**
- * Participant shell — same AppShell chrome as the organizer layout
- * (header + left icon rail / mobile burger nav).
+ * Participant shell — bottom tabs for Home / Schedule / Brackets.
+ * Other sections are reached from Home.
  */
-const NAV: { href: string; label: string; icon: Icon }[] = [
-  { href: '', label: 'Home', icon: IconHome },
-  { href: '/matches', label: 'Find matches', icon: IconSearch },
-  { href: '/participants', label: 'Players', icon: IconUsers },
-  { href: '/schedule', label: 'Schedule', icon: IconCalendar },
-  { href: '/brackets', label: 'Brackets', icon: IconList },
-  { href: '/scores', label: 'Scores', icon: IconScoreboard },
-  { href: '/results', label: 'Results', icon: IconTrophy },
+const NAV: NavItem[] = [
+  { href: '', label: 'Home', shortLabel: 'Home', icon: IconHome },
+  { href: '/schedule', label: 'Schedule', shortLabel: 'Schedule', icon: IconCalendar },
+  { href: '/brackets', label: 'Brackets', shortLabel: 'Brackets', icon: IconList },
 ];
 
 function previewQuery(preview: string | string[] | undefined): string {
@@ -67,52 +54,6 @@ export function useParticipantTournamentSlug() {
 /** @deprecated use useParticipantTournamentSlug */
 export const usePublicTournamentSlug = useParticipantTournamentSlug;
 
-function ParticipantNavLink({
-  href,
-  label,
-  icon: NavIcon,
-  active,
-  onNavigate,
-}: {
-  href: string;
-  label: string;
-  icon: Icon;
-  active: boolean;
-  onNavigate?: () => void;
-}) {
-  return (
-    <>
-      <Tooltip position="right" label={label} transitionProps={{ duration: 0 }}>
-        <UnstyledButton
-          visibleFrom="sm"
-          component={Link}
-          href={href}
-          className={linkClasses.link}
-          data-active={active || undefined}
-          onClick={onNavigate}
-        >
-          <NavIcon stroke={1.5} />
-        </UnstyledButton>
-      </Tooltip>
-      <UnstyledButton
-        hiddenFrom="sm"
-        component={Link}
-        href={href}
-        className={linkClasses.mobileLink}
-        style={{ width: '100%' }}
-        data-active={active || undefined}
-        onClick={onNavigate}
-      >
-        <Group className={linkClasses.mobileLinkGroup}>
-          <NavIcon stroke={1.5} />
-          <p style={{ marginLeft: '0.5rem' }}>{label}</p>
-        </Group>
-        <Divider />
-      </UnstyledButton>
-    </>
-  );
-}
-
 export default function ParticipantTournamentLayout({
   children,
   title,
@@ -121,7 +62,6 @@ export default function ParticipantTournamentLayout({
   title?: string;
 }) {
   const router = useRouter();
-  const [opened, { toggle, close }] = useDisclosure();
   const { slug, preview, previewQs } = useParticipantTournamentSlug();
   const swr = getPublicTournamentByEndpoint(slug || null, preview);
   const tournament: TournamentPublic | null = responseIsValid(swr)
@@ -130,6 +70,7 @@ export default function ParticipantTournamentLayout({
 
   const base = `/t/${slug}`;
   const path = router.asPath.split('?')[0].replace(/\/+$/, '') || base;
+  const tournamentName = tournament?.name ?? title ?? 'Tournament';
 
   const errorStatus = (swr.error as any)?.response?.status;
   const isForbidden = errorStatus === 403;
@@ -141,7 +82,9 @@ export default function ParticipantTournamentLayout({
         const href = `${base}${item.href}${previewQs}`;
         const activePath = `${base}${item.href}`.replace(/\/+$/, '') || base;
         const active =
-          path === activePath || (item.href === '' && path === base);
+          path === activePath ||
+          (item.href !== '' && path.startsWith(`${activePath}/`)) ||
+          (item.href === '' && path === base);
         return { ...item, href, active };
       }),
     [base, path, previewQs]
@@ -149,70 +92,61 @@ export default function ParticipantTournamentLayout({
 
   return (
     <AppShell
-      header={{ height: 60 }}
+      className={classes.shell}
+      header={{ height: 56 }}
       navbar={{
         width: 80,
         breakpoint: 'sm',
-        collapsed: { mobile: !opened },
+        collapsed: { mobile: true },
       }}
-      padding="md"
+      padding={{ base: 'sm', sm: 'md' }}
+      classNames={{ main: classes.main }}
     >
       <AppShell.Header>
-        <Container className={headerClasses.inner} fluid>
-          <Center>
-            <Burger
-              opened={opened}
-              onClick={toggle}
-              hiddenFrom="sm"
-              size="sm"
-              mr="xs"
-              aria-label="Open navigation"
-            />
-            <Center mr="1rem">
-              <UnstyledButton component={Link} href={`${base}${previewQs}`}>
-                <Group>
-                  <Title style={{ height: '38px', marginBottom: '0.4rem' }}>
-                    Bracket
-                  </Title>
-                </Group>
-              </UnstyledButton>
-            </Center>
-            <Stack visibleFrom="md" gap={0} mt="0.1rem" justify="center">
-              <Text size="xs" c="dimmed" lh={1.1}>
-                Participant View
-              </Text>
-              <h2 style={{ margin: 0, lineHeight: 1.2 }}>
-                / {tournament?.name ?? title ?? 'Tournament'}
-              </h2>
-            </Stack>
-          </Center>
-          <Stack hiddenFrom="md" gap={0} align="flex-end" style={{ minWidth: 0 }}>
-            <Text size="xs" c="dimmed" lh={1.1}>
-              Participant View
+        <Container className={classes.headerInner} fluid px="md">
+          <UnstyledButton
+            component={Link}
+            href={`${base}${previewQs}`}
+            className={classes.brand}
+            aria-label="Tournament home"
+          >
+            <Text className={classes.brandTitle}>Bracket</Text>
+          </UnstyledButton>
+          <div className={classes.tournamentMeta}>
+            <Text className={classes.viewLabel}>Participant</Text>
+            <Text className={classes.tournamentName} title={tournamentName}>
+              {tournamentName}
             </Text>
-            <Text size="sm" fw={600} lineClamp={1} maw={160}>
-              {tournament?.name ?? title ?? 'Tournament'}
-            </Text>
-          </Stack>
+          </div>
         </Container>
       </AppShell.Header>
 
-      <AppShell.Navbar p="md">
+      <AppShell.Navbar p="md" className={classes.sideNav} visibleFrom="sm">
         <AppShell.Section grow>
-          <Center hiddenFrom="sm">
-            <h2>Participant</h2>
-          </Center>
-          <Divider hiddenFrom="sm" />
-          {links.map((item) => (
-            <ParticipantNavLink
-              key={item.href}
-              href={item.href}
-              label={item.label}
-              icon={item.icon}
-              active={item.active}
-              onNavigate={close}
-            />
-          ))}
+          <Stack gap={4} align="center">
+            {links.map((item) => {
+              const NavIcon = item.icon;
+              return (
+                <Tooltip
+                  key={item.href}
+                  position="right"
+                  label={item.label}
+                  transitionProps={{ duration: 0 }}
+                >
+                  <UnstyledButton
+                    component={Link}
+                    href={item.href}
+                    className={classes.railLink}
+                    data-active={item.active || undefined}
+                    aria-label={item.label}
+                    aria-current={item.active ? 'page' : undefined}
+                  >
+                    <NavIcon stroke={1.5} />
+                  </UnstyledButton>
+                </Tooltip>
+              );
+            })}
+          </Stack>
         </AppShell.Section>
       </AppShell.Navbar>
 
@@ -239,6 +173,26 @@ export default function ParticipantTournamentLayout({
         )}
         {!isMissing && !isForbidden && children}
       </AppShell.Main>
+
+      <nav className={classes.bottomNav} aria-label="Tournament sections">
+        {links.map((item) => {
+          const NavIcon = item.icon;
+          return (
+            <UnstyledButton
+              key={item.href}
+              component={Link}
+              href={item.href}
+              className={classes.tab}
+              data-active={item.active || undefined}
+              aria-label={item.label}
+              aria-current={item.active ? 'page' : undefined}
+            >
+              <NavIcon className={classes.tabIcon} stroke={item.active ? 2 : 1.6} />
+              <span className={classes.tabLabel}>{item.shortLabel}</span>
+            </UnstyledButton>
+          );
+        })}
+      </nav>
     </AppShell>
   );
 }

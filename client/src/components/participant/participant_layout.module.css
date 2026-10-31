@@ -1,0 +1,179 @@
+.shell {
+  --participant-bottom-nav-height: 4.35rem;
+}
+
+.headerInner {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.brand {
+  flex-shrink: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.brandTitle {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.tournamentMeta {
+  min-width: 0;
+  flex: 1;
+  text-align: right;
+}
+
+.tournamentName {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewLabel {
+  font-size: 0.7rem;
+  line-height: 1.1;
+  color: var(--mantine-color-dimmed);
+  letter-spacing: 0.02em;
+}
+
+.main {
+  padding-bottom: calc(
+    var(--participant-bottom-nav-height) + env(safe-area-inset-bottom, 0px) +
+      var(--mantine-spacing-sm)
+  ) !important;
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    /* Body type stays under top-bar scale (~0.95–1.15rem). */
+    font-size: 0.8125rem;
+  }
+
+  @media (min-width: $mantine-breakpoint-sm) {
+    padding-bottom: var(--mantine-spacing-md) !important;
+  }
+}
+
+.sideNav {
+  display: none;
+
+  @media (min-width: $mantine-breakpoint-sm) {
+    display: block;
+  }
+}
+
+.bottomNav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  gap: 0.15rem;
+  min-height: var(--participant-bottom-nav-height);
+  padding: 0.4rem 0.35rem calc(0.4rem + env(safe-area-inset-bottom, 0px));
+  background: light-dark(
+    color-mix(in srgb, var(--mantine-color-body) 94%, transparent),
+    color-mix(in srgb, var(--mantine-color-dark-7) 94%, transparent)
+  );
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  box-shadow: 0 -6px 24px light-dark(rgb(0 0 0 / 0.05), rgb(0 0 0 / 0.3));
+
+  @media (min-width: $mantine-breakpoint-sm) {
+    display: none;
+  }
+}
+
+.tab {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 3.35rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.22rem;
+  padding: 0.3rem 0.2rem;
+  border-radius: 12px;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-1));
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition:
+    color 120ms ease,
+    background-color 120ms ease;
+
+  &:active {
+    background-color: light-dark(
+      var(--mantine-color-gray-1),
+      var(--mantine-color-dark-5)
+    );
+  }
+
+  &[data-active] {
+    color: var(--mantine-color-blue-filled);
+    background-color: light-dark(
+      var(--mantine-color-blue-0),
+      color-mix(in srgb, var(--mantine-color-blue-9) 35%, transparent)
+    );
+  }
+}
+
+.tabIcon {
+  width: 1.4rem;
+  height: 1.4rem;
+  flex-shrink: 0;
+}
+
+.tabLabel {
+  margin: 0;
+  max-width: 100%;
+  font-size: 0.68rem;
+  font-weight: 650;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.railLink {
+  width: rem(50px);
+  height: rem(50px);
+  border-radius: var(--mantine-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+
+  &:hover {
+    background-color: light-dark(
+      var(--mantine-color-gray-0),
+      var(--mantine-color-dark-5)
+    );
+  }
+
+  &[data-active] {
+    &,
+    &:hover {
+      background-color: var(--mantine-color-blue-light);
+      color: var(--mantine-color-blue-light-color);
+    }
+  }
+}

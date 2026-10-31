@@ -1,6 +1,7 @@
-import { Group, SimpleGrid, Stack, Text, UnstyledButton } from '@mantine/core';
+import { Anchor, Group, SimpleGrid, Stack, Text, UnstyledButton } from '@mantine/core';
 import {
   IconCalendar,
+  IconInfoCircle,
   IconList,
   IconScoreboard,
   IconSearch,
@@ -15,6 +16,8 @@ import ParticipantTournamentLayout, {
   useParticipantTournamentSlug,
 } from '../../../components/participant/ParticipantTournamentLayout';
 import { ParticipantPageTitle } from '../../../components/participant/ParticipantUi';
+import uiClasses from '../../../components/participant/participant_ui.module.css';
+import { GITHUB_ISSUES_URL } from '../../../components/marketing/fixtures';
 
 const SHORTCUTS = [
   { href: '/matches', label: 'Find my matches', desc: 'Search by name or code', icon: IconSearch },
@@ -23,6 +26,12 @@ const SHORTCUTS = [
   { href: '/brackets', label: 'Brackets', desc: 'Groups and seeding', icon: IconList },
   { href: '/scores', label: 'Scores', desc: 'Live match scores', icon: IconScoreboard },
   { href: '/results', label: 'Results', desc: 'Final placements', icon: IconTrophy },
+  {
+    href: '/about',
+    label: 'About KenManage',
+    desc: 'What this software is',
+    icon: IconInfoCircle,
+  },
 ] as const;
 
 export default function ParticipantTournamentHomePage() {
@@ -30,12 +39,8 @@ export default function ParticipantTournamentHomePage() {
 
   return (
     <ParticipantTournamentLayout>
-      <Stack gap="lg">
-        <ParticipantPageTitle
-          title="Home"
-          subtitle="Find matches, the schedule, scores, and results."
-        />
-        <SimpleGrid cols={1} spacing="sm">
+      <Stack gap="md">
+        <SimpleGrid cols={1} spacing="xs">
           {SHORTCUTS.map((item) => {
             const Icon = item.icon;
             return (
@@ -43,29 +48,33 @@ export default function ParticipantTournamentHomePage() {
                 key={item.href}
                 component={Link}
                 href={`/t/${slug}${item.href}${previewQs}`}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  borderRadius: 14,
-                  padding: '14px 16px',
-                  border: '1px solid var(--mantine-color-default-border)',
-                  background: 'var(--mantine-color-body)',
-                  textAlign: 'left',
-                }}
+                className={uiClasses.shortcut}
               >
-                <Group wrap="nowrap" gap="md" align="flex-start">
-                  <Icon size={24} stroke={1.5} style={{ flexShrink: 0, marginTop: 2 }} />
+                <Group wrap="nowrap" gap="sm" align="flex-start">
+                  <Icon className={uiClasses.shortcutIcon} stroke={1.5} />
                   <div style={{ minWidth: 0 }}>
-                    <Text fw={700}>{item.label}</Text>
-                    <Text size="sm" c="dimmed">
-                      {item.desc}
-                    </Text>
+                    <Text className={uiClasses.shortcutLabel}>{item.label}</Text>
+                    <Text className={uiClasses.shortcutDesc}>{item.desc}</Text>
                   </div>
                 </Group>
               </UnstyledButton>
             );
           })}
         </SimpleGrid>
+
+        <Text size="xs" c="dimmed" ta="center">
+          Spot a problem?{' '}
+          <Anchor
+            href={GITHUB_ISSUES_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            size="xs"
+            c="dimmed"
+            underline="always"
+          >
+            Report a bug
+          </Anchor>
+        </Text>
       </Stack>
     </ParticipantTournamentLayout>
   );

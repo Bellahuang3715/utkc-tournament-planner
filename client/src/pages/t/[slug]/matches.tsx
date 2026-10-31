@@ -11,6 +11,7 @@ import {
   ParticipantPageTitle,
   ParticipantSearchInput,
 } from '../../../components/participant/ParticipantUi';
+import uiClasses from '../../../components/participant/participant_ui.module.css';
 import { responseIsValid } from '../../../components/utils/util';
 import { getPublicMatchDirectory } from '../../../services/adapter';
 
@@ -61,7 +62,7 @@ export default function ParticipantFindMatchesPage() {
 
   return (
     <ParticipantTournamentLayout>
-      <Stack gap="lg">
+      <Stack gap="md">
         <ParticipantPageTitle
           title="Find matches"
           subtitle="Search by name or player code to see division and group."
@@ -84,42 +85,38 @@ export default function ParticipantFindMatchesPage() {
           <ParticipantEmpty>No players match “{query.trim()}”.</ParticipantEmpty>
         )}
 
-        <Stack gap="sm">
+        <Stack gap="xs">
           {hits.map((entry) => (
             <div
               key={`${entry.player_id}-${entry.division_id ?? 'none'}-${entry.bracket_id ?? 'none'}`}
-              style={{
-                borderRadius: 14,
-                padding: 16,
-                border: '1px solid var(--mantine-color-default-border)',
-              }}
+              className={uiClasses.resultCard}
             >
-              <Stack gap={6}>
-                <Text size="sm">
+              <Stack gap={4}>
+                <Text size="xs">
                   <Text span c="dimmed">
                     Name:{' '}
                   </Text>
                   {entry.name}
                 </Text>
-                <Text size="sm">
+                <Text size="xs">
                   <Text span c="dimmed">
                     ID:{' '}
                   </Text>
                   {entry.code || '—'}
                 </Text>
-                <Text size="sm">
+                <Text size="xs">
                   <Text span c="dimmed">
                     Club:{' '}
                   </Text>
                   {entry.club || '—'}
                 </Text>
-                <Text size="sm">
+                <Text size="xs">
                   <Text span c="dimmed">
                     Division:{' '}
                   </Text>
                   {formatDivisionGroup(entry)}
                 </Text>
-                <Text size="sm">
+                <Text size="xs">
                   <Text span c="dimmed">
                     Court:{' '}
                   </Text>

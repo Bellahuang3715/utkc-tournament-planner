@@ -10,6 +10,7 @@ import {
   ParticipantLoading,
   ParticipantPageTitle,
   ParticipantSearchInput,
+  participantUiClasses as uiClasses,
 } from '../../../components/participant/ParticipantUi';
 import { responseIsValid } from '../../../components/utils/util';
 import { Player } from '../../../interfaces/player';
@@ -72,7 +73,7 @@ export default function ParticipantPlayersPage() {
 
   return (
     <ParticipantTournamentLayout>
-      <Stack gap="lg">
+      <Stack gap="sm">
         <ParticipantPageTitle
           title="Players"
           subtitle="Everyone entered in this tournament, grouped by club."
@@ -94,17 +95,22 @@ export default function ParticipantPlayersPage() {
         )}
 
         {clubs.length > 0 && (
-          <Accordion variant="separated" radius="md" multiple>
+          <Accordion
+            className={uiClasses.accordion}
+            variant="separated"
+            radius="sm"
+            multiple
+          >
             {clubs.map((club) => (
               <Accordion.Item key={club.clubId} value={String(club.clubId)}>
                 <Accordion.Control>
-                  <Group gap="sm" wrap="nowrap" justify="space-between" pr="xs">
+                  <Group gap="xs" wrap="nowrap" justify="space-between" pr={4}>
                     <div style={{ minWidth: 0 }}>
-                      <Text fw={600} truncate>
+                      <Text className={uiClasses.clubName} truncate>
                         {club.name}
                         {club.abbreviation ? ` (${club.abbreviation})` : ''}
                       </Text>
-                      <Text size="xs" c="dimmed">
+                      <Text className={uiClasses.clubMeta}>
                         {club.players.length}{' '}
                         {club.players.length === 1 ? 'player' : 'players'}
                       </Text>
@@ -112,25 +118,25 @@ export default function ParticipantPlayersPage() {
                   </Group>
                 </Accordion.Control>
                 <Accordion.Panel>
-                  <Stack gap={8}>
+                  <Stack gap={6}>
                     {club.players.map((p) => (
                       <Group
                         key={p.id}
                         justify="space-between"
                         wrap="nowrap"
-                        gap="sm"
+                        gap="xs"
                         align="flex-start"
                       >
                         <div style={{ minWidth: 0 }}>
-                          <Text size="sm" fw={600} truncate>
+                          <Text className={uiClasses.playerName} truncate>
                             {p.name}
                           </Text>
-                          <Text size="xs" c="dimmed">
+                          <Text className={uiClasses.playerMeta}>
                             Rank: {playerRank(p)}
                           </Text>
                         </div>
                         {p.code ? (
-                          <Badge variant="light" size="sm">
+                          <Badge variant="light" size="xs">
                             {p.code}
                           </Badge>
                         ) : null}

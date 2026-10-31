@@ -1,0 +1,207 @@
+.pageTitle {
+  font-size: 0.95rem;
+  line-height: 1.25;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  margin: 0;
+
+  @media (min-width: $mantine-breakpoint-sm) {
+    font-size: 1.25rem;
+  }
+}
+
+.pageSubtitle {
+  font-size: 0.7rem;
+  line-height: 1.35;
+  margin: 0;
+  max-width: 36rem;
+
+  @media (min-width: $mantine-breakpoint-sm) {
+    font-size: 0.8125rem;
+  }
+}
+
+.pageHeader {
+  gap: 0.4rem;
+  margin-bottom: 0;
+}
+
+.searchInput {
+  min-height: 2rem;
+  height: 2rem;
+  font-size: 0.75rem;
+
+  @media (min-width: $mantine-breakpoint-sm) {
+    min-height: 2.5rem;
+    height: auto;
+    font-size: 0.875rem;
+  }
+}
+
+.shortcut,
+.sectionCard {
+  display: block;
+  width: 100%;
+  border-radius: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--mantine-color-default-border);
+  background: var(--mantine-color-body);
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+
+  @media (min-width: $mantine-breakpoint-sm) {
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+}
+
+.sectionCardAccent {
+  border-left-width: 3px;
+  border-left-style: solid;
+}
+
+.shortcutLabel,
+.sectionCardLabel {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.25;
+
+  @media (min-width: $mantine-breakpoint-sm) {
+    font-size: 0.875rem;
+  }
+}
+
+.shortcutDesc,
+.sectionCardDesc {
+  font-size: 0.65rem;
+  line-height: 1.3;
+  color: var(--mantine-color-dimmed);
+
+  @media (min-width: $mantine-breakpoint-sm) {
+    font-size: 0.75rem;
+  }
+}
+
+.shortcutIcon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+
+  @media (min-width: $mantine-breakpoint-sm) {
+    width: 1.2rem;
+    height: 1.2rem;
+    margin-top: 2px;
+  }
+}
+
+.resultCard {
+  border-radius: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--mantine-color-default-border);
+
+  @media (min-width: $mantine-breakpoint-sm) {
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid light-dark(var(--mantine-color-blue-2), var(--mantine-color-dark-4));
+  background: light-dark(var(--mantine-color-blue-0), color-mix(in srgb, var(--mantine-color-blue-9) 28%, transparent));
+}
+
+.noticeIcon {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: var(--mantine-color-blue-filled);
+}
+
+.noticeBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.noticeTitle {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.noticeText {
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--mantine-color-dimmed);
+}
+
+.accordion :global(.mantine-Accordion-control) {
+  padding: 0.55rem 0.65rem;
+}
+
+.accordion :global(.mantine-Accordion-label) {
+  padding: 0;
+}
+
+.accordion :global(.mantine-Accordion-panel) {
+  padding: 0 0.65rem 0.55rem;
+}
+
+.accordion :global(.mantine-Accordion-content) {
+  padding: 0.35rem 0 0.15rem;
+}
+
+.accordion :global(.mantine-Accordion-item) {
+  border-radius: 8px;
+}
+
+.clubName {
+  font-size: 0.8125rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.clubMeta {
+  font-size: 0.65rem;
+  line-height: 1.3;
+  color: var(--mantine-color-dimmed);
+}
+
+.playerName {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.playerMeta {
+  font-size: 0.65rem;
+  line-height: 1.3;
+  color: var(--mantine-color-dimmed);
+}
+
+/* Bracket library uses fixed pt geometry — scale the whole table down for phones. */
+.bracketViewport {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.bracketSized {
+  position: relative;
+}
+
+.bracketInner {
+  transform-origin: top left;
+  width: max-content;
+}
