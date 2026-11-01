@@ -931,8 +931,10 @@
 
 .stepPanel {
   position: relative;
-  min-height: 8.5rem;
-  padding: 24px;
+  display: grid;
+  gap: 14px;
+  min-height: 22rem;
+  padding: 22px 22px 28px;
   border-radius: 16px;
   background: var(--card);
   border: 1px solid var(--line);
@@ -966,16 +968,519 @@
 
 .stepDetail {
   margin: 0;
-  font-family: "Syne", "Sora", sans-serif;
+  font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+  max-width: 46ch;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.dayVisual {
+  min-height: 11.5rem;
+}
+
+.dayVisualInner {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-height: 11.5rem;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(160deg, rgba(29, 79, 145, 0.06), transparent 42%),
+    var(--wash);
+}
+
+.dayChip {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--blue);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.daySheets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-right: 96px;
+}
+
+.daySheets span {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--card);
+  border: 1px dashed rgba(29, 79, 145, 0.35);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.dayArrow {
+  color: var(--blue);
+  font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: -0.03em;
-  font-size: clamp(1.35rem, 2.8vw, 1.85rem);
-  max-width: 28ch;
-  line-height: 1.2;
+  line-height: 1;
+  padding-left: 4px;
+  letter-spacing: 0.02em;
+}
+
+.dayTable {
+  display: grid;
+  gap: 4px;
+  max-width: 420px;
+}
+
+.dayTableHead,
+.dayTableRow {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr 0.7fr 0.55fr;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+}
+
+.dayFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 0;
+  padding-right: 96px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.dayFoot span:not(:first-child)::before {
+  content: "·";
+  margin: 0 8px;
+  opacity: 0.5;
+}
+
+.dayTableHead {
+  background: rgba(11, 31, 58, 0.08);
+  color: var(--muted);
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.68rem;
+}
+
+.dayTableRow {
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.dayBracket {
+  display: grid;
+  grid-template-columns: 1fr 24px 1fr;
+  gap: 8px;
+  align-items: center;
+  max-width: 420px;
+  padding-right: 8px;
+}
+
+.dayBracketRound {
+  display: grid;
+  gap: 10px;
+}
+
+.dayMatch {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.dayMatch span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dayMatch i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.dayMatch em {
+  margin-left: auto;
+  font-style: normal;
+  color: var(--accent);
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.dayMatchFinal {
+  min-height: 72px;
+  justify-content: center;
+  color: var(--muted);
+}
+
+.dayBracketLines {
+  position: relative;
+  height: 78px;
+  border-right: 2px solid rgba(29, 79, 145, 0.28);
+}
+
+.dayBracketLines::before,
+.dayBracketLines::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  width: 100%;
+  border-top: 2px solid rgba(29, 79, 145, 0.28);
+}
+
+.dayBracketLines::before {
+  top: 18px;
+}
+
+.dayBracketLines::after {
+  bottom: 18px;
+}
+
+.dayRuleRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dayRuleRow span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.dayRuleRow span[data-tone="neutral"] {
+  background: var(--soft);
+  color: var(--blue);
+}
+
+.dayCourtsWrap {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding-right: 110px;
+}
+
+.dayTimeRail {
+  display: grid;
+  gap: 22px;
+  padding-top: 26px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.dayCourts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dayCourtCol p {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dayCourtBlock {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  margin-bottom: 6px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.dayCourtBlock[data-kind="live"] {
+  background: rgba(196, 30, 58, 0.12);
+  border-color: rgba(196, 30, 58, 0.28);
+  color: var(--accent);
+}
+
+.dayCourtBlock[data-kind="wait"] {
+  background: rgba(29, 79, 145, 0.1);
+  border-color: rgba(29, 79, 145, 0.22);
+  color: var(--blue);
+}
+
+.dayCourtBlock[data-kind="done"] {
+  opacity: 0.55;
+}
+
+.dayScoreLayout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: stretch;
+}
+
+.dayScoreCard {
+  display: grid;
+  gap: 10px;
+  flex: 1 1 240px;
+  max-width: 340px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+
+.dayScoreSide {
+  display: grid;
+  gap: 10px;
+  align-content: space-between;
+  flex: 1 1 140px;
+}
+
+.dayScoreMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.dayScoreRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dayScoreWinner .dayScoreName {
+  color: var(--accent);
+}
+
+.dayScoreName {
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.dayScoreName em {
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.dayMarks {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.dayMarks b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(196, 30, 58, 0.45);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.dayMarks b[data-empty="true"] {
+  border-style: dashed;
+  border-color: var(--line);
+  color: transparent;
+}
+
+.dayMarkPad {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.dayMarkPad span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.dayPhone {
+  width: min(220px, 100%);
+  padding: 12px 12px 14px;
+  border-radius: 18px;
+  background: #0b1f3a;
+  color: #edf3fb;
+  box-shadow: 0 14px 30px rgba(11, 31, 58, 0.22);
+}
+
+.dayPhoneBar {
+  width: 42px;
+  height: 4px;
+  margin: 2px auto 12px;
+  border-radius: 999px;
+  background: rgba(237, 243, 251, 0.28);
+}
+
+.dayPhoneCode {
+  margin: 0 0 10px;
+  text-align: center;
+  font-family: "Syne", "Sora", sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.dayPhoneTabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.dayPhoneTabs span {
+  padding: 5px 0;
+  border-radius: 7px;
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 650;
+  color: rgba(237, 243, 251, 0.62);
+  background: rgba(237, 243, 251, 0.08);
+}
+
+.dayPhoneTabs span[data-active="true"] {
+  color: #0b1f3a;
+  background: #edf3fb;
+}
+
+.dayPhoneRows {
+  display: grid;
+  gap: 6px;
+}
+
+.dayPhoneRows div {
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(237, 243, 251, 0.1);
+}
+
+.dayPhoneRows strong {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.dayPhoneRows span {
+  font-size: 0.7rem;
+  color: rgba(237, 243, 251, 0.72);
+}
+
+.dayPublishRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 14px;
+}
+
+.dayShareStack {
+  display: grid;
+  gap: 8px;
+  min-width: 160px;
+  flex: 1 1 160px;
+}
+
+.dayShareCard {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px 11px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+
+.dayShareCard p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dayShareCard strong {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.dayShareCard span {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 2px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.dayShareCard span[data-tone="neutral"] {
+  background: var(--soft);
+  color: var(--blue);
+}
+
+.dayShareNote {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .stepDetail {
+  .stepDetail,
+  .dayVisual {
     animation: fadeSwap 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 }
@@ -2193,6 +2698,7 @@
   .heroCopy,
   .heroBoardWrap,
   .stepDetail,
+  .dayVisual,
   .stepProgress,
   .hero::after {
     animation: none;

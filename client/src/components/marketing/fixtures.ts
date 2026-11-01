@@ -289,26 +289,33 @@ export const HERO_SLIDES = [
 
 export const DAY_STEPS = [
   {
+    id: "import",
     label: "Import the roster",
     detail: "Skip the multi-club Excel merge — import once, then filter and build divisions.",
   },
   {
+    id: "brackets",
     label: "Draw the brackets",
     detail: "Skip hand-drawn trees — generate with club and bias rules, then tweak and export.",
   },
   {
+    id: "courts",
     label: "Lay out the courts",
     detail: "Skip paper court grids — place blocks so the same division is not double-booked.",
   },
   {
+    id: "score",
     label: "Keep score",
     detail: "Skip poster, binder, and retyping — scorekeepers enter marks; the bracket updates live.",
   },
   {
+    id: "publish",
     label: "Publish the day",
     detail: "Skip “where do I play?” chaos — share a code for schedule, brackets, and scores.",
   },
-];
+] as const;
+
+export type DayStepId = (typeof DAY_STEPS)[number]["id"];
 
 export type ProblemTopic = {
   id: string;

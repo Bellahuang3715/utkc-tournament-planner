@@ -2,6 +2,7 @@ import Link from "next/link";
 import React, { useEffect, useState } from "react";
 
 import {
+  DayStepVisual,
   FeatureStudio,
   HeroBoard,
   ProblemStudio,
@@ -159,6 +160,7 @@ export default function HomePage() {
                 <p key={`${step}-${tick}`} className={classes.stepDetail}>
                   {DAY_STEPS[step].detail}
                 </p>
+                <DayStepVisual key={`visual-${step}-${tick}`} stepId={DAY_STEPS[step].id} />
                 <div
                   key={`progress-${tick}`}
                   className={classes.stepProgress}
