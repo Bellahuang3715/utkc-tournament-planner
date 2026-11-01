@@ -2,7 +2,12 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 
-import { FeatureStudio, HeroBoard, SeedingStudio } from "../components/marketing/demos";
+import {
+  FeatureStudio,
+  HeroBoard,
+  ProblemStudio,
+  SeedingStudio,
+} from "../components/marketing/demos";
 import { BRACKET_URL, DAY_STEPS, GITHUB_URL } from "../components/marketing/fixtures";
 import { Reveal } from "../components/marketing/reveal";
 import { marketingServerProps } from "../components/marketing/server_props";
@@ -27,8 +32,8 @@ const ROLES = [
   },
   {
     title: "Organizer",
-    body: "Plan the tournament and share it.",
-    points: ["Players, teams, and clubs", "Divisions, brackets, and courts", "Codes for everyone else"],
+    body: "Weeks of prep → minutes in the app.",
+    points: ["Import, brackets, and courts", "Codes for scorekeepers and participants", "Export when you still want paper"],
     href: "/login",
     cta: "Log in",
   },
@@ -82,8 +87,8 @@ export default function WelcomePage() {
             <p className={classes.eyebrow}>Kendo tournament software</p>
             <h1 className={`${classes.display} ${classes.brandHero}`}>KenManage</h1>
             <p className={classes.lede}>
-              Plan the day, run the courts, and follow every match — for organizers, scorekeepers,
-              and participants.
+              Cut tournament planning from weeks or months of spreadsheets down to minutes — one
+              place for organizers, scorekeepers, and participants.
             </p>
             <div className={classes.heroActions}>
               <a className={`${classes.btn} ${classes.primary}`} href="#start">
@@ -93,7 +98,10 @@ export default function WelcomePage() {
                 Read the guide
               </Link>
             </div>
-            <p className={classes.fine}>Participants and scorekeepers do not need an account.</p>
+            <p className={classes.fine}>
+              Leave Excel merges, hand-drawn trees, and poster boards behind. Participants and
+              scorekeepers do not need an account.
+            </p>
           </div>
           <div className={classes.heroBoardWrap}>
             <HeroBoard />
@@ -107,31 +115,23 @@ export default function WelcomePage() {
       >
         <div className={classes.wrap}>
           <Reveal>
-            <p className={classes.kicker}>The product</p>
-            <h2 className={classes.display}>Built for kendo tournament days.</h2>
+            <p className={classes.kicker}>Why KenManage</p>
+            <h2 className={classes.display}>Weeks of planning. Minutes in KenManage.</h2>
             <p className={classes.deck}>
-              KenManage runs a tournament end to end — roster, brackets, courts, scores, and the
-              public board participants actually look at.
+              Traditional kendo tournament prep can take weeks or months. KenManage collapses the
+              same work — roster, brackets, courts, scores, and the public board — into minutes.
+              Start with the Summary table; switch to Full when you want every bullet.
             </p>
-            <div className={classes.split}>
-              <div className={classes.splitBlock}>
-                <h3 className={classes.display}>Why it exists</h3>
-                <p>
-                  It started with the University of Toronto Kendo Club&apos;s annual tournament — a
-                  day with hundreds of participants, many courts, and little room for spreadsheet
-                  mistakes.
-                </p>
-              </div>
-              <div className={classes.splitBlock}>
-                <h3 className={classes.display}>How it works</h3>
-                <p>
-                  Automates brackets with club and bias rules, keeps one scorekeeper on a sheet at a
-                  time, and publishes a participant site from a short code. Free under AGPL-3.0 —
-                  grew out of <a href={BRACKET_URL}>Bracket</a>, source on{" "}
-                  <a href={GITHUB_URL}>GitHub</a>.
-                </p>
-              </div>
-            </div>
+            <ProblemStudio />
+            <p className={classes.problemBridge}>
+              Want to feel the seeding rules? Try the interactive draw below. Schedule, scoring, and
+              participant lookup are further down.
+            </p>
+            <p className={classes.whyLine}>
+              Built for real tournament days (including UTKC-scale events) — free under AGPL-3.0,
+              grew out of <a href={BRACKET_URL}>Bracket</a>, source on{" "}
+              <a href={GITHUB_URL}>GitHub</a>.
+            </p>
           </Reveal>
         </div>
       </section>
@@ -140,9 +140,10 @@ export default function WelcomePage() {
         <div className={classes.wrap}>
           <Reveal>
             <p className={classes.kicker}>A tournament day</p>
-            <h2 className={classes.display}>From a roster to a public result.</h2>
+            <h2 className={classes.display}>From a messy merge to a public board.</h2>
             <p className={classes.deck}>
-              Five jobs in order. The board advances on its own — click a step anytime to take over.
+              Five jobs in order. Each step replaces a manual bottleneck. Click anytime to take
+              over.
             </p>
             <div
               className={classes.flow}
@@ -186,7 +187,8 @@ export default function WelcomePage() {
             <p className={classes.kicker}>Try a draw</p>
             <h2 className={classes.display}>Seeding you can see.</h2>
             <p className={classes.deck}>
-              Sample players only. Nothing here is saved, and it is not connected to a tournament.
+              Same-club and strong-player rules — the ones that used to take hours in Excel. Sample
+              players only; nothing is saved.
             </p>
             <SeedingStudio />
           </Reveal>
@@ -197,10 +199,10 @@ export default function WelcomePage() {
         <div className={classes.wrap}>
           <Reveal>
             <p className={classes.kicker}>In the product</p>
-            <h2 className={classes.display}>Pieces of a tournament day.</h2>
+            <h2 className={classes.display}>Courts, scores, and lookup.</h2>
             <p className={classes.deck}>
-              Working samples with made-up players. Switch tabs to try schedule, scoring, and
-              lookup.
+              Working samples with made-up players. Switch tabs to try the pieces participants and
+              scorekeepers actually use.
             </p>
             <FeatureStudio />
           </Reveal>

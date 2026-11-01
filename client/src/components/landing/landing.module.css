@@ -637,6 +637,231 @@
   margin-top: 36px;
 }
 
+.compareBlock {
+  margin-top: 36px;
+}
+
+.compareToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  margin-bottom: 12px;
+}
+
+.compareCaption {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.compareMode {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--wash);
+}
+
+.compareModeBtn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 650;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.compareModeBtn[data-active="true"] {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+.compareTableWrap {
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.compareTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.compareTable thead th {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+  background: var(--wash);
+}
+
+.compareTable thead th:first-child {
+  width: 7.5rem;
+}
+
+.compareTable thead th:nth-child(2),
+.compareTable thead th:nth-child(3) {
+  width: auto;
+}
+
+.compareTable tbody th,
+.compareTable tbody td {
+  padding: 14px 16px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.compareTable tbody tr:last-child th,
+.compareTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.compareTable tbody th {
+  font-weight: 700;
+  color: var(--ink);
+  width: 7.5rem;
+}
+
+.compareTable tbody td {
+  color: var(--muted);
+  background: var(--wash);
+}
+
+.compareAfter {
+  color: var(--ink) !important;
+  background:
+    linear-gradient(145deg, var(--soft), transparent 55%),
+    var(--card) !important;
+}
+
+.compareList {
+  margin: 0;
+  padding-left: 1.05rem;
+  display: grid;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.compareList li {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  padding-right: 2px;
+}
+
+.compareList li::marker {
+  color: var(--accent);
+}
+
+.compareAfter .compareList li::marker {
+  color: var(--blue);
+}
+
+.compareSummary {
+  margin: 0;
+  max-width: none;
+}
+
+@media (max-width: 700px) {
+  .compareTable thead {
+    display: none;
+  }
+
+  .compareTable,
+  .compareTable tbody,
+  .compareTable tr,
+  .compareTable th,
+  .compareTable td {
+    display: block;
+    width: 100% !important;
+  }
+
+  .compareTable tbody tr {
+    padding: 14px 16px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .compareTable tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .compareTable tbody th {
+    padding: 0 0 10px;
+    border-bottom: 0;
+    font-size: 1rem;
+  }
+
+  .compareTable tbody td {
+    padding: 10px 12px;
+    border-bottom: 0;
+    border-radius: 10px;
+    margin-top: 8px;
+  }
+
+  .compareTable tbody td::before {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .compareTable tbody td:not(.compareAfter)::before {
+    content: "Traditional";
+  }
+
+  .compareTable tbody td.compareAfter::before {
+    content: "KenManage";
+    color: var(--blue);
+  }
+}
+
+.problemBridge {
+  margin: 22px 0 0;
+  color: var(--muted);
+  font-size: 0.98rem;
+  max-width: 52ch;
+}
+
+.problemBridge a {
+  color: var(--blue);
+  font-weight: 650;
+}
+
+.whyLine {
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  max-width: 54ch;
+}
+
+.whyLine a {
+  color: var(--blue);
+  font-weight: 650;
+}
+
 .stepList {
   display: grid;
   gap: 4px;
@@ -718,9 +943,9 @@
   font-family: "Syne", "Sora", sans-serif;
   font-weight: 700;
   letter-spacing: -0.03em;
-  font-size: clamp(1.55rem, 3vw, 2.1rem);
-  max-width: 18ch;
-  line-height: 1.15;
+  font-size: clamp(1.35rem, 2.8vw, 1.85rem);
+  max-width: 28ch;
+  line-height: 1.2;
 }
 
 @media (prefers-reduced-motion: no-preference) {

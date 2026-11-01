@@ -288,22 +288,147 @@ export const HERO_SLIDES = [
 export const DAY_STEPS = [
   {
     label: "Import the roster",
-    detail: "Bring in players from a spreadsheet, then build teams from that list.",
+    detail: "Skip the multi-club Excel merge — import once, then filter and build divisions.",
   },
   {
     label: "Draw the brackets",
-    detail: "Create a division and generate groups that keep clubmates and biased players apart.",
+    detail: "Skip hand-drawn trees — generate with club and bias rules, then tweak and export.",
   },
   {
     label: "Lay out the courts",
-    detail: "Place each division on a court. Block length comes from the match time you set.",
+    detail: "Skip paper court grids — place blocks so the same division is not double-booked.",
   },
   {
     label: "Keep score",
-    detail: "Scorekeepers enter results with an access code. The bracket updates as matches finish.",
+    detail: "Skip poster, binder, and retyping — scorekeepers enter marks; the bracket updates live.",
   },
   {
     label: "Publish the day",
-    detail: "Participants open a code and follow their matches, the schedule, and the results.",
+    detail: "Skip “where do I play?” chaos — share a code for schedule, brackets, and scores.",
+  },
+];
+
+export type ProblemTopic = {
+  id: string;
+  label: string;
+  /** One-line summary for the compact table view */
+  beforeSummary: string;
+  afterSummary: string;
+  /** Full bullet list for the detailed table view */
+  before: string[];
+  after: string[];
+};
+
+/** Traditional tournament planning pain vs what KenManage ships today. */
+export const PROBLEM_TOPICS: ProblemTopic[] = [
+  {
+    id: "roster",
+    label: "Roster",
+    beforeSummary: "Per-club Excels merged by hand over days",
+    afterSummary: "Import once into a filterable player table",
+    before: [
+      "Each club fills its own Excel template",
+      "Someone manually merges every sheet into one master table",
+      "Counts, lunches, cost, and payment tracked in yet more spreadsheets",
+    ],
+    after: [
+      "Import Excel into one tournament roster",
+      "Filterable player table with club and custom fields",
+      "No hand-stitched master sheet",
+    ],
+  },
+  {
+    id: "divisions",
+    label: "Divisions & IDs",
+    beforeSummary: "Manual grouping and invented participant codes",
+    afterSummary: "Select players, generate division and codes",
+    before: [
+      "Manually assign players to divisions and invent participant IDs",
+      "Split each division into groups by hand",
+      "Easy to duplicate a player or mis-tag a club",
+    ],
+    after: [
+      "Select players from the table and generate a division",
+      "Optional code prefix assigns player codes automatically",
+      "One roster feeds brackets — no copy-paste ID lists",
+    ],
+  },
+  {
+    id: "seeding",
+    label: "Seeding",
+    beforeSummary: "Hand-drawn Excel trees — hours of careful work",
+    afterSummary: "Generate with club + bias rules in minutes",
+    before: [
+      "Trees drawn by hand in Excel — slow and error-prone",
+      "Hard to keep same-club and strong players far apart",
+      "Risk of bias (especially in your own division) or the same person twice",
+    ],
+    after: [
+      "Generate brackets with club separation and strong-player bias rules",
+      "Swap slots or regenerate when needed",
+      "Export to Excel for print when the draw is final",
+    ],
+  },
+  {
+    id: "schedule",
+    label: "Courts",
+    beforeSummary: "Paper grids and same-division collisions",
+    afterSummary: "Drag blocks onto a court timetable",
+    before: [
+      "Courts planned on paper or another spreadsheet",
+      "Same-division groups often collide — bad for shinpan",
+      "Hard for anyone to see the full day clearly",
+    ],
+    after: [
+      "Drag division blocks onto a court timetable",
+      "Block length from match duration + margin",
+      "Avoid stacking the same division on top of itself",
+    ],
+  },
+  {
+    id: "scores",
+    label: "Scorekeeping",
+    beforeSummary: "Poster + binder + retype into a computer later",
+    afterSummary: "Access code → live scores on the bracket",
+    before: [
+      "Poster for judges + binder copy + later computer entry",
+      "Inconsistent marks and lost paper are common",
+      "History is retyped after the fact",
+    ],
+    after: [
+      "Scorekeepers enter results with an access code",
+      "Bracket updates as matches finish",
+      "One editor per sheet so two people do not overwrite each other",
+    ],
+  },
+  {
+    id: "participants",
+    label: "Participant lookup",
+    beforeSummary: "Booklets and word of mouth for “when / where”",
+    afterSummary: "Public site from a short tournament code",
+    before: [
+      "Match info stuck in booklets, boards, or word of mouth",
+      "Hard to know court, time, and opponent",
+      "Updates do not reach everyone",
+    ],
+    after: [
+      "Share a participant code — no account needed",
+      "Look up by name or player code",
+      "See schedule, brackets, and live scores on the public site",
+    ],
+  },
+  {
+    id: "booklets",
+    label: "Print & publish",
+    beforeSummary: "Design and reprint paper booklets",
+    afterSummary: "Excel export + live published board",
+    before: [
+      "Design, print, and assemble tournament booklets",
+      "Any change means reprints or chaotic announcements",
+    ],
+    after: [
+      "Export brackets to Excel when you still want paper",
+      "Publish the live site so the day stays current",
+    ],
   },
 ];

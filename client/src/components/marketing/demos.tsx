@@ -10,6 +10,7 @@ import {
   HERO_SLIDES,
   LOOKUP,
   PLAYERS,
+  PROBLEM_TOPICS,
   arrangePlayers,
   seedingNote,
   type DemoPlayer,
@@ -524,6 +525,80 @@ export function SeedingStudio() {
         </ul>
       </div>
       <SeedingDemo />
+    </div>
+  );
+}
+
+/** Traditional-vs-KenManage comparison table for the landing page. */
+export function ProblemStudio() {
+  const [mode, setMode] = useState<"summary" | "full">("summary");
+  const full = mode === "full";
+
+  return (
+    <div className={classes.compareBlock}>
+      <div className={classes.compareToolbar}>
+        <p className={classes.compareCaption}>Traditional tournament planning vs KenManage</p>
+        <div className={classes.compareMode} role="group" aria-label="Table detail level">
+          <button
+            type="button"
+            className={classes.compareModeBtn}
+            data-active={mode === "summary" ? "true" : "false"}
+            aria-pressed={mode === "summary"}
+            onClick={() => setMode("summary")}
+          >
+            Summary
+          </button>
+          <button
+            type="button"
+            className={classes.compareModeBtn}
+            data-active={mode === "full" ? "true" : "false"}
+            aria-pressed={mode === "full"}
+            onClick={() => setMode("full")}
+          >
+            Full
+          </button>
+        </div>
+      </div>
+      <div className={classes.compareTableWrap}>
+        <table className={classes.compareTable} data-mode={mode}>
+          <thead>
+            <tr>
+              <th scope="col">Area</th>
+              <th scope="col">Traditional</th>
+              <th scope="col">KenManage</th>
+            </tr>
+          </thead>
+          <tbody>
+            {PROBLEM_TOPICS.map((item) => (
+              <tr key={item.id}>
+                <th scope="row">{item.label}</th>
+                <td>
+                  {full ? (
+                    <ul className={classes.compareList}>
+                      {item.before.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className={classes.compareSummary}>{item.beforeSummary}</p>
+                  )}
+                </td>
+                <td className={classes.compareAfter}>
+                  {full ? (
+                    <ul className={classes.compareList}>
+                      {item.after.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className={classes.compareSummary}>{item.afterSummary}</p>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
