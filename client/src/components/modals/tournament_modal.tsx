@@ -50,7 +50,6 @@ function GeneralTournamentForm({
       location: "",
       description: "",
       dashboard_public: false,
-      players_can_be_in_multiple_teams: true,
       auto_assign_courts: true,
     },
 
@@ -80,7 +79,6 @@ function GeneralTournamentForm({
           values.description,
           toIsoFromPicker(values.start_time),
           values.dashboard_public,
-          values.players_can_be_in_multiple_teams,
           values.auto_assign_courts,
         );
         await swrTournamentsResponse.mutate();

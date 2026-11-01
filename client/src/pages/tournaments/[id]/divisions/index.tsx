@@ -24,7 +24,6 @@ import { useRouter } from "next/router";
 
 import TournamentLayout from "../../_tournament_layout";
 import { getTournamentIdFromRouter } from "../../../../components/utils/util";
-import DivisionTimingModal from "../../../../components/modals/division_timing_modal";
 // BracketExportModal kept for future expanded/collapsed multi-export UI:
 // import BracketExportModal from "../../../../components/modals/bracket_export_modal";
 import DivisionPlayersTable from "../../../../components/tables/division_players";
@@ -60,29 +59,17 @@ import {
 function DivisionTimingLine({
   durationMins,
   marginMins,
-  onEdit,
 }: {
   durationMins: number;
   marginMins: number;
-  onEdit: () => void;
 }) {
   const { t } = useTranslation();
   return (
-    <Group justify="space-between" align="center" wrap="wrap">
-      <Text size="sm" c="dimmed">
-        {durationMins} {t("minutes_short", "min")} {t("match_duration_short", "match")}
-        {" · "}
-        {marginMins} {t("minutes_short", "min")} {t("margin_short", "margin")}
-      </Text>
-      <Button
-        variant="light"
-        size="sm"
-        leftSection={<IconPencil size={16} />}
-        onClick={onEdit}
-      >
-        {t("edit_timing", "Edit timing")}
-      </Button>
-    </Group>
+    <Text size="sm" c="dimmed">
+      {durationMins} {t("minutes_short", "min")} {t("match_duration_short", "match")}
+      {" · "}
+      {marginMins} {t("minutes_short", "min")} {t("margin_short", "margin")}
+    </Text>
   );
 }
 
@@ -137,8 +124,6 @@ export default function BracketsPage() {
 
   // control which accordion item is open (so we can know collapsed/expanded)
   const [openItem, setOpenItem] = useState<string | null>(null);
-
-  const [editingTiming, setEditingTiming] = useState<any | null>(null);
 
   const { id: tournamentId, tournamentData } = getTournamentIdFromRouter();
   const tournamentIdValid = Number.isFinite(tournamentId);
@@ -263,7 +248,7 @@ export default function BracketsPage() {
           title={t("divisions_title", "Divisions")}
           description={t(
             "divisions_page_subtitle",
-            "Open a division to manage its roster, match timing, and bracket trees.",
+            "Open a division to manage its roster and bracket trees.",
           )}
         />
 
@@ -391,7 +376,6 @@ export default function BracketsPage() {
                             <DivisionTimingLine
                               durationMins={group.duration_mins}
                               marginMins={group.margin_mins}
-                              onEdit={() => setEditingTiming(group)}
                             />
                             <DivisionTeamsTable
                               tournamentId={tournamentData.id}
@@ -405,7 +389,6 @@ export default function BracketsPage() {
                             <DivisionTimingLine
                               durationMins={group.duration_mins}
                               marginMins={group.margin_mins}
-                              onEdit={() => setEditingTiming(group)}
                             />
                             <DivisionPlayersTable
                               tournamentId={tournamentData.id}
@@ -476,24 +459,6 @@ export default function BracketsPage() {
           </Accordion>
         )}
 
-        <DivisionTimingModal
-          opened={!!editingTiming}
-          division={
-            editingTiming
-              ? {
-                  id: editingTiming.id,
-                  name: editingTiming.name,
-                  prefix: editingTiming.prefix,
-                  duration_mins: editingTiming.duration_mins,
-                  margin_mins: editingTiming.margin_mins,
-                  division_type: editingTiming.division_type,
-                }
-              : null
-          }
-          tournamentId={tournamentData.id}
-          onClose={() => setEditingTiming(null)}
-          onSaved={() => swrDivisions.mutate()}
-        />
         {/* BracketExportModal (expanded/collapsed multi-select) — re-enable later */}
       </Stack>
     </TournamentLayout>

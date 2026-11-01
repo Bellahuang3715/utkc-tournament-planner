@@ -27,7 +27,6 @@ class TournamentInsertable(BaseModelORM):
     dashboard_preview_token: str | None = None
     scorekeeper_token: str | None = None
     logo_path: str | None = None
-    players_can_be_in_multiple_teams: bool
     auto_assign_courts: bool
     status: TournamentStatus = TournamentStatus.ACTIVE
     creator_id: UserId
@@ -62,7 +61,6 @@ class TournamentUpdateBody(BaseModelORM):
     start_time: datetime_utc
     dashboard_public: bool
     dashboard_endpoint: EmptyStrToNone | str = None
-    players_can_be_in_multiple_teams: bool
     auto_assign_courts: bool
 
 

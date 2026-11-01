@@ -213,7 +213,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
       name: "",
       withPrefix: false,
       prefix: "",
-      durationMinutes: 5,
+      durationMinutes: 3,
       marginMinutes: 1,
       type: "INDIVIDUALS" as DivisionType,
       /** Bracket size combination: "" = use default, or JSON string of number[]. */
@@ -438,105 +438,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
             </Stack>
           </Stepper.Step>
 
-          {/* Step 2: Bracket size combination */}
-          <Stepper.Step label={t("bracket_layout", "Bracket Layout")}>
-            <Stack gap="md">
-              <Alert
-                variant="light"
-                color="blue"
-                icon={<IconInfoCircle size={16} />}
-              >
-                {t(
-                  "bracket_layout_description",
-                  "Choose how to split {{count}} players into brackets. Sizes are kept roughly equal.",
-                  { count: selectedCount },
-                )}
-              </Alert>
-              <Select
-                label={t("bracket_sizes", "Bracket size combination")}
-                data={[
-                  {
-                    value: "",
-                    label: t("bracket_sizes_default", "Default (recommended)"),
-                  },
-                  ...bracketSizeOptions.map((sizes) => ({
-                    value: JSON.stringify(sizes),
-                    label: formatBracketOption(sizes),
-                  })),
-                ]}
-                {...form.getInputProps("bracketSizesKey")}
-                onChange={(value) => {
-                  form.setFieldValue("bracketSizesKey", value ?? "");
-                  form.setFieldValue("bracketSizeOrder", "");
-                }}
-              />
-              {(() => {
-                const key = form.values.bracketSizesKey;
-                if (!key) return null;
-                let combination: number[];
-                try {
-                  const parsed = JSON.parse(key) as unknown;
-                  combination = Array.isArray(parsed) ? parsed : [];
-                } catch {
-                  return null;
-                }
-                if (combination.length === 0) return null;
-                const orderJson = form.values.bracketSizeOrder;
-                let currentOrder: number[] = combination;
-                if (orderJson) {
-                  try {
-                    const o = JSON.parse(orderJson) as unknown;
-                    currentOrder = Array.isArray(o) && o.length === combination.length ? o : combination;
-                  } catch {
-                    /* use combination */
-                  }
-                }
-                const optionsFor = (i: number) =>
-                  availableSizesForGroup(combination, currentOrder.slice(0, i));
-                return (
-                  <Stack gap="xs">
-                    <Text size="sm" fw={500}>
-                      {t("bracket_group_sizes_optional", "Optional: assign size to each bracket group")}
-                    </Text>
-                    {currentOrder.map((size, i) => (
-                      <Group key={i} gap="sm">
-                        <Text size="sm" w={80}>
-                          {t("bracket_group_label", "Group {{n}}", { n: i + 1 })}
-                        </Text>
-                        <Select
-                          size="xs"
-                          style={{ width: 80 }}
-                          data={[...new Set(optionsFor(i))].map((s) => ({ value: String(s), label: String(s) }))}
-                          value={String(size)}
-                          onChange={(v) => {
-                            const s = v ? parseInt(v, 10) : size;
-                            if (Number.isNaN(s)) return;
-                            const newOrder = orderWithGroupSet(combination, currentOrder, i, s);
-                            form.setFieldValue("bracketSizeOrder", JSON.stringify(newOrder));
-                          }}
-                        />
-                      </Group>
-                    ))}
-                  </Stack>
-                );
-              })()}
-              <ModalFooter
-                onCancel={() => {
-                  close();
-                  resetWizard();
-                }}
-                primaryLabel={t("next", "Next")}
-                onPrimary={() => setActive(3)}
-                leftSection={
-                  <Button variant="default" onClick={() => setActive(1)}>
-                    {t("back", "Back")}
-                  </Button>
-                }
-              />
-            </Stack>
-          </Stepper.Step>
-
-          {/* Step 3: Division form */}
+          {/* Step 3: Division form (includes bracket layout) */}
           <Stepper.Step label={t("division", "Division Details")}>
             <form onSubmit={form.onSubmit(handleSubmit)}>
               <Stack gap="md">
@@ -553,7 +455,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
                   {...form.getInputProps("prefix")}
                 />
                 <Checkbox
-                  label={t("use_prefix", "Create prefix to generate player ID")}
+                  label={t("use_prefix", "Generate player ID")}
                   description={t(
                     "prefix_note",
                     "Prefix will be used to generate player code/ID (ex. A01, A02, ...)",
@@ -561,15 +463,111 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
                   {...form.getInputProps("withPrefix", { type: "checkbox" })}
                 />
 
+                <Divider label={t("bracket_layout", "Bracket Layout")} labelPosition="left" />
+
+                <Alert
+                  variant="light"
+                  color="blue"
+                  icon={<IconInfoCircle size={16} />}
+                >
+                  {t(
+                    "bracket_layout_description",
+                    "Choose how to split {{count}} players into brackets. Sizes are kept roughly equal.",
+                    { count: selectedCount },
+                  )}
+                </Alert>
+                <Select
+                  label={t("bracket_sizes", "Bracket size combination")}
+                  data={[
+                    {
+                      value: "",
+                      label: t("bracket_sizes_default", "Default (recommended)"),
+                    },
+                    ...bracketSizeOptions.map((sizes) => ({
+                      value: JSON.stringify(sizes),
+                      label: formatBracketOption(sizes),
+                    })),
+                  ]}
+                  {...form.getInputProps("bracketSizesKey")}
+                  onChange={(value) => {
+                    form.setFieldValue("bracketSizesKey", value ?? "");
+                    form.setFieldValue("bracketSizeOrder", "");
+                  }}
+                />
+                {(() => {
+                  const key = form.values.bracketSizesKey;
+                  if (!key) return null;
+                  let combination: number[];
+                  try {
+                    const parsed = JSON.parse(key) as unknown;
+                    combination = Array.isArray(parsed) ? parsed : [];
+                  } catch {
+                    return null;
+                  }
+                  if (combination.length === 0) return null;
+                  const orderJson = form.values.bracketSizeOrder;
+                  let currentOrder: number[] = combination;
+                  if (orderJson) {
+                    try {
+                      const o = JSON.parse(orderJson) as unknown;
+                      currentOrder = Array.isArray(o) && o.length === combination.length ? o : combination;
+                    } catch {
+                      /* use combination */
+                    }
+                  }
+                  const optionsFor = (i: number) =>
+                    availableSizesForGroup(combination, currentOrder.slice(0, i));
+                  return (
+                    <Stack gap="xs">
+                      <Text size="sm" fw={500}>
+                        {t("bracket_group_sizes_optional", "Optional: assign size to each bracket group")}
+                      </Text>
+                      {currentOrder.map((size, i) => (
+                        <Group key={i} gap="sm">
+                          <Text size="sm" w={80}>
+                            {t("bracket_group_label", "Group {{n}}", { n: i + 1 })}
+                          </Text>
+                          <Select
+                            size="xs"
+                            style={{ width: 80 }}
+                            data={[...new Set(optionsFor(i))].map((s) => ({ value: String(s), label: String(s) }))}
+                            value={String(size)}
+                            onChange={(v) => {
+                              const s = v ? parseInt(v, 10) : size;
+                              if (Number.isNaN(s)) return;
+                              const newOrder = orderWithGroupSet(combination, currentOrder, i, s);
+                              form.setFieldValue("bracketSizeOrder", JSON.stringify(newOrder));
+                            }}
+                          />
+                        </Group>
+                      ))}
+                    </Stack>
+                  );
+                })()}
+
+                <Divider label={t("time_limit", "Time Limit")} labelPosition="left" />
+
+                <Alert
+                  variant="light"
+                  color="blue"
+                  icon={<IconInfoCircle size={16} />}
+                >
+                  {t(
+                    "duration_margin_schedule_note",
+                    "These will be used to create the court schedule.",
+                    { count: selectedCount },
+                  )}
+                </Alert>
+
                 <Group grow>
                   <NumberInput
-                    label={t("duration_minutes", "Duration (minutes)")}
+                    label={t("duration_minutes", "Match duration (minutes)")}
                     min={1}
                     step={1}
                     {...form.getInputProps("durationMinutes")}
                   />
                   <NumberInput
-                    label={t("margin_minutes", "Margin (minutes)")}
+                    label={t("margin_minutes", "Encho (minutes)")}
                     min={0}
                     step={1}
                     {...form.getInputProps("marginMinutes")}
@@ -584,7 +582,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
                   primaryLabel={t("generate", "Generate")}
                   primaryType="submit"
                   leftSection={
-                    <Button variant="default" onClick={() => setActive(2)}>
+                    <Button variant="default" onClick={() => setActive(1)}>
                       {t("back", "Back")}
                     </Button>
                   }
@@ -602,7 +600,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
   );
 }
 
-/** Teams table: Generate Brackets with Selected Teams — 2 steps only (Confirm, Division Details), no Prefix. */
+/** Teams table: Generate Brackets with Selected Teams — Confirm, Strong teams, Division Details (no Prefix). */
 export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
   table,
 }: {
@@ -647,7 +645,7 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
   const form = useForm({
     initialValues: {
       name: "",
-      durationMinutes: 5,
+      durationMinutes: 3,
       marginMinutes: 1,
       bracketSizesKey: "",
       bracketSizeOrder: "",
@@ -825,103 +823,6 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
             </Stack>
           </Stepper.Step>
 
-          <Stepper.Step label={t("bracket_layout", "Bracket Layout")}>
-            <Stack gap="md">
-              <Alert
-                variant="light"
-                color="blue"
-                icon={<IconInfoCircle size={16} />}
-              >
-                {t(
-                  "bracket_layout_description_teams",
-                  "Choose how to split {{count}} teams into brackets. Sizes are kept roughly equal.",
-                  { count: selectedCount },
-                )}
-              </Alert>
-              <Select
-                label={t("bracket_sizes", "Bracket size combination")}
-                data={[
-                  {
-                    value: "",
-                    label: t("bracket_sizes_default", "Default (recommended)"),
-                  },
-                  ...bracketSizeOptions.map((sizes) => ({
-                    value: JSON.stringify(sizes),
-                    label: formatBracketOption(sizes),
-                  })),
-                ]}
-                value={form.values.bracketSizesKey}
-                onChange={(value) => {
-                  form.setFieldValue("bracketSizesKey", value ?? "");
-                  form.setFieldValue("bracketSizeOrder", "");
-                }}
-              />
-              {(() => {
-                const key = form.values.bracketSizesKey;
-                if (!key) return null;
-                let combination: number[];
-                try {
-                  const parsed = JSON.parse(key) as unknown;
-                  combination = Array.isArray(parsed) ? parsed : [];
-                } catch {
-                  return null;
-                }
-                if (combination.length === 0) return null;
-                const orderJson = form.values.bracketSizeOrder;
-                let currentOrder: number[] = combination;
-                if (orderJson) {
-                  try {
-                    const o = JSON.parse(orderJson) as unknown;
-                    currentOrder = Array.isArray(o) && o.length === combination.length ? o : combination;
-                  } catch {
-                    /* use combination */
-                  }
-                }
-                const optionsFor = (i: number) =>
-                  availableSizesForGroup(combination, currentOrder.slice(0, i));
-                return (
-                  <Stack gap="xs">
-                    <Text size="sm" fw={500}>
-                      {t("bracket_group_sizes_optional", "Optional: assign size to each bracket group")}
-                    </Text>
-                    {currentOrder.map((size, i) => (
-                      <Group key={i} gap="sm">
-                        <Text size="sm" w={80}>
-                          {t("bracket_group_label", "Group {{n}}", { n: i + 1 })}
-                        </Text>
-                        <Select
-                          size="xs"
-                          style={{ width: 80 }}
-                          data={[...new Set(optionsFor(i))].map((s) => ({ value: String(s), label: String(s) }))}
-                          value={String(size)}
-                          onChange={(v) => {
-                            const s = v ? parseInt(v, 10) : size;
-                            if (Number.isNaN(s)) return;
-                            const newOrder = orderWithGroupSet(combination, currentOrder, i, s);
-                            form.setFieldValue("bracketSizeOrder", JSON.stringify(newOrder));
-                          }}
-                        />
-                      </Group>
-                    ))}
-                  </Stack>
-                );
-              })()}
-              <ModalFooter
-                onCancel={() => {
-                  close();
-                  resetWizard();
-                }}
-                primaryLabel={t("next", "Next")}
-                onPrimary={() => setActive(3)}
-                leftSection={
-                  <Button variant="default" onClick={() => setActive(1)}>
-                    {t("back", "Back")}
-                  </Button>
-                }
-              />
-            </Stack>
-          </Stepper.Step>
-
           <Stepper.Step label={t("division", "Division Details")}>
             <form onSubmit={form.onSubmit(handleSubmit)}>
               <Stack gap="md">
@@ -931,6 +832,91 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
                   withAsterisk
                   {...form.getInputProps("name")}
                 />
+
+                <Divider label={t("bracket_layout", "Bracket Layout")} labelPosition="left" />
+
+                <Alert
+                  variant="light"
+                  color="blue"
+                  icon={<IconInfoCircle size={16} />}
+                >
+                  {t(
+                    "bracket_layout_description_teams",
+                    "Choose how to split {{count}} teams into brackets. Sizes are kept roughly equal.",
+                    { count: selectedCount },
+                  )}
+                </Alert>
+                <Select
+                  label={t("bracket_sizes", "Bracket size combination")}
+                  data={[
+                    {
+                      value: "",
+                      label: t("bracket_sizes_default", "Default (recommended)"),
+                    },
+                    ...bracketSizeOptions.map((sizes) => ({
+                      value: JSON.stringify(sizes),
+                      label: formatBracketOption(sizes),
+                    })),
+                  ]}
+                  value={form.values.bracketSizesKey}
+                  onChange={(value) => {
+                    form.setFieldValue("bracketSizesKey", value ?? "");
+                    form.setFieldValue("bracketSizeOrder", "");
+                  }}
+                />
+                {(() => {
+                  const key = form.values.bracketSizesKey;
+                  if (!key) return null;
+                  let combination: number[];
+                  try {
+                    const parsed = JSON.parse(key) as unknown;
+                    combination = Array.isArray(parsed) ? parsed : [];
+                  } catch {
+                    return null;
+                  }
+                  if (combination.length === 0) return null;
+                  const orderJson = form.values.bracketSizeOrder;
+                  let currentOrder: number[] = combination;
+                  if (orderJson) {
+                    try {
+                      const o = JSON.parse(orderJson) as unknown;
+                      currentOrder = Array.isArray(o) && o.length === combination.length ? o : combination;
+                    } catch {
+                      /* use combination */
+                    }
+                  }
+                  const optionsFor = (i: number) =>
+                    availableSizesForGroup(combination, currentOrder.slice(0, i));
+                  return (
+                    <Stack gap="xs">
+                      <Text size="sm" fw={500}>
+                        {t("bracket_group_sizes_optional", "Optional: assign size to each bracket group")}
+                      </Text>
+                      {currentOrder.map((size, i) => (
+                        <Group key={i} gap="sm">
+                          <Text size="sm" w={80}>
+                            {t("bracket_group_label", "Group {{n}}", { n: i + 1 })}
+                          </Text>
+                          <Select
+                            size="xs"
+                            style={{ width: 80 }}
+                            data={[...new Set(optionsFor(i))].map((s) => ({ value: String(s), label: String(s) }))}
+                            value={String(size)}
+                            onChange={(v) => {
+                              const s = v ? parseInt(v, 10) : size;
+                              if (Number.isNaN(s)) return;
+                              const newOrder = orderWithGroupSet(combination, currentOrder, i, s);
+                              form.setFieldValue("bracketSizeOrder", JSON.stringify(newOrder));
+                            }}
+                          />
+                        </Group>
+                      ))}
+                    </Stack>
+                  );
+                })()}
+
+                <Divider />
+
                 <Group grow>
                   <NumberInput
                     label={t("duration_minutes", "Duration (minutes)")}
@@ -945,6 +931,13 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
                     {...form.getInputProps("marginMinutes")}
                   />
                 </Group>
+                <Text size="sm" c="dimmed">
+                  {t(
+                    "duration_margin_schedule_note",
+                    "These will be used to create the court schedule and can be modified later in the scheduler.",
+                  )}
+                </Text>
+
                 <ModalFooter
                   onCancel={() => {
                     close();
@@ -953,7 +946,7 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
                   primaryLabel={t("generate", "Generate")}
                   primaryType="submit"
                   leftSection={
-                    <Button variant="default" onClick={() => setActive(2)}>
+                    <Button variant="default" onClick={() => setActive(1)}>
                       {t("back", "Back")}
                     </Button>
                   }

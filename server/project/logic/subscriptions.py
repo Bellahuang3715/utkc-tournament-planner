@@ -65,7 +65,6 @@ async def setup_demo_account(user_id: UserId) -> None:
         start_time=datetime_utc.future(hours=1),
         dashboard_public=False,
         dashboard_endpoint="demo-tournament",
-        players_can_be_in_multiple_teams=False,
         auto_assign_courts=True,
     )
     await sql_create_tournament(

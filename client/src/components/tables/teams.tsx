@@ -67,8 +67,10 @@ export default function TeamsTable({
   const memberLabel = (player: NonNullable<TeamInterface["players"]>[number]) => {
     const name = player?.name?.trim();
     if (!name) return null;
+    const abbrev = player.club_abbreviation?.trim();
+    const withClub = abbrev ? `${name} (${abbrev})` : name;
     const position = formatPosition(player.position);
-    return position ? `${name} (${position})` : name;
+    return position ? `${withClub} - ${position}` : withClub;
   };
 
   const memberLabels = (team: TeamInterface) =>

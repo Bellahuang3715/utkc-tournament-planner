@@ -13,7 +13,6 @@ export async function createTournament(
   description: string,
   start_time: string,
   dashboard_public: boolean,
-  players_can_be_in_multiple_teams: boolean,
   auto_assign_courts: boolean,
 ) {
   try {
@@ -25,7 +24,6 @@ export async function createTournament(
       description,
       start_time,
       dashboard_public,
-      players_can_be_in_multiple_teams,
       auto_assign_courts,
     });
   } catch (error: any) {
@@ -57,7 +55,6 @@ export async function updateTournament(
   name: string,
   dashboard_public: boolean,
   dashboard_endpoint: string,
-  players_can_be_in_multiple_teams: boolean,
   auto_assign_courts: boolean,
   start_time: string,
 ) {
@@ -67,7 +64,6 @@ export async function updateTournament(
       name,
       dashboard_public,
       dashboard_endpoint,
-      players_can_be_in_multiple_teams,
       auto_assign_courts,
       start_time,
     });

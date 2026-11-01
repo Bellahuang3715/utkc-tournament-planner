@@ -14,7 +14,6 @@ export interface Tournament {
   dashboard_endpoint: string | null;
   dashboard_preview_token?: string | null;
   scorekeeper_token?: string | null;
-  players_can_be_in_multiple_teams: boolean;
   auto_assign_courts: boolean;
   status?: TournamentStatus;
   logo_path: string | null;

@@ -124,7 +124,6 @@ async def sql_update_tournament(
             name = :name,
             dashboard_public = :dashboard_public,
             dashboard_endpoint = :dashboard_endpoint,
-            players_can_be_in_multiple_teams = :players_can_be_in_multiple_teams,
             auto_assign_courts = :auto_assign_courts
         WHERE tournaments.id = :tournament_id
         """
@@ -190,7 +189,6 @@ async def sql_create_tournament(
             dashboard_endpoint,
             dashboard_preview_token,
             logo_path,
-            players_can_be_in_multiple_teams,
             auto_assign_courts,
             creator_id
         )
@@ -204,7 +202,6 @@ async def sql_create_tournament(
             :dashboard_endpoint,
             :dashboard_preview_token,
             :logo_path,
-            :players_can_be_in_multiple_teams,
             :auto_assign_courts,
             :creator_id
         )
@@ -221,7 +218,6 @@ async def sql_create_tournament(
         "dashboard_preview_token": dashboard_preview_token,
         # logo is always uploaded separately; default to NULL on create
         "logo_path": None,
-        "players_can_be_in_multiple_teams": tournament.players_can_be_in_multiple_teams,
         "auto_assign_courts": tournament.auto_assign_courts,
         "creator_id": creator_id,
     }

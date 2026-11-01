@@ -66,7 +66,7 @@ export default function CourtModal({
         size={buttonSize}
         style={{ marginRight: 10 }}
         onClick={() => setOpened(true)}
-        leftSection={<GoPlus size={24} />}
+        leftSection={<GoPlus size={buttonSize === 'xs' ? 14 : 24} />}
       >
         {t('add_court_title')}
       </Button>

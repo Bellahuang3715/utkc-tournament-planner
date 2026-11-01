@@ -78,8 +78,6 @@ function GeneralTournamentForm({
       name: tournament.name,
       dashboard_public: tournament.dashboard_public,
       dashboard_endpoint: tournament.dashboard_endpoint,
-      players_can_be_in_multiple_teams:
-        tournament.players_can_be_in_multiple_teams,
       auto_assign_courts: tournament.auto_assign_courts,
     },
 
@@ -100,7 +98,6 @@ function GeneralTournamentForm({
           values.name,
           values.dashboard_public,
           values.dashboard_endpoint ?? "",
-          values.players_can_be_in_multiple_teams,
           values.auto_assign_courts,
           toIsoFromPicker(values.start_time),
         );

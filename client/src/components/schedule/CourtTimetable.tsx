@@ -1,4 +1,4 @@
-import { ActionIcon, Box, Button, ColorSwatch, Group, Menu, Modal, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
+import { ActionIcon, Box, Button, ColorInput, Group, Menu, Modal, Stack, Text, TextInput } from '@mantine/core';
 import { IconChevronLeft, IconChevronRight, IconDots, IconPencil, IconTrash } from '@tabler/icons-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -28,20 +28,49 @@ const COURT_MIN_WIDTH = 148;
 /** Room so the first and last time labels are not clipped by the grid edge. */
 const AXIS_PAD = 16;
 
+/** Light pastels for defaults + ColorInput swatches (same idea as category colors). */
+const BLOCK_SWATCHES = [
+  '#ffc9c9',
+  '#fcc2d7',
+  '#eebefa',
+  '#d0bfff',
+  '#bac8ff',
+  '#a5d8ff',
+  '#99e9f2',
+  '#96f2d7',
+  '#b2f2bb',
+  '#d8f5a2',
+  '#ffec99',
+  '#ffd8a8',
+  '#e9ecef',
+  '#dee2e6',
+];
+
 const COLOR_HEX: Record<string, string> = {
-  pink: '#e64980',
-  violet: '#7950f2',
-  green: '#40c057',
-  blue: '#228be6',
-  red: '#fa5252',
-  grape: '#be4bdb',
-  indigo: '#4c6ef5',
-  cyan: '#15aabf',
-  orange: '#fd7e14',
-  yellow: '#fab005',
-  teal: '#12b886',
-  gray: '#868e96',
+  pink: '#fcc2d7',
+  violet: '#d0bfff',
+  green: '#b2f2bb',
+  blue: '#a5d8ff',
+  red: '#ffc9c9',
+  grape: '#eebefa',
+  indigo: '#bac8ff',
+  cyan: '#99e9f2',
+  orange: '#ffd8a8',
+  yellow: '#ffec99',
+  teal: '#96f2d7',
+  gray: '#e9ecef',
 };
+
+/** Dark text on light fills; white on darker custom picks. */
+export function textColorForBlock(bg: string): string {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(bg.trim());
+  if (!m) return '#212529';
+  const r = parseInt(m[1], 16);
+  const g = parseInt(m[2], 16);
+  const b = parseInt(m[3], 16);
+  const luma = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luma > 0.62 ? '#212529' : '#fff';
+}
 
 export function colorForPlacement(p: SchedulePlacement): string {
   if (p.color) return p.color;
@@ -732,7 +761,7 @@ export default function CourtTimetable({
                 overflow: 'hidden',
                 borderRight: '1px solid var(--mantine-color-default-border)',
                 backgroundImage:
-                  'linear-gradient(to bottom, transparent calc(100% - 1px), var(--mantine-color-default-border) calc(100% - 1px))',
+                  'linear-gradient(to bottom, transparent calc(100% - 0.5px), color-mix(in srgb, var(--mantine-color-default-border) 30%, transparent) calc(100% - 0.5px))',
                 backgroundSize: `100% ${30 * pxPerMin}px`,
                 backgroundPosition: `0 ${axisPad}px`,
                 backgroundRepeat: 'repeat-y',
@@ -765,12 +794,12 @@ export default function CourtTimetable({
                       right: 0,
                       top,
                       height: 0,
-                      borderTop: `1px solid ${
+                      borderTop: `0.5px solid ${
                         isEnd
-                          ? 'var(--mantine-color-dark-3)'
+                          ? 'color-mix(in srgb, var(--mantine-color-default-border) 65%, transparent)'
                           : isHour
-                            ? 'var(--mantine-color-default-border)'
-                            : 'color-mix(in srgb, var(--mantine-color-default-border) 55%, transparent)'
+                            ? 'color-mix(in srgb, var(--mantine-color-default-border) 48%, transparent)'
+                            : 'color-mix(in srgb, var(--mantine-color-default-border) 24%, transparent)'
                       }`,
                       pointerEvents: 'none',
                     }}
@@ -790,6 +819,7 @@ export default function CourtTimetable({
                 const start = new Date(p.startTime);
                 const { top, height } = blockStyle(start, p.durationMins);
                 const color = colorForPlacement(p);
+                const fg = textColorForBlock(color);
 
                 return (
                   <Box
@@ -803,8 +833,9 @@ export default function CourtTimetable({
                       height,
                       borderRadius: 6,
                       background: color,
-                      color: '#fff',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.18)',
+                      color: fg,
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+                      border: '1px solid color-mix(in srgb, #000 8%, transparent)',
                       overflow: 'hidden',
                       cursor: readOnly ? 'default' : 'grab',
                       zIndex: 2,
@@ -923,8 +954,10 @@ export default function CourtTimetable({
                     borderRadius: 6,
                     background: preview.color,
                     opacity: preview.valid ? 0.75 : 0.35,
-                    outline: preview.valid ? '2px solid #fff' : '2px solid #fa5252',
-                    color: '#fff',
+                    outline: preview.valid
+                      ? '2px solid color-mix(in srgb, #000 20%, transparent)'
+                      : '2px solid #fa5252',
+                    color: textColorForBlock(preview.color),
                     zIndex: 4,
                     pointerEvents: 'none',
                     padding: '4px 6px',
@@ -953,8 +986,8 @@ export default function CourtTimetable({
             padding: '8px 10px',
             borderRadius: 8,
             background: paletteDrag.color,
-            color: '#fff',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+            color: textColorForBlock(paletteDrag.color),
+            boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
             maxWidth: 200,
           }}
         >
@@ -971,43 +1004,28 @@ export default function CourtTimetable({
         title={editing?.label ?? 'Edit block'}
       >
         <Stack gap="sm">
-          <TextInput
-            label="Start"
-            type="time"
-            value={editStart}
-            onChange={(e) => setEditStart(e.currentTarget.value)}
-          />
-          <TextInput
-            label="End"
-            type="time"
-            value={editEnd}
-            onChange={(e) => setEditEnd(e.currentTarget.value)}
-          />
-          <div>
-            <Text size="sm" fw={500} mb={6}>
-              Color
-            </Text>
-            <SimpleGrid cols={6} spacing={8}>
-              {Object.values(COLOR_HEX).map((hex) => (
-                <ColorSwatch
-                  key={hex}
-                  color={hex}
-                  component="button"
-                  type="button"
-                  onClick={() => setEditColor(hex)}
-                  style={{
-                    cursor: 'pointer',
-                    outline: editColor.toLowerCase() === hex.toLowerCase() ? '2px solid #000' : undefined,
-                    outlineOffset: 2,
-                  }}
-                />
-              ))}
-            </SimpleGrid>
+          <Group grow align="flex-start">
             <TextInput
-              mt="sm"
-              label="Custom hex"
+              label="Start"
+              type="time"
+              value={editStart}
+              onChange={(e) => setEditStart(e.currentTarget.value)}
+            />
+            <TextInput
+              label="End"
+              type="time"
+              value={editEnd}
+              onChange={(e) => setEditEnd(e.currentTarget.value)}
+            />
+          </Group>
+          <div>
+            <ColorInput
+              label="Color"
+              format="hex"
               value={editColor}
-              onChange={(e) => setEditColor(e.currentTarget.value)}
+              onChange={setEditColor}
+              swatches={BLOCK_SWATCHES}
+              swatchesPerRow={7}
             />
             {editing?.kind === 'division' && (
               <Text size="xs" c="dimmed" mt={6}>

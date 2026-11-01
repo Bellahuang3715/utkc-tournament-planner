@@ -128,6 +128,8 @@ async def get_teams_with_members(
                             'tournament_id', p.tournament_id,
                             'name', p.name,
                             'club_id', p.club_id,
+                            'club', pc.name,
+                            'club_abbreviation', pc.abbreviation,
                             'code', p.code,
                             'created', p.created,
                             'wins', p.wins,
@@ -138,6 +140,7 @@ async def get_teams_with_members(
                     )
                     FROM players_x_teams pt
                     JOIN players p ON p.id = pt.player_id
+                    LEFT JOIN clubs pc ON pc.id = p.club_id
                     WHERE pt.team_id = teams.id
                 ),
                 '[]'::json

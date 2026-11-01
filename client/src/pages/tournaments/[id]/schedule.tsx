@@ -414,7 +414,7 @@ export default function SchedulePage() {
                   <CourtModal
                     tournamentId={tournamentData.id}
                     swrCourtsResponse={swrCourts as SWRResponse}
-                    buttonSize="lg"
+                    buttonSize="xs"
                   />
                 </Group>
                 <EmptyRoster
@@ -555,7 +555,7 @@ export default function SchedulePage() {
                       kind: 'custom',
                       label: b.label,
                       durationMins: snapDurationMins(b.durationMins, SNAP_GRID_MINS),
-                      color: '#868e96',
+                      color: '#e9ecef',
                     });
                   }}
                 >

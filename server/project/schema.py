@@ -62,7 +62,6 @@ tournaments = Table(
     Column("dashboard_endpoint", String, nullable=True, index=True, unique=True),
     Column("dashboard_preview_token", String, nullable=True, index=True, unique=True),
     Column("scorekeeper_token", String, nullable=True, index=True, unique=True),
-    Column("players_can_be_in_multiple_teams", Boolean, nullable=False, server_default="f"),
     Column("auto_assign_courts", Boolean, nullable=False, server_default="f"),
     Column("status", String, nullable=False, server_default="active"),
     Column("creator_id", BigInteger, ForeignKey("users.id"), index=True, nullable=False),

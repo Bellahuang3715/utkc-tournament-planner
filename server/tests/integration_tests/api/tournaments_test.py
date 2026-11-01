@@ -34,7 +34,6 @@ async def test_tournaments_endpoint(
                 "logo_path": None,
                 "dashboard_public": True,
                 "dashboard_endpoint": "endpoint-test",
-                "players_can_be_in_multiple_teams": True,
                 "auto_assign_courts": True,
             }
         ],
@@ -56,7 +55,6 @@ async def test_tournament_endpoint(
             "name": "Some Cool Tournament",
             "dashboard_public": True,
             "dashboard_endpoint": "endpoint-test",
-            "players_can_be_in_multiple_teams": True,
             "auto_assign_courts": True,
         },
     }
@@ -72,7 +70,6 @@ async def test_create_tournament(
         "club_id": auth_context.club.id,
         "dashboard_public": True,
         "dashboard_endpoint": dashboard_endpoint,
-        "players_can_be_in_multiple_teams": True,
         "auto_assign_courts": True,
     }
     assert (
@@ -94,7 +91,6 @@ async def test_create_tournament_duplicate_dashboard_endpoint(
         "club_id": auth_context.club.id,
         "dashboard_public": True,
         "dashboard_endpoint": "endpoint-test",
-        "players_can_be_in_multiple_teams": True,
         "auto_assign_courts": True,
     }
     assert await send_auth_request(HTTPMethod.POST, "tournaments", auth_context, json=body) == {
@@ -109,7 +105,6 @@ async def test_update_tournament(
         "name": "Some new name",
         "start_time": DUMMY_MOCK_TIME.isoformat().replace("+00:00", "Z"),
         "dashboard_public": False,
-        "players_can_be_in_multiple_teams": True,
         "auto_assign_courts": True,
     }
     assert (
