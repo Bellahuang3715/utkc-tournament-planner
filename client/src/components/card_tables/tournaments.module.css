@@ -12,3 +12,25 @@
   margin-top: 2px;
   color: var(--mantine-color-dimmed);
 }
+
+.logoFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 160px;
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-gray-1);
+}
+
+:global([data-mantine-color-scheme="dark"]) .logoFallback {
+  background: var(--mantine-color-dark-6);
+}
+
+.logoFallbackImg {
+  opacity: 0.38;
+  filter: grayscale(1);
+}
+
+:global([data-mantine-color-scheme="dark"]) .logoFallbackImg {
+  opacity: 0.45;
+}

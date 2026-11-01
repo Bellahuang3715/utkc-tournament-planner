@@ -74,13 +74,13 @@
   display: flex;
   align-items: center;
   gap: 28px;
-  min-height: 64px;
+  min-height: 76px;
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   color: inherit;
   text-decoration: none;
   font-weight: 700;
@@ -90,6 +90,23 @@
 .mark {
   display: block;
   flex: 0 0 auto;
+}
+
+.brandLogo {
+  display: block;
+  height: 48px;
+  width: auto;
+  max-width: 168px;
+  object-fit: contain;
+}
+
+.brandName {
+  font-family: "Syne", "Sora", sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  font-size: clamp(1.65rem, 2.4vw, 1.9rem);
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .nav {
@@ -314,6 +331,15 @@
   font-size: clamp(3.4rem, 8vw, 5.6rem);
   line-height: 0.92;
   max-width: none;
+}
+
+.heroLogo {
+  display: block;
+  width: min(100%, 420px);
+  height: auto;
+  max-height: 112px;
+  object-fit: contain;
+  object-position: left center;
 }
 
 @media (prefers-reduced-motion: no-preference) {

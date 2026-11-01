@@ -4,6 +4,8 @@ export const BRACKET_URL = "https://github.com/evroon/bracket";
 export const LICENSE_FILE_URL = `${GITHUB_URL}/blob/main/LICENSE`;
 export const CONTACT_EMAIL = "kenmanage@gmail.com";
 export const CONTACT_MAILTO = `mailto:${CONTACT_EMAIL}`;
+/** Site logo in `client/public/KenManage.png` → `/KenManage.png` */
+export const LOGO_SRC = "/KenManage.png";
 
 export type DemoPlayer = {
   id: string;

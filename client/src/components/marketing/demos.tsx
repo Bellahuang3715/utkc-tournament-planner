@@ -1,4 +1,17 @@
-import React, { useEffect, useMemo, useState } from "react";
+import {
+  Badge,
+  Box,
+  Center,
+  Group,
+  Loader,
+  Paper,
+  Stack,
+  Switch,
+  Text,
+  useMantineColorScheme,
+} from "@mantine/core";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
+import { Expanded } from "tournament-brackets-ui";
 
 import {
   circledScoreDisplay,
@@ -17,6 +30,21 @@ import {
   type LookupPerson,
 } from "./fixtures";
 
+const DEMO_CLUB_ABBREV: Record<string, string> = {
+  Toronto: "TOR",
+  Montreal: "MTL",
+  Vancouver: "VAN",
+  Ottawa: "OTT",
+};
+
+function toBracketPlayers(group: DemoPlayer[]) {
+  return group.map((player) => ({
+    id: player.code,
+    name: player.name,
+    club: DEMO_CLUB_ABBREV[player.club] ?? player.club.slice(0, 3).toUpperCase(),
+  }));
+}
+
 function scoreLabel(score: string) {
   const shown = circledScoreDisplay(score);
   return shown || "–";
@@ -24,17 +52,6 @@ function scoreLabel(score: string) {
 
 function pointCount(score: string) {
   return Array.from(tournamentMkdtScoreInput(score)).filter((ch) => "MKDTI".includes(ch)).length;
-}
-
-function PlayerChip({ player }: { player: DemoPlayer }) {
-  return (
-    <div className={classes.chip}>
-      <i className={classes.dotClub} style={{ background: player.color }} aria-hidden="true" />
-      <b>{player.name}</b>
-      {player.bias ? <span className={classes.seed}>Bias</span> : null}
-      <em>{player.club}</em>
-    </div>
-  );
 }
 
 function Stage({ title, children }: { title: string; children: React.ReactNode }) {
@@ -129,6 +146,8 @@ export function HeroBoard() {
 }
 
 export function SeedingDemo() {
+  const { colorScheme } = useMantineColorScheme();
+  const bracketTheme = colorScheme === "dark" ? "dark" : "light";
   const [separateClub, setSeparateClub] = useState(true);
   const [separateBias, setSeparateBias] = useState(true);
   const [left, right] = useMemo(
@@ -136,56 +155,71 @@ export function SeedingDemo() {
     [separateClub, separateBias],
   );
 
+  const groups = [
+    { label: "Group 1", players: left },
+    { label: "Group 2", players: right },
+  ];
+
   return (
-    <Stage title="Division A · 8 players">
-      <div className={classes.toolbar}>
-        <button
-          type="button"
-          className={`${classes.smallBtn} ${separateClub ? classes.smallBtnPrimary : ""}`}
-          aria-pressed={separateClub}
-          onClick={() => setSeparateClub((value) => !value)}
+    <Stage title="Edit seeding · Division A">
+      <Stack gap="md">
+        <Group justify="space-between" align="flex-end" wrap="wrap" gap="sm">
+          <Text size="sm" c="dimmed">
+            8 players · 2 brackets
+          </Text>
+          <Group gap="lg" wrap="wrap">
+            <Switch
+              label="Keep same club apart"
+              checked={separateClub}
+              onChange={(event) => setSeparateClub(event.currentTarget.checked)}
+            />
+            <Switch
+              label="Keep biased players apart"
+              checked={separateBias}
+              onChange={(event) => setSeparateBias(event.currentTarget.checked)}
+            />
+          </Group>
+        </Group>
+
+        <Suspense
+          fallback={
+            <Center mih={180}>
+              <Loader size="sm" />
+            </Center>
+          }
         >
-          Keep same club apart
-        </button>
-        <button
-          type="button"
-          className={`${classes.smallBtn} ${separateBias ? classes.smallBtnPrimary : ""}`}
-          aria-pressed={separateBias}
-          onClick={() => setSeparateBias((value) => !value)}
-        >
-          Keep biased players apart
-        </button>
-      </div>
-      <div className={classes.halves}>
-        {[
-          ["Group 1", left],
-          ["Group 2", right],
-        ].map(([label, group]) => (
-          <div key={String(label)}>
-            <p className={classes.halfLabel}>{label}</p>
-            <div className={classes.halfMatches}>
-              {(group as DemoPlayer[]).reduce<DemoPlayer[][]>((pairs, player, index) => {
-                if (index % 2 === 0) pairs.push([player]);
-                else pairs[pairs.length - 1].push(player);
-                return pairs;
-              }, []).map((pair) => (
-                <div className={classes.pair} key={pair.map((player) => player.id).join("-")}>
-                  <PlayerChip player={pair[0]} />
-                  {pair[1] ? (
-                    <>
-                      <div className={classes.vs}>vs</div>
-                      <PlayerChip player={pair[1]} />
-                    </>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-      <p className={classes.note} aria-live="polite">
-        {seedingNote(separateClub, separateBias)}
-      </p>
+          <Group align="flex-start" gap="md" wrap="wrap" grow preventGrowOverflow={false}>
+            {groups.map((group) => (
+              <Paper
+                key={group.label}
+                withBorder
+                radius="md"
+                p="md"
+                style={{ flex: "1 1 280px", minWidth: 0 }}
+              >
+                <Badge variant="light" mb="sm">
+                  {group.label}
+                </Badge>
+                <Box style={{ maxWidth: "100%", overflowX: "auto" }}>
+                  <Expanded.Individuals
+                    key={`${group.label}-${separateClub}-${separateBias}-${group.players
+                      .map((p) => p.id)
+                      .join("-")}`}
+                    size={4}
+                    players={toBracketPlayers(group.players)}
+                    theme={bracketTheme}
+                  />
+                </Box>
+              </Paper>
+            ))}
+          </Group>
+        </Suspense>
+
+        <Text size="sm" c="dimmed" aria-live="polite">
+          {seedingNote(separateClub, separateBias)} Sample data only — same bracket trees as in the
+          organizer seeding editor.
+        </Text>
+      </Stack>
     </Stage>
   );
 }
@@ -438,8 +472,8 @@ const FEATURES = [
     id: "seeding",
     label: "Seeding",
     title: "Keep clubs and rivals apart",
-    body: "Drop players into a division. KenManage seeds groups so people from the same club, and players you mark as biased, land as far apart as the draw allows.",
-    caps: ["Players and teams", "Club", "Bias"],
+    body: "The same bracket trees as Edit seeding. Toggle club and bias rules and watch the groups redraw.",
+    caps: ["Expanded brackets", "Club", "Bias"],
     demo: <SeedingDemo />,
   },
   {
@@ -512,8 +546,8 @@ export function SeedingStudio() {
       <div className={classes.studioCopy}>
         <h3 className={classes.display}>Keep clubs and rivals apart</h3>
         <p>
-          A division of eight. Turn the rules off and clubmates open against each other. Turn them
-          on and the groups redraw.
+          The same expanded bracket trees you get in Edit seeding. Toggle the club and bias rules —
+          groups redraw the way KenManage seeds a division.
         </p>
         <ul className={classes.caps}>
           {PLAYERS.reduce<string[]>((clubs, player) => {

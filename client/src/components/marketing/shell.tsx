@@ -9,6 +9,7 @@ import {
   CONTACT_MAILTO,
   GITHUB_ISSUES_URL,
   GITHUB_URL,
+  LOGO_SRC,
 } from "./fixtures";
 
 type NavLink = {
@@ -93,21 +94,6 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ];
-
-function Mark() {
-  return (
-    <svg className={classes.mark} width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
-      <rect width="22" height="22" rx="6" fill="#0b1f3a" />
-      <path
-        d="M11 4.2v13.6M7.2 8.2h7.6"
-        stroke="#edf3fb"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      <rect x="0" y="18" width="22" height="4" rx="0" fill="#c41e3a" />
-    </svg>
-  );
-}
 
 function resolveHref(item: NavLink) {
   if (item.href === "/docs-api") {
@@ -204,9 +190,9 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
     <div className={classes.page}>
       <header className={classes.header}>
         <div className={`${classes.wrap} ${classes.headerInner}`}>
-          <Link href="/welcome" className={classes.brand}>
-            <Mark />
-            KenManage
+          <Link href="/welcome" className={classes.brand} aria-label="KenManage home">
+            <img className={classes.brandLogo} src={LOGO_SRC} alt="" />
+            <span className={classes.brandName}>KenManage</span>
           </Link>
           <nav className={classes.nav} aria-label="KenManage" ref={navRef}>
             {NAV_GROUPS.map((group) => {

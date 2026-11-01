@@ -7,6 +7,7 @@ import { SWRResponse } from 'swr';
 
 import { Tournament } from '../../interfaces/tournament';
 import { getBaseApiUrl } from '../../services/adapter';
+import { LOGO_SRC } from '../marketing/fixtures';
 import { EmptyTableInfo } from '../no_content/empty_table_info';
 import { DateTime } from '../utils/datetime';
 import RequestErrorAlert from '../utils/error_alert';
@@ -14,12 +15,28 @@ import { TableSkeletonSingleColumn } from '../utils/skeletons';
 import classes from './tournaments.module.css';
 
 export function TournamentLogo({ tournament }: { tournament: Tournament }) {
+  if (!tournament.logo_path) {
+    return (
+      <div className={classes.logoFallback} aria-hidden="true">
+        <Image
+          src={LOGO_SRC}
+          alt=""
+          h={72}
+          w="auto"
+          fit="contain"
+          className={classes.logoFallbackImg}
+        />
+      </div>
+    );
+  }
+
   return (
     <Image
       radius="md"
       src={`${getBaseApiUrl()}/static/tournament-logos/${tournament.logo_path}`}
-      fallbackSrc={`https://placehold.co/318x160?text=${tournament.name}`}
+      fallbackSrc={LOGO_SRC}
       height={160}
+      fit="contain"
     />
   );
 }

@@ -1,14 +1,33 @@
-import { Center, Group, Image, Text, Title, UnstyledButton } from '@mantine/core';
+import { Center, Group, Image, Text, UnstyledButton } from '@mantine/core';
 import Link from 'next/link';
 import React from 'react';
+
+import { LOGO_SRC } from '../marketing/fixtures';
 
 export function Brand() {
   return (
     <Center mr="1rem">
-      <UnstyledButton component={Link} href="/">
-        <Group>
-          {/* <Image style={{ width: '38px', marginRight: '0px' }} src="/favicon.svg" /> */}
-          <Title style={{ height: '38px', marginBottom: '0.4rem' }}>Bracket</Title>
+      <UnstyledButton component={Link} href="/" aria-label="KenManage home">
+        <Group gap={8} wrap="nowrap" align="center">
+          <Image
+            src={LOGO_SRC}
+            alt=""
+            h={48}
+            w="auto"
+            fit="contain"
+            style={{ maxWidth: 168 }}
+          />
+          <Text
+            fw={700}
+            style={{
+              fontFamily: '"Syne", "Sora", sans-serif',
+              letterSpacing: '-0.04em',
+              fontSize: 'clamp(1.65rem, 2.4vw, 1.9rem)',
+              lineHeight: 1,
+            }}
+          >
+            KenManage
+          </Text>
         </Group>
       </UnstyledButton>
     </Center>
@@ -18,12 +37,7 @@ export function Brand() {
 export function BrandFooter() {
   return (
     <Center mr="1rem">
-      <Center>
-        <Image mb="0.25rem" style={{ width: '32px', marginRight: '0px' }} src="/favicon.svg" />
-        <Text size="xl" ml="0.75rem">
-          Bracket
-        </Text>
-      </Center>
+      <Image src={LOGO_SRC} alt="KenManage" h={28} w="auto" fit="contain" style={{ maxWidth: 140 }} />
     </Center>
   );
 }

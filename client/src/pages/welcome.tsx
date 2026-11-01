@@ -8,7 +8,7 @@ import {
   ProblemStudio,
   SeedingStudio,
 } from "../components/marketing/demos";
-import { BRACKET_URL, DAY_STEPS, GITHUB_URL } from "../components/marketing/fixtures";
+import { BRACKET_URL, DAY_STEPS, GITHUB_URL, LOGO_SRC } from "../components/marketing/fixtures";
 import { Reveal } from "../components/marketing/reveal";
 import { marketingServerProps } from "../components/marketing/server_props";
 import { MarketingShell } from "../components/marketing/shell";
@@ -187,8 +187,8 @@ export default function WelcomePage() {
             <p className={classes.kicker}>Try a draw</p>
             <h2 className={classes.display}>Seeding you can see.</h2>
             <p className={classes.deck}>
-              Same-club and strong-player rules — the ones that used to take hours in Excel. Sample
-              players only; nothing is saved.
+              Real KenManage bracket trees (same component as Edit seeding). Toggle club and
+              strong-player rules — sample players only; nothing is saved.
             </p>
             <SeedingStudio />
           </Reveal>

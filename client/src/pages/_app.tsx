@@ -52,11 +52,12 @@ const App = ({ Component, pageProps }: any) => {
   return (
     <AuthProvider>
       <Head>
-        <title>{isMarketing ? MARKETING_TITLES[router.pathname] : "Bracket"}</title>
+        <title>{isMarketing ? MARKETING_TITLES[router.pathname] : "KenManage"}</title>
         <meta charSet="UTF-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="shortcut icon" href="/favicon.svg" />
+        <link rel="icon" href="/KenManage.png" type="image/png" />
+        <link rel="shortcut icon" href="/KenManage.png" />
         {/* <AnalyticsScript /> */}
       </Head>
 
