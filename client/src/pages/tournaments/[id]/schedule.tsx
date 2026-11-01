@@ -9,11 +9,13 @@ import {
   Stack,
   Text,
   TextInput,
+  Tooltip,
 } from '@mantine/core';
 import { showNotification } from '@mantine/notifications';
 import { IconBrackets, IconLayoutColumns, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'next-i18next/pages';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
+import { useRouter } from 'next/router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SWRResponse } from 'swr';
 import { v4 as uuidv4 } from 'uuid';
@@ -45,6 +47,7 @@ import { stringToColour } from '../../../services/lookups';
 import { saveScheduleTimetable } from '../../../services/schedule_timetable';
 import {
   SNAP_GRID_MINS,
+  autoAssignDivisionBlocks,
   eliminationMatchCount,
   getTimetableConfigKey,
   snapDurationMins,
@@ -228,6 +231,7 @@ function ScheduleBlockCard({
 
 export default function SchedulePage() {
   const { t } = useTranslation();
+  const router = useRouter();
   const { tournamentData } = getTournamentIdFromRouter();
   const swrCourts = getCourts(tournamentData.id);
   const swrTournament = getTournamentById(tournamentData.id);
@@ -318,9 +322,16 @@ export default function SchedulePage() {
   }, [customBlocks, placements, tournamentData.id]);
 
   const cancelScheduleEdits = useCallback(() => {
+    const ok = window.confirm(
+      t(
+        'discard_schedule_changes',
+        'You have unsaved changes. Continue anyway?',
+      ),
+    );
+    if (!ok) return;
     setPlacements(savedSchedule.placements);
     setCustomBlocks(savedSchedule.customBlocks);
-  }, [savedSchedule]);
+  }, [savedSchedule, t]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -328,13 +339,105 @@ export default function SchedulePage() {
       event.preventDefault();
       event.returnValue = '';
     };
+    const onRouteStart = (url: string) => {
+      if (url === router.asPath) return;
+      const ok = window.confirm(
+        t(
+          'discard_schedule_changes',
+          'You have unsaved changes. Continue anyway?',
+        ),
+      );
+      if (!ok) {
+        router.events.emit('routeChangeError');
+        throw 'Route change aborted.';
+      }
+    };
     window.addEventListener('beforeunload', onBeforeUnload);
-    return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, [dirty]);
+    router.events.on('routeChangeStart', onRouteStart);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      router.events.off('routeChangeStart', onRouteStart);
+    };
+  }, [dirty, router, t]);
 
   const removePlacement = useCallback((id: string) => {
     setPlacements((prev) => prev.filter((p) => p.id !== id));
   }, []);
+
+  const handleAutoAssignCourts = useCallback(() => {
+    if (courts.length === 0 || blocks.length === 0) return;
+
+    const courtsReady = window.confirm(
+      t(
+        'auto_assign_courts_ready_confirm',
+        'You currently have {{count}} court(s). Have you finished adding all courts?\n\nAuto-assign will only use the courts that exist now.',
+        { count: courts.length },
+      ),
+    );
+    if (!courtsReady) return;
+
+    const hasExistingDivision = placements.some((p) => p.kind === 'division');
+    if (hasExistingDivision) {
+      const ok = window.confirm(
+        t(
+          'auto_assign_courts_confirm',
+          'This will clear and reassign all division blocks. Custom blocks stay put.',
+        ),
+      );
+      if (!ok) return;
+    }
+
+    const customPlacements = placements.filter((p) => p.kind === 'custom');
+    const { assigned, unplaced } = autoAssignDivisionBlocks({
+      blocks,
+      courtIds: courts.map((c) => c.id),
+      config,
+      scheduleDate,
+      fixedPlacements: customPlacements.map((p) => ({
+        id: p.id,
+        courtId: p.courtId,
+        startTime: p.startTime,
+        durationMins: p.durationMins,
+      })),
+    });
+
+    const divisionPlacements: SchedulePlacement[] = assigned.map((a) => ({
+      id: uuidv4(),
+      courtId: a.courtId,
+      startTime: a.startTime,
+      kind: 'division',
+      divisionId: a.divisionId,
+      bracketId: a.bracketId,
+      divisionName: a.divisionName,
+      bracketName: a.bracketName,
+      label: a.label,
+      durationMins: a.durationMins,
+      color: colorForDivision(a.divisionId),
+    }));
+
+    setPlacements([...customPlacements, ...divisionPlacements]);
+
+    if (unplaced.length > 0) {
+      showNotification({
+        color: 'orange',
+        title: t('auto_assign_partial_title', 'Could not place every group'),
+        message: t(
+          'auto_assign_partial_message',
+          '{{count}} group(s) did not fit in the day window and were left in the sidebar.',
+          { count: unplaced.length },
+        ),
+      });
+    } else {
+      showNotification({
+        color: 'green',
+        title: t('auto_assign_success_title', 'Courts assigned'),
+        message: t(
+          'auto_assign_success_message',
+          'All division groups were placed. Review the timetable, then Save.',
+        ),
+      });
+    }
+  }, [blocks, config, courts, placements, scheduleDate, t]);
 
   const moveCourt = useCallback(
     async (courtId: number, direction: -1 | 1) => {
@@ -446,6 +549,30 @@ export default function SchedulePage() {
                     <Button size="xs" disabled={!dirty} loading={saving} onClick={() => void saveSchedule()}>
                       Save
                     </Button>
+                    <Tooltip
+                      label={
+                        blocks.length === 0
+                          ? t(
+                              'auto_assign_no_blocks',
+                              'Generate brackets first so there are groups to place.',
+                            )
+                          : t(
+                              'auto_assign_courts_hint',
+                              'Finish creating all courts, then auto-assign division groups. Custom blocks are not moved.',
+                            )
+                      }
+                    >
+                      <span>
+                        <Button
+                          variant="light"
+                          size="xs"
+                          disabled={blocks.length === 0}
+                          onClick={handleAutoAssignCourts}
+                        >
+                          {t('auto_assign_courts_button', 'Auto-assign courts')}
+                        </Button>
+                      </span>
+                    </Tooltip>
                     <CourtModal
                       tournamentId={tournamentData.id}
                       swrCourtsResponse={swrCourts as SWRResponse}

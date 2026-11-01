@@ -1,4 +1,8 @@
-import type { TimetableConfig, TimeSlot } from '../interfaces/schedule_timetable';
+import type {
+  ScheduleBlock,
+  TimetableConfig,
+  TimeSlot,
+} from '../interfaces/schedule_timetable';
 
 const STORAGE_KEY_PREFIX = 'schedule_timetable_';
 const CONFIG_KEY_SUFFIX = '_config';
@@ -290,6 +294,154 @@ export function buildTimeSlots(
 /** Dense snap grid for drag/drop (see {@link SNAP_GRID_MINS}); left column uses {@link mergeLeftColumnBoundaries}. */
 export function buildSnapGridSlots(config: TimetableConfig, date: Date): TimeSlot[] {
   return buildTimeSlots({ ...config, intervalMins: SNAP_GRID_MINS }, date);
+}
+
+export type AutoAssignedDivision = {
+  courtId: number;
+  startTime: string;
+  divisionId: number;
+  bracketId: number;
+  divisionName: string;
+  bracketName: string;
+  label: string;
+  durationMins: number;
+};
+
+export type AutoAssignDivisionResult = {
+  assigned: AutoAssignedDivision[];
+  unplaced: ScheduleBlock[];
+};
+
+type AssignedDivisionTimed = AutoAssignedDivision & TimedBlock;
+
+function countSameDivisionOverlap(
+  assigned: AssignedDivisionTimed[],
+  divisionId: number,
+  start: Date,
+  durationMins: number,
+): number {
+  let count = 0;
+  for (const p of assigned) {
+    if (p.divisionId !== divisionId) continue;
+    if (intervalsOverlap(start, durationMins, new Date(p.startTime), p.durationMins)) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+/**
+ * Greedy pack of division groups onto courts.
+ * Keeps `fixedPlacements` (e.g. custom blocks) as obstacles; never places customs.
+ * Prefers no same-division time overlap, then earliest start, then leftmost court.
+ */
+export function autoAssignDivisionBlocks(args: {
+  blocks: ScheduleBlock[];
+  courtIds: number[];
+  config: TimetableConfig;
+  scheduleDate: Date;
+  fixedPlacements: TimedBlock[];
+}): AutoAssignDivisionResult {
+  const { blocks, courtIds, config, scheduleDate, fixedPlacements } = args;
+  if (courtIds.length === 0 || blocks.length === 0) {
+    return { assigned: [], unplaced: [...blocks] };
+  }
+
+  const windowStart = dayWindowStart(scheduleDate, config.startTime);
+  const windowEnd = dayWindowEnd(scheduleDate, config.endTime);
+  const windowEndMs = windowEnd.getTime();
+
+  const sorted = [...blocks].sort((a, b) => {
+    const durA = snapDurationMins(a.estimatedMins, SNAP_GRID_MINS);
+    const durB = snapDurationMins(b.estimatedMins, SNAP_GRID_MINS);
+    if (durB !== durA) return durB - durA;
+    const byDiv = a.divisionName.localeCompare(b.divisionName, undefined, {
+      sensitivity: 'base',
+    });
+    if (byDiv !== 0) return byDiv;
+    return a.bracketName.localeCompare(b.bracketName, undefined, {
+      sensitivity: 'base',
+    });
+  });
+
+  const assigned: AssignedDivisionTimed[] = [];
+  const unplaced: ScheduleBlock[] = [];
+
+  for (const block of sorted) {
+    const durationMins = snapDurationMins(block.estimatedMins, SNAP_GRID_MINS);
+    if (durationMins <= 0) {
+      unplaced.push(block);
+      continue;
+    }
+
+    const latestStartMs = windowEndMs - durationMins * 60 * 1000;
+    if (latestStartMs < windowStart.getTime()) {
+      unplaced.push(block);
+      continue;
+    }
+
+    let best: {
+      courtId: number;
+      courtIndex: number;
+      start: Date;
+      sameDivOverlap: number;
+    } | null = null;
+
+    for (
+      let t = windowStart.getTime();
+      t <= latestStartMs;
+      t += SNAP_GRID_MINS * 60 * 1000
+    ) {
+      const start = new Date(t);
+      for (let courtIndex = 0; courtIndex < courtIds.length; courtIndex++) {
+        const courtId = courtIds[courtIndex];
+        const candidate: TimedBlock = {
+          courtId,
+          startTime: start.toISOString(),
+          durationMins,
+        };
+        const occupied: TimedBlock[] = [...fixedPlacements, ...assigned];
+        if (hasCourtCollision(occupied, candidate)) continue;
+
+        const sameDivOverlap = countSameDivisionOverlap(
+          assigned,
+          block.divisionId,
+          start,
+          durationMins,
+        );
+
+        if (
+          !best ||
+          sameDivOverlap < best.sameDivOverlap ||
+          (sameDivOverlap === best.sameDivOverlap &&
+            start.getTime() < best.start.getTime()) ||
+          (sameDivOverlap === best.sameDivOverlap &&
+            start.getTime() === best.start.getTime() &&
+            courtIndex < best.courtIndex)
+        ) {
+          best = { courtId, courtIndex, start, sameDivOverlap };
+        }
+      }
+    }
+
+    if (!best) {
+      unplaced.push(block);
+      continue;
+    }
+
+    assigned.push({
+      courtId: best.courtId,
+      startTime: best.start.toISOString(),
+      durationMins,
+      divisionId: block.divisionId,
+      bracketId: block.bracketId,
+      divisionName: block.divisionName,
+      bracketName: block.bracketName,
+      label: `${block.divisionName} – ${block.bracketName}`,
+    });
+  }
+
+  return { assigned, unplaced };
 }
 
 /** Number of slots a placement spans based on duration and interval */

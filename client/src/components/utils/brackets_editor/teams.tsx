@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Button,
@@ -10,7 +10,6 @@ import {
   Select,
   SegmentedControl,
   Box,
-  Grid,
   Paper,
   Badge,
 } from "@mantine/core";
@@ -34,14 +33,11 @@ import { assignTeamBrackets } from "../seeding_teams";
 import type { BracketWithTeams } from "../../../interfaces/bracket";
 import { ViewMode } from "../../../interfaces/bracket";
 import type { DivisionTeam } from "../../../interfaces/division";
-import { BracketTitleEditor, StyleEditor } from "./shared";
 import {
   defaultTitleStyle,
-  FONT_CHOICES,
   DEFAULT_BOOKLET,
   DEFAULT_POSTER,
   type FormatStyles,
-  type StyleTarget,
 } from "./shared";
 
 // ---- Helpers ----
@@ -77,12 +73,10 @@ function teamIDStyleFromFormat(formatStyles?: FormatStyles) {
 function BracketPairCardTeams({
   left,
   right,
-  onSetTitle,
   formatStyles,
 }: {
   left: BracketWithTeams;
   right?: BracketWithTeams;
-  onSetTitle?: (bracketId: number, title: string | null) => void;
   formatStyles?: FormatStyles;
 }) {
   const leftTeamNames = toUITeamNames(left);
@@ -93,29 +87,6 @@ function BracketPairCardTeams({
   return (
     <Paper withBorder radius="md" p="md" style={{ position: "relative" }}>
       <Badge variant="light">{groupChipText}</Badge>
-
-      {onSetTitle && (
-        <Grid gutter="sm" mb="sm">
-          <Grid.Col span={{ base: 12, md: right ? 6 : 12 }}>
-            <BracketTitleEditor
-              value={left.title}
-              onChange={(t) => onSetTitle(left.id, t)}
-              placeholder={`Title for Group ${left.index} (optional)`}
-              titleStyle={formatStyles?.bracketTitle ?? defaultTitleStyle}
-            />
-          </Grid.Col>
-          {right && (
-            <Grid.Col span={{ base: 12, md: 6 }}>
-              <BracketTitleEditor
-                value={right.title}
-                onChange={(t) => onSetTitle(right.id, t)}
-                placeholder={`Title for Group ${right.index} (optional)`}
-                titleStyle={formatStyles?.bracketTitle ?? defaultTitleStyle}
-              />
-            </Grid.Col>
-          )}
-        </Grid>
-      )}
 
       <Box style={{ overflowX: "auto" }}>
         <Group justify="flex-start" align="center" gap="sm" wrap="nowrap">
@@ -148,12 +119,10 @@ function BracketPairCardTeams({
 export function BracketPairsSectionTeams({
   brackets,
   pairs,
-  onSetTitle,
   formatStyles,
 }: {
   brackets: BracketWithTeams[] | null;
   pairs: Array<{ left: BracketWithTeams; right?: BracketWithTeams }>;
-  onSetTitle?: (bracketId: number, title: string | null) => void;
   formatStyles?: FormatStyles;
 }) {
   return (
@@ -180,7 +149,6 @@ export function BracketPairsSectionTeams({
               key={left.id}
               left={left}
               right={right}
-              onSetTitle={onSetTitle}
               formatStyles={formatStyles}
             />
           ))}
@@ -192,11 +160,9 @@ export function BracketPairsSectionTeams({
 
 export function PosterGroupsSectionTeams({
   brackets,
-  onSetTitle,
   formatStyles,
 }: {
   brackets: BracketWithTeams[] | null;
-  onSetTitle?: (bracketId: number, title: string | null) => void;
   formatStyles?: FormatStyles;
 }) {
   if (brackets === null) {
@@ -236,16 +202,6 @@ export function PosterGroupsSectionTeams({
           style={{ position: "relative" }}
         >
           <Badge variant="light">{`Group ${b.index}`}</Badge>
-          {onSetTitle && (
-            <Box mb="sm">
-              <BracketTitleEditor
-                value={b.title}
-                onChange={(t) => onSetTitle(b.id, t)}
-                placeholder={`Title for Group ${b.index} (optional)`}
-                titleStyle={formatStyles?.bracketTitle ?? defaultTitleStyle}
-              />
-            </Box>
-          )}
           <Box style={{ maxWidth: "100%", overflowX: "auto" }}>
             <Expanded.Teams
               size={b.num_players as 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 16}
@@ -277,12 +233,7 @@ export default function BracketsEditorTeams() {
   const [viewMode, setViewMode] = useState<ViewMode>("booklet");
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
-
-  const [bookletStyles, setBookletStyles] =
-    useState<FormatStyles>(DEFAULT_BOOKLET);
-  const [posterStyles, setPosterStyles] =
-    useState<FormatStyles>(DEFAULT_POSTER);
-  const [styleTarget, setStyleTarget] = useState<StyleTarget>("playerId");
+  const allowLeaveRef = useRef(false);
 
   const [swapA, setSwapA] = useState<string | null>(null);
   const [swapB, setSwapB] = useState<string | null>(null);
@@ -304,14 +255,14 @@ export default function BracketsEditorTeams() {
 
   useEffect(() => {
     const beforeUnload = (e: BeforeUnloadEvent) => {
-      if (!dirty) return;
+      if (allowLeaveRef.current || !dirty) return;
       e.preventDefault();
       e.returnValue = "";
     };
     const onRouteStart = (url: string) => {
-      if (!dirty || url === router.asPath) return;
+      if (allowLeaveRef.current || !dirty || url === router.asPath) return;
       const ok = confirm(
-        t("unsaved_prompt", "You have unsaved changes. Save before leaving?")
+        t("unsaved_prompt", "You have unsaved changes. Continue anyway?")
       );
       if (!ok) {
         router.events.emit("routeChangeError");
@@ -347,14 +298,6 @@ export default function BracketsEditorTeams() {
     }
     return out;
   }, [sorted]);
-
-  const setBracketTitle = (bracketId: number, title: string | null) => {
-    setBrackets((prev) => {
-      if (!prev) return prev;
-      return prev.map((b) => (b.id === bracketId ? { ...b, title } : b));
-    });
-    setDirty(true);
-  };
 
   const doSwap = () => {
     if (locked || !brackets || !swapA || !swapB || swapA === swapB) return;
@@ -404,9 +347,9 @@ export default function BracketsEditorTeams() {
     setSaving(true);
     try {
       await replaceDivisionBracketsTeams(Number(divisionId), brackets);
+      allowLeaveRef.current = true;
       setDirty(false);
-      alert(t("saved", "Saved!"));
-      router.push(`/tournaments/${tournamentId}/divisions`);
+      await router.push(`/tournaments/${tournamentId}/divisions`);
     } finally {
       setSaving(false);
     }
@@ -453,6 +396,7 @@ export default function BracketsEditorTeams() {
 
   const cancel = () => {
     if (!dirty || confirm(t("discard_changes", "Discard your changes?"))) {
+      allowLeaveRef.current = true;
       router.back();
     }
   };
@@ -467,9 +411,8 @@ export default function BracketsEditorTeams() {
     );
   }
 
-  const styles = viewMode === "booklet" ? bookletStyles : posterStyles;
-  const setStyles =
-    viewMode === "booklet" ? setBookletStyles : setPosterStyles;
+  const styles: FormatStyles =
+    viewMode === "booklet" ? DEFAULT_BOOKLET : DEFAULT_POSTER;
 
   const totalTeams = (brackets ?? []).reduce(
     (sum, b) => sum + (b.teams?.length ?? 0),
@@ -483,7 +426,7 @@ export default function BracketsEditorTeams() {
           title={t("edit_seeding", "Edit seeding")}
           description={t(
             "edit_seeding_teams_subtitle",
-            "Move teams between bracket spots and adjust how the export looks.",
+            "Move teams between bracket spots.",
           )}
           actions={
             <Text c="dimmed" size="sm">
@@ -501,23 +444,6 @@ export default function BracketsEditorTeams() {
             )}
           </Alert>
         )}
-
-        <Grid gutter="sm">
-          <Grid.Col span={{ base: 12, md: 6 }}>
-            <StyleEditor
-              styles={styles}
-              onChange={(next) => setStyles(next)}
-              target={styleTarget}
-              setTarget={setStyleTarget}
-              fontChoices={FONT_CHOICES}
-            />
-          </Grid.Col>
-        </Grid>
-        <Text size="xs" c="dimmed">
-          {viewMode === "booklet"
-            ? t("settings_apply_booklet", "These settings apply to Booklet only.")
-            : t("settings_apply_poster", "These settings apply to Poster only.")}
-        </Text>
 
         <Box
           style={{
@@ -571,7 +497,7 @@ export default function BracketsEditorTeams() {
                   {t("cancel")}
                 </Button>
                 <Button loading={saving} onClick={save} disabled={locked}>
-                  {t("save")}
+                  {t("save", "Save")}
                 </Button>
               </Group>
             </Group>
@@ -611,13 +537,11 @@ export default function BracketsEditorTeams() {
             <BracketPairsSectionTeams
               brackets={brackets}
               pairs={pairs}
-              onSetTitle={setBracketTitle}
               formatStyles={styles}
             />
           ) : (
             <PosterGroupsSectionTeams
               brackets={brackets}
-              onSetTitle={setBracketTitle}
               formatStyles={styles}
             />
           )}
