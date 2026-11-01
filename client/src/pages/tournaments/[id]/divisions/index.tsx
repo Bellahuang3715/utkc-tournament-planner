@@ -154,6 +154,21 @@ export default function BracketsPage() {
     return m;
   }, [clubs]);
 
+  const refreshOpenDivisionBrackets = async () => {
+    if (!openItem) return;
+    const divisionId = Number(openItem);
+    if (!Number.isFinite(divisionId)) return;
+
+    const group = groups.find((g: any) => g.id === divisionId);
+    if (group?.division_type === "TEAMS") {
+      const res = await fetchDivisionBracketsWithTeams(divisionId);
+      setBracketsTeams(res.data.data);
+    } else {
+      const res = await fetchDivisionBracketsWithPlayers(divisionId);
+      setBrackets(res.data.data);
+    }
+  };
+
   useEffect(() => {
     if (!openItem) return;
 
@@ -380,6 +395,7 @@ export default function BracketsPage() {
                             <DivisionTeamsTable
                               tournamentId={tournamentData.id}
                               divisionId={group.id}
+                              onBracketsChanged={refreshOpenDivisionBrackets}
                             />
                           </Stack>
                         </Tabs.Panel>
@@ -395,6 +411,7 @@ export default function BracketsPage() {
                               divisionId={group.id}
                               divisionName={group.name}
                               divisionPrefix={group.prefix}
+                              onBracketsChanged={refreshOpenDivisionBrackets}
                             />
                           </Stack>
                         </Tabs.Panel>

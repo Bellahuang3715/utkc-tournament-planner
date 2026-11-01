@@ -48,6 +48,8 @@ export interface PlayersUpload {
 interface PlayersImportModalProps {
   onImportAll: (uploads: PlayersUpload[]) => Promise<boolean>;
   onDirtyChange?: (dirty: boolean) => void;
+  /** When false, previously imported file names are ignored (e.g. empty roster). */
+  hasPlayers?: boolean;
 }
 
 // ExcelJS cell -> displayed text (handles formulas)
@@ -81,7 +83,10 @@ const detectNameCols = (
   });
 
   // Try single Name first
-  const nameCol = headerToCol["name"];
+  const nameCol =
+    headerToCol["name"] ??
+    headerToCol["full name"] ??
+    headerToCol["fullname"];
   if (nameCol) return { name: nameCol };
 
   // Else First + Last variants
@@ -138,6 +143,7 @@ const countPlayersUntilEmptyName = (
 export default function PlayersImportModal({
   onImportAll,
   onDirtyChange,
+  hasPlayers = true,
 }: PlayersImportModalProps) {
   const { t } = useTranslation();
 
@@ -229,10 +235,17 @@ export default function PlayersImportModal({
     localStorage.setItem(importedFilesKey, JSON.stringify([...existing]));
   };
 
+  // Empty roster: allow re-importing the same filenames without the warning.
+  useEffect(() => {
+    if (!hasPlayers) localStorage.removeItem(importedFilesKey);
+  }, [hasPlayers, importedFilesKey]);
+
   // helpers -------------------------------------------------------
   const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
   const nameCandidates = [
     "name",
+    "full name",
+    "fullname",
     "first name",
     "firstname",
     "last name",
@@ -420,7 +433,8 @@ export default function PlayersImportModal({
     const alreadyAdded = uploads.some(
       (upload) => normalizeFileName(upload.file.name) === key,
     );
-    const alreadyImported = readImportedFileNames().includes(key);
+    const alreadyImported =
+      hasPlayers && readImportedFileNames().includes(key);
     if (alreadyAdded || alreadyImported) {
       setDuplicateKind(alreadyAdded ? "added" : "imported");
       setDuplicateFile(file);
@@ -618,7 +632,7 @@ export default function PlayersImportModal({
                 >
                   {t(
                     "missing_name_header_msg",
-                    'You must include at least one Name field (e.g. "Name", "First Name", "Last Name").',
+                    'You must include at least one Name field (e.g. "Name", "Full Name", "First Name", "Last Name").',
                   )}
                 </Alert>
               )}

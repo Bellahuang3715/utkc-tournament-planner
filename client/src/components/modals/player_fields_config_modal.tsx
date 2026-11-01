@@ -34,9 +34,6 @@ interface PlayerFieldsConfigProps {
   opened: boolean;
   onClose: () => void;
   onSave: (config: PlayerFieldsConfig) => void;
-  /** When true, show Reset columns (roster must already be empty). */
-  allowReset?: boolean;
-  onReset?: () => Promise<void> | void;
 }
 
 export default function PlayerFieldsConfigModal({
@@ -44,8 +41,6 @@ export default function PlayerFieldsConfigModal({
   opened,
   onClose,
   onSave,
-  allowReset = false,
-  onReset,
 }: PlayerFieldsConfigProps) {
   const theme = useMantineTheme();
   const { t } = useTranslation();
@@ -351,27 +346,6 @@ export default function PlayerFieldsConfigModal({
         primaryLabel={t("save", "Save")}
         primaryDisabled={emptyDropdowns.length > 0}
         onPrimary={() => void handleSave()}
-        leftSection={
-          allowReset && onReset ? (
-            <Button
-              variant="light"
-              color="orange"
-              onClick={async () => {
-                const ok = window.confirm(
-                  t(
-                    "confirm_reset_player_fields",
-                    "Reset player columns? The next Excel import will let you choose columns again.",
-                  ),
-                );
-                if (!ok) return;
-                await onReset();
-                onClose();
-              }}
-            >
-              {t("reset_player_fields", "Reset columns")}
-            </Button>
-          ) : null
-        }
       />
     </Modal>
     <Modal

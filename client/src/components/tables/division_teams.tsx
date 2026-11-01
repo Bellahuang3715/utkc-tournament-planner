@@ -30,9 +30,11 @@ import { categoryChipBackground, chipTextColor } from "../../utils/chipStyle";
 export default function DivisionTeamsTable({
   tournamentId,
   divisionId,
+  onBracketsChanged,
 }: {
   tournamentId: number;
   divisionId: number;
+  onBracketsChanged?: () => void | Promise<void>;
 }) {
   const { t } = useTranslation();
   const [addNewTeamModalOpen, setAddNewTeamModalOpen] = useState(false);
@@ -135,6 +137,7 @@ export default function DivisionTeamsTable({
     });
 
     await postDivisionBracketsTeams(divisionId, seeded, true);
+    await onBracketsChanged?.();
     return true;
   };
 
@@ -198,7 +201,10 @@ export default function DivisionTeamsTable({
     await swrDivisionTeamsResponse.mutate();
   };
 
-  const handleRemoveSelected = async (selectedIds: number[]) => {
+  const handleRemoveSelected = async (
+    tableInstance: { resetRowSelection: () => void },
+    selectedIds: number[],
+  ) => {
     if (locked || !selectedIds.length) return;
 
     if (selectedIds.length > 1) {
@@ -210,6 +216,8 @@ export default function DivisionTeamsTable({
       );
       return;
     }
+
+    tableInstance.resetRowSelection();
 
     const removedId = selectedIds[0];
 
@@ -284,6 +292,7 @@ export default function DivisionTeamsTable({
         }
 
         await replaceDivisionBracketsTeams(divisionId, updated);
+        await onBracketsChanged?.();
       }
     }
 
@@ -296,6 +305,7 @@ export default function DivisionTeamsTable({
     data: teams,
     getRowId: (row) => String(row.id),
     enableRowSelection: true,
+    selectAllMode: "all",
     enableStickyHeader: true,
     enableColumnPinning: true,
     enableRowNumbers: true,
@@ -326,7 +336,7 @@ export default function DivisionTeamsTable({
             variant="light"
             color="red"
             size="xs"
-            onClick={() => handleRemoveSelected(selected)}
+            onClick={() => void handleRemoveSelected(tableInstance, selected)}
             disabled={locked || !selected.length}
           >
             {t("remove_from_division", "Remove from division")}

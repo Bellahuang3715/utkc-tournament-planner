@@ -233,6 +233,7 @@ export default function TeamsTable({
     data: teams,
     getRowId: (row) => String(row.id),
     enableRowSelection: true,
+    selectAllMode: "all",
     enableColumnFilters: true,
     enableSorting: true,
     enablePagination: true,

@@ -17,11 +17,9 @@ import {
 } from "@mantine/core";
 import {
   IconDownload,
-  IconFileSpreadsheet,
   IconListDetails,
   IconPencil,
   IconPlus,
-  IconRefresh,
   IconTrash,
   IconUsers,
 } from "@tabler/icons-react";
@@ -35,7 +33,6 @@ import { Player } from "../../interfaces/player";
 import { FieldInsertable } from "../../interfaces/player_fields";
 import { TournamentMinimal } from "../../interfaces/tournament";
 import { deletePlayer } from "../../services/player";
-import { updatePlayerFields } from "../../services/player_fields";
 import { EmptyRoster } from "../no_content/empty_table_info";
 import RequestErrorAlert from "../utils/error_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
@@ -80,25 +77,6 @@ export default function PlayersTable({
     openCreate("single");
   };
 
-  const resetColumns = async () => {
-    if (players.length > 0) return;
-    const saved = await updatePlayerFields(tournamentData.id, []);
-    if (saved == null) return;
-    await swrPlayerFieldsResponse.mutate();
-  };
-
-  const handleResetColumns = async () => {
-    if (players.length > 0) return;
-    const ok = window.confirm(
-      t(
-        "confirm_reset_player_fields",
-        "Reset player columns? The next Excel import will let you choose columns again.",
-      ),
-    );
-    if (!ok) return;
-    await resetColumns();
-  };
-
   const csvConfig = mkConfig({
     fieldSeparator: ",",
     decimalSeparator: ".",
@@ -136,6 +114,12 @@ export default function PlayersTable({
       await Promise.all(
         rows.map((row) => deletePlayer(tournamentData.id, row.original.id)),
       );
+      const remaining = players.length - rows.length;
+      if (remaining <= 0) {
+        localStorage.removeItem(
+          `imported_player_excels:${tournamentData.id}`,
+        );
+      }
       await swrPlayersResponse.mutate();
     } catch (err) {
       console.error("Failed to delete player(s):", err);
@@ -237,6 +221,7 @@ export default function PlayersTable({
     data: players,
     getRowId: (row) => String(row.id),
     enableRowSelection: true,
+    selectAllMode: "all",
     enableColumnFilters: true,
     enableSorting: true,
     enablePagination: true,
@@ -273,8 +258,9 @@ export default function PlayersTable({
             color="red"
             disabled={!selected.length}
             onClick={async () => {
-              await handleDeleteRows(selected);
               tableInstance.resetRowSelection();
+              tableInstance.resetRowPinning();
+              await handleDeleteRows(selected);
             }}
           >
             {t("delete_selected", "Delete selected")}
@@ -346,8 +332,6 @@ export default function PlayersTable({
         tournament_id={tournamentData.id}
         opened={fieldsModalOpen}
         onClose={() => setFieldsModalOpen(false)}
-        allowReset={players.length === 0 && hasFields}
-        onReset={resetColumns}
         onSave={async () => {
           setFieldsModalOpen(false);
           await swrPlayerFieldsResponse.mutate();
@@ -356,45 +340,21 @@ export default function PlayersTable({
       {players.length === 0 ? (
         <Stack gap="md">
           <Group gap="xs">
+            <Button
+              leftSection={<IconPlus size={16} />}
+              onClick={handleAddPlayer}
+            >
+              {t("add_player_button", "Add player")}
+            </Button>
             {hasFields ? (
-              <>
-                <Button
-                  leftSection={<IconPlus size={16} />}
-                  onClick={handleAddPlayer}
-                >
-                  {t("add_player_button", "Add player")}
-                </Button>
-                <Button
-                  leftSection={<IconFileSpreadsheet size={16} />}
-                  variant="outline"
-                  onClick={() => openCreate("multi")}
-                >
-                  {t("import_players_button", "Import from Excel")}
-                </Button>
-                <Button
-                  leftSection={<IconListDetails size={16} />}
-                  variant="outline"
-                  onClick={() => setFieldsModalOpen(true)}
-                >
-                  {t("configure_template", "Manage Player Fields")}
-                </Button>
-                <Button
-                  leftSection={<IconRefresh size={16} />}
-                  variant="light"
-                  color="orange"
-                  onClick={() => void handleResetColumns()}
-                >
-                  {t("reset_player_fields", "Reset columns")}
-                </Button>
-              </>
-            ) : (
               <Button
-                leftSection={<IconFileSpreadsheet size={16} />}
-                onClick={() => openCreate("multi")}
+                leftSection={<IconListDetails size={16} />}
+                variant="outline"
+                onClick={() => setFieldsModalOpen(true)}
               >
-                {t("import_players_button", "Import from Excel")}
+                {t("configure_template", "Manage Player Fields")}
               </Button>
-            )}
+            ) : null}
           </Group>
           <EmptyRoster
             icon={<IconUsers size={22} stroke={1.5} />}

@@ -27,11 +27,13 @@ export default function DivisionPlayersTable({
   divisionId,
   divisionName = "",
   divisionPrefix,
+  onBracketsChanged,
 }: {
   tournamentId: number;
   divisionId: number;
   divisionName?: string;
   divisionPrefix?: string | null;
+  onBracketsChanged?: () => void | Promise<void>;
 }) {
   const { t } = useTranslation();
 
@@ -73,13 +75,7 @@ export default function DivisionPlayersTable({
     [t],
   );
 
-  const onChangeRosterAndBrackets = async (
-    nextPlayerIds: number[],
-    extraMeta?: Map<
-      number,
-      { id: number; name: string; club: string | null; club_id?: number; code: string | null }
-    >
-  ) => {
+  const onChangeRosterAndBrackets = async (nextPlayerIds: number[]) => {
     const currentBracketsRes = await fetchDivisionBracketsWithPlayers(divisionId);
     const currentBrackets = (currentBracketsRes.data?.data ?? []) as {
       num_players: number;
@@ -110,18 +106,6 @@ export default function DivisionPlayersTable({
 
     const divisionPlayers: DivisionPlayer[] = [];
     for (const id of nextPlayerIds) {
-      const extra = extraMeta?.get(id);
-      if (extra) {
-        divisionPlayers.push({
-          id: extra.id,
-          name: extra.name,
-          club: extra.club ?? "",
-          code: extra.code,
-          participant_number: extra.code ?? null,
-          bias: false,
-        });
-        continue;
-      }
       const p = playerMetaById.get(id);
       if (p) {
         divisionPlayers.push({
@@ -138,6 +122,7 @@ export default function DivisionPlayersTable({
     const seeded = assignBrackets(divisionPlayers, proposedSizes);
 
     await postDivisionBrackets(divisionId, seeded, true);
+    await onBracketsChanged?.();
 
     return true;
   };
@@ -147,7 +132,10 @@ export default function DivisionPlayersTable({
     setAddModalOpen(true);
   };
 
-  const handleRemoveSelected = async (selectedIds: number[]) => {
+  const handleRemoveSelected = async (
+    tableInstance: { resetRowSelection: () => void; resetRowPinning: () => void },
+    selectedIds: number[],
+  ) => {
     if (locked || !selectedIds.length) return;
 
     const names = players
@@ -174,6 +162,11 @@ export default function DivisionPlayersTable({
       );
       return;
     }
+
+    // Clear select-sticky pin/selection before roster updates — otherwise MRT
+    // calls getRow() on the removed id and throws.
+    tableInstance.resetRowSelection();
+    tableInstance.resetRowPinning();
 
     const removedId = selectedIds[0];
 
@@ -260,6 +253,7 @@ export default function DivisionPlayersTable({
         }
 
         await replaceDivisionBrackets(divisionId, updated);
+        await onBracketsChanged?.();
       }
     }
 
@@ -273,6 +267,7 @@ export default function DivisionPlayersTable({
     data: players,
     getRowId: (row) => String(row.id),
     enableRowSelection: true,
+    selectAllMode: "all",
     enableColumnOrdering: true,
     enableStickyHeader: true,
     enableColumnPinning: true,
@@ -298,7 +293,7 @@ export default function DivisionPlayersTable({
             type="button"
             variant="light"
             color="red"
-            onClick={() => handleRemoveSelected(selected)}
+            onClick={() => void handleRemoveSelected(tableInstance, selected)}
             disabled={locked || !selected.length}
           >
             {t("remove_from_division", "Remove from division")}
@@ -343,8 +338,6 @@ export default function DivisionPlayersTable({
         divisionPrefix={divisionPrefix}
         divisionPlayers={players}
         availableToAdd={availableToAdd}
-        allPlayers={allPlayers}
-        playerMetaById={playerMetaById}
         onChangeRosterAndBrackets={onChangeRosterAndBrackets}
         onSuccess={async () => {
           await swrDivisionPlayersResponse.mutate();

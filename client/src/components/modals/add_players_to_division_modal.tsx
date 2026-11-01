@@ -2,28 +2,14 @@ import React, { useMemo, useState } from "react";
 import {
   Alert,
   Modal,
-  Tabs,
-  Button,
   Stack,
-  TextInput,
-  NumberInput,
-  Select,
-  Checkbox,
-  Group,
-  ScrollArea,
   MultiSelect,
 } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
-import { useForm } from "@mantine/form";
 import { useTranslation } from "next-i18next/pages";
-import { getClubs, getPlayerFields } from "../../services/adapter";
-import { createPlayer } from "../../services/player";
 import { updatePlayerCodes } from "../../services/player";
 import { addPlayersToDivision } from "../../services/division";
 import type { Player } from "../../interfaces/player";
-import type { DivisionPlayer } from "../../interfaces/division";
-import type { FieldInsertable, PlayerFieldTypes } from "../../interfaces/player_fields";
-import type { Club } from "../../interfaces/club";
 import ModalFooter from "./modal_footer";
 
 /** Infer division code prefix from name (e.g. "Division E" -> "E") when prefix is empty. */
@@ -72,15 +58,7 @@ interface AddPlayersToDivisionModalProps {
   divisionPrefix?: string | null;
   divisionPlayers: Player[];
   availableToAdd: Player[];
-  allPlayers: Player[];
-  playerMetaById: Map<number, Player>;
-  onChangeRosterAndBrackets: (
-    nextPlayerIds: number[],
-    extraMeta?: Map<
-      number,
-      { id: number; name: string; club: string | null; club_id: number; code: string | null }
-    >
-  ) => Promise<boolean>;
+  onChangeRosterAndBrackets: (nextPlayerIds: number[]) => Promise<boolean>;
   onSuccess: () => void;
 }
 
@@ -93,42 +71,13 @@ export default function AddPlayersToDivisionModal({
   divisionPrefix,
   divisionPlayers,
   availableToAdd,
-  allPlayers,
-  playerMetaById,
   onChangeRosterAndBrackets,
   onSuccess,
 }: AddPlayersToDivisionModalProps) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<string | null>("existing");
   const [adding, setAdding] = useState(false);
-
-  const swrPlayerFieldsResponse = getPlayerFields(tournamentId);
-  const playerFields: FieldInsertable[] = swrPlayerFieldsResponse.data?.fields ?? [];
-  const swrClubs = getClubs();
-  const clubs: Club[] = swrClubs.data?.data ?? [];
-
-  const initialNewPlayer: Record<string, any> = useMemo(() => {
-    const init: Record<string, any> = { name: "", club_id: "" };
-    playerFields
-      .filter((f) => f.include)
-      .forEach((f) => {
-        init[f.key] = f.type === "CHECKBOX" ? false : f.type === "NUMBER" ? 0 : "";
-      });
-    return init;
-  }, [playerFields]);
-
-  const form = useForm({
-    initialValues: initialNewPlayer,
-    validate: {
-      name: (v) => (v && String(v).trim().length > 0 ? null : t("too_short_name_validation", "Name is required")),
-      club_id: (v) =>
-        v != null && String(v).trim().length > 0
-          ? null
-          : t("too_short_club_validation", "Club is required"),
-    },
-  });
-
   const [selectedExistingIds, setSelectedExistingIds] = useState<string[]>([]);
+
   const existingOptions = useMemo(
     () =>
       availableToAdd.map((p) => ({
@@ -166,53 +115,7 @@ export default function AddPlayersToDivisionModal({
     }
   };
 
-  const handleAddNew = form.onSubmit(async (values) => {
-    setAdding(true);
-    try {
-      const data: Record<string, any> = {};
-      playerFields.filter((f) => f.include).forEach((f) => {
-        const v = values[f.key];
-        if (v !== undefined && v !== "" && v !== null) data[f.key] = v;
-      });
-      const clubIdNum = Number(values.club_id);
-      const body = {
-        name: String(values.name).trim(),
-        club_id: clubIdNum,
-        data,
-      };
-      const res = await createPlayer(tournamentId, body);
-      const newId = res?.data?.id;
-      if (newId == null) {
-        window.alert(t("add_players_create_failed", "Failed to create player."));
-        return;
-      }
-      const codes = nextDivisionCodes(divisionName, divisionPrefix, divisionPlayers, 1);
-      if (codes.length === 0) {
-        window.alert(t("add_players_code_error", "Could not generate codes for this division."));
-        return;
-      }
-      const code = codes[0];
-      await updatePlayerCodes(tournamentId, [{ player_id: newId, code }]);
-      const nextIds = [...divisionPlayers.map((p) => p.id), newId];
-      const clubLabel = clubs.find((c) => c.id === clubIdNum)?.name ?? null;
-      const extraMeta = new Map<
-        number,
-        { id: number; name: string; club: string | null; club_id: number; code: string | null }
-      >();
-      extraMeta.set(newId, { id: newId, name: body.name, club: clubLabel, club_id: clubIdNum, code });
-      const applied = await onChangeRosterAndBrackets(nextIds, extraMeta);
-      if (!applied) return;
-      await addPlayersToDivision(divisionId, [newId]);
-      onSuccess();
-      form.reset();
-      onClose();
-    } finally {
-      setAdding(false);
-    }
-  });
-
   const canAddExisting = selectedExistingIds.length > 0 && !adding;
-  const prefix = effectivePrefix(divisionName, divisionPrefix);
 
   return (
     <Modal
@@ -223,124 +126,39 @@ export default function AddPlayersToDivisionModal({
       title={t("add_players_to_division", "Add players to division")}
       size="md"
     >
-      <Tabs value={activeTab} onChange={setActiveTab}>
-        <Tabs.List>
-          <Tabs.Tab value="existing">
-            {t("add_players_from_tournament", "From tournament")} ({availableToAdd.length})
-          </Tabs.Tab>
-          <Tabs.Tab value="new">{t("add_players_new", "New player")}</Tabs.Tab>
-        </Tabs.List>
-
-        <Tabs.Panel value="existing" pt="md">
-          <Stack gap="md">
-            {availableToAdd.length === 0 ? (
-              <Alert
-                variant="light"
-                color="gray"
-                icon={<IconInfoCircle size={16} />}
-              >
-                {t(
-                  "no_available_players_to_add",
-                  "There are no additional players to add to this division.",
-                )}
-              </Alert>
-            ) : (
-              <>
-                <MultiSelect
-                  label={t("select_players", "Select players")}
-                  placeholder={t("search_players", "Search or select…")}
-                  data={existingOptions}
-                  value={selectedExistingIds}
-                  onChange={setSelectedExistingIds}
-                  searchable
-                  clearable
-                />
-                <ModalFooter
-                  onCancel={onClose}
-                  primaryLabel={t("add_selected", "Add selected")}
-                  primaryDisabled={!canAddExisting}
-                  primaryLoading={adding}
-                  onPrimary={() => void handleAddExisting()}
-                />
-              </>
+      <Stack gap="md">
+        {availableToAdd.length === 0 ? (
+          <Alert
+            variant="light"
+            color="gray"
+            icon={<IconInfoCircle size={16} />}
+          >
+            {t(
+              "no_available_players_to_add",
+              "There are no additional players to add to this division.",
             )}
-          </Stack>
-        </Tabs.Panel>
-
-        <Tabs.Panel value="new" pt="md">
-          {!prefix ? (
-            <Alert
-              variant="light"
-              color="orange"
-              icon={<IconInfoCircle size={16} />}
-              mb="sm"
-            >
-              {t(
-                "add_players_no_prefix",
-                "Set a division prefix (e.g. E, F) in division details to auto-assign codes.",
-              )}
-            </Alert>
-          ) : null}
-          <form onSubmit={handleAddNew}>
-            <Stack gap="sm">
-              <TextInput
-                withAsterisk
-                label={t("name_header", "Name")}
-                {...form.getInputProps("name")}
-              />
-              <Select
-                withAsterisk
-                label={t("club_header", "Club")}
-                placeholder={t("club_select_placeholder", "Select club")}
-                data={clubs.map((c) => ({
-                  value: String(c.id),
-                  label: `${c.name} (${c.abbreviation})`,
-                }))}
-                searchable
-                {...form.getInputProps("club_id")}
-              />
-              {playerFields
-                .filter((f) => f.include)
-                .map((f) => {
-                  const key = f.key;
-                  const label = f.label;
-                  switch (f.type as PlayerFieldTypes) {
-                    case "TEXT":
-                      return (
-                        <TextInput key={key} label={label} {...form.getInputProps(key)} />
-                      );
-                    case "NUMBER":
-                      return (
-                        <NumberInput key={key} label={label} hideControls {...form.getInputProps(key)} />
-                      );
-                    case "CHECKBOX":
-                      return (
-                        <Checkbox key={key} label={label} {...form.getInputProps(key, { type: "checkbox" })} />
-                      );
-                    case "DROPDOWN":
-                      return (
-                        <Select
-                          key={key}
-                          label={label}
-                          data={(f.options ?? []).map((o) => ({ value: o, label: o }))}
-                          searchable
-                          {...form.getInputProps(key)}
-                        />
-                      );
-                    default:
-                      return null;
-                  }
-                })}
-              <ModalFooter
-                onCancel={onClose}
-                primaryLabel={t("create_and_add", "Create and add to division")}
-                primaryType="submit"
-                primaryLoading={adding}
-              />
-            </Stack>
-          </form>
-        </Tabs.Panel>
-      </Tabs>
+          </Alert>
+        ) : (
+          <>
+            <MultiSelect
+              label={t("select_players", "Select players")}
+              placeholder={t("search_players", "Search or select…")}
+              data={existingOptions}
+              value={selectedExistingIds}
+              onChange={setSelectedExistingIds}
+              searchable
+              clearable
+            />
+            <ModalFooter
+              onCancel={onClose}
+              primaryLabel={t("add_selected", "Add selected")}
+              primaryDisabled={!canAddExisting}
+              primaryLoading={adding}
+              onPrimary={() => void handleAddExisting()}
+            />
+          </>
+        )}
+      </Stack>
     </Modal>
   );
 }

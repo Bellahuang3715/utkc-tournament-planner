@@ -495,6 +495,9 @@ export default function PlayerCreateModal({
                 <PlayersImportModal
                   onImportAll={handleImportAll}
                   onDirtyChange={setImportDirty}
+                  hasPlayers={
+                    (swrPlayersResponse.data?.data?.players?.length ?? 0) > 0
+                  }
                 />
               </Group>
             </Tabs.Panel>
@@ -503,6 +506,9 @@ export default function PlayerCreateModal({
           <PlayersImportModal
             onImportAll={handleImportAll}
             onDirtyChange={setImportDirty}
+            hasPlayers={
+              (swrPlayersResponse.data?.data?.players?.length ?? 0) > 0
+            }
           />
         )}
       </Modal>
