@@ -138,16 +138,21 @@ export function HeaderAction({
             {items}
           </Group>
           <UserMenu />
-          <ActionIcon
-            variant="default"
-            onClick={() =>
-              setColorScheme(computedColorScheme === "light" ? "dark" : "light")
-            }
-            size={30}
-          >
-            <IconSun size={16} className={classes.light} />
-            <IconMoonStars size={16} className={classes.dark} />
-          </ActionIcon>
+          {/* Dark mode toggle hidden for now — keep wired so it can be re-enabled easily */}
+          {false && (
+            <ActionIcon
+              variant="default"
+              onClick={() =>
+                setColorScheme(
+                  computedColorScheme === "light" ? "dark" : "light",
+                )
+              }
+              size={30}
+            >
+              <IconSun size={16} className={classes.light} />
+              <IconMoonStars size={16} className={classes.dark} />
+            </ActionIcon>
+          )}
         </Group>
       </Container>
     </AppShell.Header>
