@@ -30,7 +30,7 @@ const GUIDES: GuideRole[] = [
       "Create a division: a name, how long a match runs, and the margin between blocks.",
       "Generate brackets. KenManage separates players who share a club, and keeps players you mark as biased apart.",
       "Assign division blocks to courts. Each block’s length comes from the match time and the margin.",
-      "Share the participant code for the public site, and the scorekeeper code for people entering results.",
+      "Share the participant code for the public site (best on a phone), and the scorekeeper code for people entering results.",
     ],
   },
   {
@@ -43,6 +43,7 @@ const GUIDES: GuideRole[] = [
       "Enter the tournament code from your organizer. A pasted link works too.",
       "Find your matches by name or player code.",
       "Read the schedule, which court you are on, the brackets, live scores, and final results.",
+      "The participant site works best on a phone.",
     ],
   },
   {
@@ -72,7 +73,7 @@ export default function GuidePage() {
             <h1 className={`${classes.display} ${classes.pageTitle}`}>What to do first.</h1>
             <p className={classes.deck}>
               A short path for each role. When you are ready, use{" "}
-              <Link href="/welcome#start">Get started</Link> to open the matching entry screen.
+              <Link href="/#start">Get started</Link> to open the matching entry screen.
             </p>
             <div className={classes.tabs} role="tablist" aria-label="Roles" style={{ marginTop: 28 }}>
               {GUIDES.map((item) => (
@@ -101,7 +102,7 @@ export default function GuidePage() {
                 {guide.cta}
               </Link>
               {guide.secondaryHref && guide.secondaryCta ? (
-                <Link className={`${classes.btn} ${classes.ghost}`} href={guide.secondaryHref}>
+                <Link className={`${classes.btn} ${classes.ghostDark}`} href={guide.secondaryHref}>
                   {guide.secondaryCta}
                 </Link>
               ) : null}

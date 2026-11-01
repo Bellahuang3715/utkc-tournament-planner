@@ -86,7 +86,7 @@ export default function JoinTournamentPage() {
       description={
         <>
           Your organizer shares a short code (for example <code>utkc-spring-2026</code>). You can
-          also paste the full participant link.
+          also paste the full participant link. Works best on a phone.
         </>
       }
     >

@@ -24,7 +24,7 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
   useEffect(() => {
     if (!loading && !user && !scorekeeperAllowed) {
-      void router.replace("/welcome");
+      void router.replace("/");
     }
   }, [user, loading, router, scorekeeperAllowed]);
 

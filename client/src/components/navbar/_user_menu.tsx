@@ -2,7 +2,6 @@ import { Avatar, Group, Menu, Text, UnstyledButton } from '@mantine/core';
 import {
   IconChevronDown,
   IconLogout,
-  IconSettings,
   IconUser,
 } from '@tabler/icons-react';
 import { useTranslation } from 'next-i18next/pages';
@@ -72,13 +71,6 @@ export function UserMenu() {
           leftSection={<IconUser size={16} stroke={1.5} />}
         >
           {t('profile_menu_item', 'Profile')}
-        </Menu.Item>
-        <Menu.Item
-          component={Link}
-          href="/user"
-          leftSection={<IconSettings size={16} stroke={1.5} />}
-        >
-          {t('settings_menu_item', 'Settings')}
         </Menu.Item>
         <Menu.Divider />
         <Menu.Item

@@ -44,7 +44,7 @@ export default function CreateAccount() {
 
       const response = await registerUserDb(values, captchaToken);
       console.log("User registered in database:", response);
-      await router.push("/");
+      await router.push("/tournaments");
     }
     catch (error: any) {
       alert(error.message);

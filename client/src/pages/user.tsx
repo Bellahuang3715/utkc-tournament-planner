@@ -103,7 +103,7 @@ export default function UserPage() {
             title={t('edit_profile_title', 'Profile')}
             description={t(
               'edit_profile_subtitle',
-              'Manage your account details and security.',
+              'Manage your account details.',
             )}
           />
           {content}

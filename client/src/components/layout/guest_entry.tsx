@@ -5,7 +5,7 @@ import React from "react";
 import classes from "./guest_entry.module.css";
 
 /**
- * Shared frame for the public entry screens: /welcome and the three
+ * Shared frame for the public entry screens: / and the three
  * choices that leave it (participant, scorekeeper, organizer).
  */
 export function GuestEntryShell({

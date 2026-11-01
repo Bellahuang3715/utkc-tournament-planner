@@ -2,9 +2,11 @@ import { Center, Divider, Group, Tooltip, UnstyledButton } from '@mantine/core';
 import {
   Icon,
   IconBook,
+  IconBook2,
   IconBrackets,
   IconBrandGithub,
   IconBrowser,
+  IconBug,
   IconCalendar,
   IconDots,
   IconHome,
@@ -18,6 +20,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React from 'react';
 
+import { GITHUB_ISSUES_URL, GITHUB_URL } from '../marketing/fixtures';
 import { getBaseApiUrl } from '../../services/adapter';
 import { capitalize } from '../utils/util';
 import classes from './_main_links.module.css';
@@ -76,17 +79,27 @@ export function getBaseLinksDict() {
 
   return [
     { link: '/clubs', label: capitalize(t('clubs_title')), links: [], icon: IconUsers },
-    { link: '/', label: capitalize(t('tournaments_title')), links: [], icon: IconHome },
+    { link: '/tournaments', label: capitalize(t('tournaments_title')), links: [], icon: IconHome },
     {
       icon: IconDots,
       link: '',
       label: t('more_title'),
       links: [
-        { link: 'https://docs.bracketapp.nl/', label: t('website_title'), icon: IconBrowser },
+        { link: '/', label: t('website_title'), icon: IconBrowser },
         {
-          link: 'https://github.com/evroon/bracket',
+          link: '/usage-guide',
+          label: t('usage_guide_title', 'User guide'),
+          icon: IconBook2,
+        },
+        {
+          link: GITHUB_URL,
           label: t('github_title'),
           icon: IconBrandGithub,
+        },
+        {
+          link: GITHUB_ISSUES_URL,
+          label: t('report_bug_title', 'Report a bug'),
+          icon: IconBug,
         },
         { link: `${getBaseApiUrl()}/docs`, label: t('api_docs_title'), icon: IconBook },
       ],

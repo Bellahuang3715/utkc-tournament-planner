@@ -50,7 +50,7 @@ export default function Login() {
   useEffect(() => {
     // Check if user is already logged in, redirect to homepage
     if (auth.currentUser) {
-      router.replace("/");
+      router.replace("/tournaments");
     }
   }, [router]);
 
@@ -63,7 +63,7 @@ export default function Login() {
         icon: <IconCheck />,
         message: "",
       });
-      await router.push("/");
+      await router.push("/tournaments");
     } catch (error) {
       console.error("Login error:", error);
       showNotification({
@@ -83,7 +83,7 @@ export default function Login() {
         icon: <IconCheck />,
         message: "",
       });
-      await router.push("/");
+      await router.push("/tournaments");
     } catch (error) {
       console.error("Google login error:", error);
       showNotification({

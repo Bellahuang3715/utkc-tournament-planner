@@ -1,11 +1,12 @@
 export const MARKETING_TITLES: Record<string, string> = {
-  "/welcome": "KenManage",
+  "/": "KenManage",
   "/guide": "Guide · KenManage",
   "/usage-guide": "Usage Guide · KenManage",
   "/faq": "FAQ · KenManage",
   "/contact": "Contact · KenManage",
   "/license": "License · KenManage",
   // Redirect aliases (must stay public)
+  "/welcome": "KenManage",
   "/about": "KenManage",
   "/features": "KenManage",
 };

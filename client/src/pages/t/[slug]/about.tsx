@@ -27,7 +27,7 @@ export default function ParticipantAboutPage() {
             Licensed under AGPL-3.0.
           </Text>
           <Text size="sm" c="dimmed">
-            <Anchor component={Link} href="/welcome" size="sm">
+            <Anchor component={Link} href="/" size="sm">
               Product site
             </Anchor>
             {' · '}

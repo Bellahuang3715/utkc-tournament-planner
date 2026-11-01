@@ -30,9 +30,9 @@ const NAV_GROUPS: NavGroup[] = [
     id: "product",
     label: "Product",
     items: [
-      { href: "/welcome", label: "Home", description: "Landing page" },
-      { href: "/welcome#about", label: "About", description: "Why KenManage exists" },
-      { href: "/welcome#start", label: "Get started", description: "Pick your role" },
+      { href: "/", label: "Home", description: "Landing page" },
+      { href: "/#about", label: "About", description: "Why KenManage exists" },
+      { href: "/#start", label: "Get started", description: "Pick your role" },
     ],
   },
   {
@@ -190,7 +190,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
     <div className={classes.page}>
       <header className={classes.header}>
         <div className={`${classes.wrap} ${classes.headerInner}`}>
-          <Link href="/welcome" className={classes.brand} aria-label="KenManage home">
+          <Link href="/" className={classes.brand} aria-label="KenManage home">
             <img className={classes.brandLogo} src={LOGO_SRC} alt="" />
             <span className={classes.brandName}>KenManage</span>
           </Link>
@@ -241,7 +241,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
                 </div>
               );
             })}
-            <Link href="/welcome#start" className={classes.loginLink}>
+            <Link href="/#start" className={classes.loginLink}>
               Get started
             </Link>
           </nav>
@@ -276,7 +276,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
             </div>
           ))}
           <Link
-            href="/welcome#start"
+            href="/#start"
             className={classes.mobileNavCta}
             onClick={() => setMobileOpen(false)}
           >

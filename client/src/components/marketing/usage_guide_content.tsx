@@ -87,7 +87,7 @@ export function UsageGuideContent() {
       <h2 id="account">2. Create an account</h2>
       <p>
         Open <Link href="/register">Register</Link> or <Link href="/login">Log in</Link> from{" "}
-        <Link href="/welcome#start">Get started</Link>.
+        <Link href="/#start">Get started</Link>.
       </p>
       <h3>Email registration</h3>
       <ol>
@@ -186,7 +186,8 @@ export function UsageGuideContent() {
       <p>
         The participant code is the slug in <code>/t/&#123;endpoint&#125;</code>. Share that path (or
         the join flow at <Link href="/join">/join</Link>) with competitors and spectators. Copy the
-        link from Settings when ready.
+        link from Settings when ready. The participant site works best on a phone — tell people to
+        open it on mobile when you share the code.
       </p>
       <h3>Publish vs preview</h3>
       <ul>
@@ -429,7 +430,8 @@ blockMins = max(10, round(raw / 10) × 10)`}</code>
       <p>
         With the participant code (and publish or preview as needed), people open pages under{" "}
         <code>/t/&#123;slug&#125;</code>: home, matches lookup, participants, schedule, brackets,
-        scores, about. Preview links must keep the <code>?preview=</code> query when navigating.
+        scores, about. The experience is designed for phones. Preview links must keep the{" "}
+        <code>?preview=</code> query when navigating.
       </p>
       <h3>Scorekeepers</h3>
       <ol>

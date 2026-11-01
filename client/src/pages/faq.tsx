@@ -9,7 +9,7 @@ import classes from "../components/landing/landing.module.css";
 const QUESTIONS = [
   {
     q: "Do participants need an account?",
-    a: "No. Participants enter the tournament code from the organizer and open the public site. Scorekeepers use a separate access code. Only organizers sign in.",
+    a: "No. Participants enter the tournament code from the organizer and open the public site. Scorekeepers use a separate access code. Only organizers sign in. The participant site works best on a phone.",
   },
   {
     q: "What are the two codes?",

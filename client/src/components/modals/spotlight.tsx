@@ -27,7 +27,7 @@ export function BracketSpotlight() {
       id: 'home',
       title: t('home_title'),
       description: t('home_spotlight_description'),
-      onClick: () => router.push('/'),
+      onClick: () => router.push('/tournaments'),
       leftSection: <IconHome size="1.2rem" />,
     },
     {

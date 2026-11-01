@@ -18,7 +18,7 @@ import assert from "assert";
 import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import { useRouter } from "next/router";
-import React from "react";
+import React, { useEffect } from "react";
 import { SWRResponse, mutate } from "swr";
 
 import { PageHeader } from "../../../components/layout/page_header";
@@ -62,6 +62,16 @@ export function TournamentLogo({
   );
 }
 
+function settingsValuesFromTournament(tournament: Tournament) {
+  return {
+    start_time: new Date(tournament.start_time),
+    name: tournament.name,
+    dashboard_public: tournament.dashboard_public,
+    dashboard_endpoint: tournament.dashboard_endpoint,
+    auto_assign_courts: tournament.auto_assign_courts,
+  };
+}
+
 function GeneralTournamentForm({
   tournament,
   swrTournamentResponse,
@@ -73,13 +83,7 @@ function GeneralTournamentForm({
   const { t } = useTranslation();
 
   const form = useForm({
-    initialValues: {
-      start_time: new Date(tournament.start_time),
-      name: tournament.name,
-      dashboard_public: tournament.dashboard_public,
-      dashboard_endpoint: tournament.dashboard_endpoint,
-      auto_assign_courts: tournament.auto_assign_courts,
-    },
+    initialValues: settingsValuesFromTournament(tournament),
 
     validate: {
       name: (value) =>
@@ -88,6 +92,47 @@ function GeneralTournamentForm({
         value != null ? null : t("start_time_choose_title"),
     },
   });
+
+  useEffect(() => {
+    const values = settingsValuesFromTournament(tournament);
+    form.setValues(values);
+    form.resetDirty(values);
+  }, [
+    tournament.id,
+    tournament.start_time,
+    tournament.name,
+    tournament.dashboard_public,
+    tournament.dashboard_endpoint,
+    tournament.auto_assign_courts,
+  ]);
+
+  const dirty = form.isDirty();
+
+  useEffect(() => {
+    if (!dirty) return;
+
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    const onRouteStart = (url: string) => {
+      if (url === router.asPath) return;
+      const ok = window.confirm(
+        t("unsaved_prompt", "You have unsaved changes. Continue anyway?"),
+      );
+      if (!ok) {
+        router.events.emit("routeChangeError");
+        throw "Route change aborted.";
+      }
+    };
+
+    window.addEventListener("beforeunload", onBeforeUnload);
+    router.events.on("routeChangeStart", onRouteStart);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      router.events.off("routeChangeStart", onRouteStart);
+    };
+  }, [dirty, router, t]);
 
   return (
     <form
@@ -102,6 +147,7 @@ function GeneralTournamentForm({
           toIsoFromPicker(values.start_time),
         );
 
+        form.resetDirty(values);
         await swrTournamentResponse.mutate();
       })}
     >
@@ -134,158 +180,221 @@ function GeneralTournamentForm({
           </Group>
         </Stack>
       </Fieldset>
-      <Fieldset legend={t("dashboard_settings_title")} radius="md">
+      <Fieldset
+        legend={t("dashboard_settings_title", "Participant access")}
+        radius="md"
+      >
         <Stack gap="sm">
-        <Text fz="sm">
-          Tournament code for participants (share this — they enter it on the join page)
-        </Text>
-        <Group align="flex-end" wrap="wrap" gap="sm">
           <TextInput
-            style={{ flex: "1 1 12rem" }}
+            label={t(
+              "participant_code_label",
+              "Tournament code for participants",
+            )}
+            description={t(
+              "participant_code_description",
+              "Share this — they enter it on the join page. The participant site works best on a phone.",
+            )}
             placeholder={t("dashboard_link_placeholder")}
             {...form.getInputProps("dashboard_endpoint")}
           />
-          <CopyButton
-            value={form.values.dashboard_endpoint ?? ""}
-          >
-            {({ copied, copy }) => (
-              <Button
-                disabled={!form.values.dashboard_endpoint}
-                leftSection={<IconCopy size="1.1rem" stroke={1.5} />}
-                color={copied ? "teal" : "indigo"}
-                onClick={copy}
-              >
-                {copied ? t("copied_url_button") : "Copy code"}
-              </Button>
+          <Group align="flex-end" wrap="wrap" gap="sm">
+            <CopyButton value={form.values.dashboard_endpoint ?? ""}>
+              {({ copied, copy }) => (
+                <Button
+                  disabled={!form.values.dashboard_endpoint}
+                  leftSection={<IconCopy size="1.1rem" stroke={1.5} />}
+                  variant="light"
+                  color={copied ? "teal" : "indigo"}
+                  onClick={copy}
+                >
+                  {copied ? t("copied_url_button") : t("copy_code_button", "Copy code")}
+                </Button>
+              )}
+            </CopyButton>
+          </Group>
+
+          <TextInput
+            mt="xs"
+            label={t("participant_link_label", "Direct participant link")}
+            description={t(
+              "participant_link_description",
+              "Opens the public tournament site.",
             )}
-          </CopyButton>
-        </Group>
-
-        <Text fz="sm" mt="xs">
-          Direct participant link
-        </Text>
-        <CopyButton
-          value={
-            form.values.dashboard_endpoint
-              ? `${getBaseURL()}/t/${form.values.dashboard_endpoint}`
-              : ""
-          }
-        >
-          {({ copied, copy }) => (
-            <Button
-              disabled={!form.values.dashboard_endpoint}
-              leftSection={<IconCopy size="1.1rem" stroke={1.5} />}
-              variant="light"
-              color={copied ? "teal" : "indigo"}
-              onClick={copy}
+            readOnly
+            value={
+              form.values.dashboard_endpoint
+                ? `${getBaseURL()}/t/${form.values.dashboard_endpoint}`
+                : ""
+            }
+            placeholder={t(
+              "participant_link_placeholder",
+              "Set a tournament code above to generate a link",
+            )}
+          />
+          <Group align="flex-end" wrap="wrap" gap="sm">
+            <CopyButton
+              value={
+                form.values.dashboard_endpoint
+                  ? `${getBaseURL()}/t/${form.values.dashboard_endpoint}`
+                  : ""
+              }
             >
-              {copied ? t("copied_url_button") : "Copy participant URL"}
-            </Button>
-          )}
-        </CopyButton>
+              {({ copied, copy }) => (
+                <Button
+                  disabled={!form.values.dashboard_endpoint}
+                  leftSection={<IconCopy size="1.1rem" stroke={1.5} />}
+                  variant="light"
+                  color={copied ? "teal" : "indigo"}
+                  onClick={copy}
+                >
+                  {copied
+                    ? t("copied_url_button")
+                    : t("copy_link_button", "Copy link")}
+                </Button>
+              )}
+            </CopyButton>
+          </Group>
 
-        <Checkbox
-          mt="xs"
-          label="Publish participant site (anyone with the public link can view)"
-          {...form.getInputProps("dashboard_public", { type: "checkbox" })}
-        />
+          <Checkbox
+            mt="xs"
+            label={t(
+              "publish_participant_site_label",
+              "Publish participant site (anyone with the public link can view)",
+            )}
+            {...form.getInputProps("dashboard_public", { type: "checkbox" })}
+          />
 
-        <Text fz="sm" mt="xs">
-          Preview link (works even when unpublished). Share only with staff.
-        </Text>
-        <Group align="flex-end" wrap="wrap" gap="sm">
-          <CopyButton
+          <TextInput
+            mt="xs"
+            label={t("preview_link_label", "Preview link")}
+            description={t(
+              "preview_link_description",
+              "Works even when unpublished. Share only with staff.",
+            )}
+            readOnly
             value={
               form.values.dashboard_endpoint && tournament.dashboard_preview_token
                 ? `${getBaseURL()}/t/${form.values.dashboard_endpoint}?preview=${tournament.dashboard_preview_token}`
                 : ""
             }
-          >
-            {({ copied, copy }) => (
-              <Button
-                disabled={
-                  !form.values.dashboard_endpoint ||
-                  !tournament.dashboard_preview_token
-                }
-                leftSection={<IconCopy size="1.1rem" stroke={1.5} />}
-                color={copied ? "teal" : "gray"}
-                variant="light"
-                onClick={copy}
-              >
-                {copied ? t("copied_url_button") : "Copy preview URL"}
-              </Button>
+            placeholder={t(
+              "preview_link_placeholder",
+              "Set a tournament code to generate a preview link",
             )}
-          </CopyButton>
-          <Button
-            variant="outline"
-            color="orange"
-            leftSection={<IconRefresh size="1.1rem" stroke={1.5} />}
-            onClick={async () => {
-              await rotateDashboardPreviewToken(tournament.id);
-              await swrTournamentResponse.mutate();
-            }}
-          >
-            Regenerate preview
-          </Button>
-        </Group>
-        <Text size="xs" c="dimmed">
-          Regenerating invalidates the previous preview link immediately.
-        </Text>
+          />
+          <Group align="flex-end" wrap="wrap" gap="sm">
+            <CopyButton
+              value={
+                form.values.dashboard_endpoint &&
+                tournament.dashboard_preview_token
+                  ? `${getBaseURL()}/t/${form.values.dashboard_endpoint}?preview=${tournament.dashboard_preview_token}`
+                  : ""
+              }
+            >
+              {({ copied, copy }) => (
+                <Button
+                  disabled={
+                    !form.values.dashboard_endpoint ||
+                    !tournament.dashboard_preview_token
+                  }
+                  leftSection={<IconCopy size="1.1rem" stroke={1.5} />}
+                  variant="light"
+                  color={copied ? "teal" : "indigo"}
+                  onClick={copy}
+                >
+                  {copied
+                    ? t("copied_url_button")
+                    : t("copy_link_button", "Copy link")}
+                </Button>
+              )}
+            </CopyButton>
+            <Button
+              variant="outline"
+              color="orange"
+              leftSection={<IconRefresh size="1.1rem" stroke={1.5} />}
+              onClick={async () => {
+                await rotateDashboardPreviewToken(tournament.id);
+                await swrTournamentResponse.mutate();
+              }}
+            >
+              {t("regenerate_preview_button", "Regenerate preview")}
+            </Button>
+          </Group>
+          <Text size="xs" c="dimmed">
+            {t(
+              "regenerate_preview_note",
+              "Regenerating invalidates the previous preview link immediately.",
+            )}
+          </Text>
         </Stack>
       </Fieldset>
 
-      <Fieldset legend="Scorekeeper access" radius="md">
+      <Fieldset
+        legend={t("scorekeeper_access_title", "Scorekeeper access")}
+        radius="md"
+      >
         <Stack gap="sm">
-        <Text fz="sm">
-          Share this code with volunteers. They enter it at /scorekeeping to
-          open the scores page only (no account required).
-        </Text>
-        <Group align="flex-end" wrap="wrap" gap="sm">
-          <CopyButton value={tournament.scorekeeper_token ?? ""}>
-            {({ copied, copy }) => (
-              <Button
-                disabled={!tournament.scorekeeper_token}
-                leftSection={<IconCopy size="1.1rem" stroke={1.5} />}
-                color={copied ? "teal" : "indigo"}
-                variant="light"
-                onClick={copy}
-              >
-                {copied
-                  ? t("copied_url_button")
-                  : tournament.scorekeeper_token
-                    ? "Copy access code"
-                    : "No code yet"}
-              </Button>
+          <TextInput
+            label={t("scorekeeper_code_label", "Scorekeeper access code")}
+            description={t(
+              "scorekeeper_code_description",
+              "Share with volunteers. They enter it at /scorekeeping to open the scores page only (no account required).",
             )}
-          </CopyButton>
-          <Button
-            variant="outline"
-            color="orange"
-            leftSection={<IconRefresh size="1.1rem" stroke={1.5} />}
-            onClick={async () => {
-              await rotateScorekeeperToken(tournament.id);
-              await swrTournamentResponse.mutate();
-            }}
-          >
-            {tournament.scorekeeper_token ? "Rotate code" : "Generate code"}
-          </Button>
-          <Button
-            variant="outline"
-            color="red"
-            disabled={!tournament.scorekeeper_token}
-            leftSection={<IconTrash size="1.1rem" stroke={1.5} />}
-            onClick={async () => {
-              await clearScorekeeperToken(tournament.id);
-              await swrTournamentResponse.mutate();
-            }}
-          >
-            Disable
-          </Button>
-        </Group>
-        <Text size="xs" c="dimmed">
-          Rotating or disabling invalidates the code immediately. After the
-          tournament, disable or rotate so volunteers lose access.
-        </Text>
+            readOnly
+            value={tournament.scorekeeper_token ?? ""}
+            placeholder={t(
+              "scorekeeper_code_placeholder",
+              "No code yet — generate one below",
+            )}
+          />
+          <Group align="flex-end" wrap="wrap" gap="sm">
+            <CopyButton value={tournament.scorekeeper_token ?? ""}>
+              {({ copied, copy }) => (
+                <Button
+                  disabled={!tournament.scorekeeper_token}
+                  leftSection={<IconCopy size="1.1rem" stroke={1.5} />}
+                  variant="light"
+                  color={copied ? "teal" : "indigo"}
+                  onClick={copy}
+                >
+                  {copied
+                    ? t("copied_url_button")
+                    : t("copy_code_button", "Copy code")}
+                </Button>
+              )}
+            </CopyButton>
+            <Button
+              variant="outline"
+              color="orange"
+              leftSection={<IconRefresh size="1.1rem" stroke={1.5} />}
+              onClick={async () => {
+                await rotateScorekeeperToken(tournament.id);
+                await swrTournamentResponse.mutate();
+              }}
+            >
+              {tournament.scorekeeper_token
+                ? t("rotate_code_button", "Rotate code")
+                : t("generate_code_button", "Generate code")}
+            </Button>
+            <Button
+              variant="outline"
+              color="red"
+              disabled={!tournament.scorekeeper_token}
+              leftSection={<IconTrash size="1.1rem" stroke={1.5} />}
+              onClick={async () => {
+                await clearScorekeeperToken(tournament.id);
+                await swrTournamentResponse.mutate();
+              }}
+            >
+              {t("disable_code_button", "Disable")}
+            </Button>
+          </Group>
+          <Text size="xs" c="dimmed">
+            {t(
+              "scorekeeper_code_note",
+              "Rotating or disabling invalidates the code immediately. After the tournament, disable or rotate so volunteers lose access.",
+            )}
+          </Text>
         </Stack>
       </Fieldset>
 
@@ -350,25 +459,48 @@ function GeneralTournamentForm({
         </Stack>
       </Fieldset>
 
-      <Group>
-        <Button color="green" type="submit">
-          {t("save_button")}
-        </Button>
-        <Button
-          variant="outline"
-          color="red"
-          leftSection={<MdDelete size={20} />}
-          onClick={async () => {
-            await deleteTournament(tournament.id)
-              .then(async () => {
-                await router.push("/");
-              })
-              .catch((response: any) => handleRequestError(response));
-          }}
-        >
-          {t("delete_tournament_button")}
-        </Button>
-      </Group>
+      <Fieldset
+        legend={t("danger_zone_title", "Danger zone")}
+        radius="md"
+      >
+        <Stack gap="sm">
+          <Text size="sm" c="dimmed">
+            {t(
+              "delete_tournament_description",
+              "Permanently delete this tournament and all of its data. This cannot be undone.",
+            )}
+          </Text>
+          <Button
+            type="button"
+            variant="outline"
+            color="red"
+            leftSection={<MdDelete size={20} />}
+            onClick={async () => {
+              if (
+                !confirm(
+                  t(
+                    "confirm_delete_tournament",
+                    "Delete this tournament permanently? This cannot be undone.",
+                  ),
+                )
+              ) {
+                return;
+              }
+              await deleteTournament(tournament.id)
+                .then(async () => {
+                  await router.push("/tournaments");
+                })
+                .catch((response: any) => handleRequestError(response));
+            }}
+          >
+            {t("delete_tournament_button")}
+          </Button>
+        </Stack>
+      </Fieldset>
+
+      <Button fullWidth color="green" type="submit">
+        {t("save_button")}
+      </Button>
       </Stack>
     </form>
   );

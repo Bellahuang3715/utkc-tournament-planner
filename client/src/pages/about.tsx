@@ -1,13 +1,13 @@
 import { GetServerSideProps } from "next";
 
-/** About content now lives on Home (/welcome). */
+/** About content now lives on Home (/). */
 export default function AboutRedirectPage() {
   return null;
 }
 
 export const getServerSideProps: GetServerSideProps = async () => ({
   redirect: {
-    destination: "/welcome#about",
+    destination: "/#about",
     permanent: false,
   },
 });

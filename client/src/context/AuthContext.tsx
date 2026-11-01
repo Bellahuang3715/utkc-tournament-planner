@@ -8,6 +8,7 @@ import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
   signOut,
+  updatePassword,
   updateProfile,
   User,
   signInWithPopup,
@@ -21,9 +22,11 @@ import { Translator } from '../components/utils/types';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  hasPasswordProvider: boolean;
   registerUser: (email: string, password: string, name: string) => Promise<User>;
   loginWithEmailAndPassword: (email: string, password: string) => Promise<User>;
   loginWithGoogle: () => Promise<User>;
+  updateUserPassword: (password: string) => Promise<void>;
   getUser: () => UserInterface | null;
   logout: (t: Translator, router: NextRouter) => Promise<void>;
 }
@@ -103,6 +106,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const hasPasswordProvider =
+    user?.providerData.some((provider) => provider.providerId === "password") ??
+    false;
+
+  // Update Firebase password (email/password accounts only)
+  const updateUserPassword = async (password: string) => {
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+    if (!user.providerData.some((provider) => provider.providerId === "password")) {
+      throw new Error("Password updates are only available for email accounts");
+    }
+    await updatePassword(user, password);
+  };
+
   // Logout user with notification and redirect
   const logout = async (t: Translator, router: NextRouter) => {
     try {
@@ -127,7 +145,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, registerUser, getUser, loginWithEmailAndPassword, loginWithGoogle, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        hasPasswordProvider,
+        registerUser,
+        getUser,
+        loginWithEmailAndPassword,
+        loginWithGoogle,
+        updateUserPassword,
+        logout,
+      }}
+    >
       {!loading && children}
     </AuthContext.Provider>
   );

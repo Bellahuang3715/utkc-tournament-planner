@@ -6,6 +6,7 @@ import {
   Container,
   Group,
   Menu,
+  Text,
   useComputedColorScheme,
   useMantineColorScheme,
 } from "@mantine/core";
@@ -15,6 +16,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { ReactNode } from "react";
 
+import { CONTACT_EMAIL, CONTACT_MAILTO } from "../components/marketing/fixtures";
 import { Brand } from "../components/navbar/_brand";
 import {
   getBaseLinks,
@@ -42,7 +44,13 @@ function getMenuItemsForLink(
   pathName: string
 ) {
   const menuItems = link.links?.map((item) => (
-    <Link key={item.label} href={item.link} className={classes.link}>
+    <Link
+      key={item.label}
+      href={item.link}
+      className={classes.link}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
       <Center>
         <item.icon />
         <span style={{ marginLeft: "0.25rem", marginTop: "0.2rem" }}>
@@ -54,18 +62,24 @@ function getMenuItemsForLink(
   return (
     <Menu
       key={link.label}
-      trigger="hover"
+      trigger="click-hover"
       transitionProps={{ exitDuration: 0 }}
       withinPortal
     >
       <Menu.Target>
-        <Link
-          href={link.link || ""}
-          className={classes.link}
-          data-active={pathName === link.link || undefined}
-        >
-          {link.label}
-        </Link>
+        {link.link ? (
+          <Link
+            href={link.link}
+            className={classes.link}
+            data-active={pathName === link.link || undefined}
+          >
+            {link.label}
+          </Link>
+        ) : (
+          <button type="button" className={classes.link}>
+            {link.label}
+          </button>
+        )}
       </Menu.Target>
       {menuItems.length > 0 ? <Menu.Dropdown>{menuItems}</Menu.Dropdown> : null}
     </Menu>
@@ -169,9 +183,12 @@ export default function Layout({
     </AppShell.Section>
   );
 
+  const year = new Date().getFullYear();
+
   return (
     <AppShell
       header={{ height: 60 }}
+      footer={{ height: 44 }}
       navbar={{
         width: 80,
         breakpoint: "sm",
@@ -190,6 +207,19 @@ export default function Layout({
       />
       <NavBar links={linksComponent} />
       <AppShell.Main>{children}</AppShell.Main>
+      <AppShell.Footer className={classes.footer}>
+        <Container fluid className={classes.footerInner}>
+          <Text size="xs" c="dimmed">
+            © {year} KenManage. Free software under AGPL-3.0.
+          </Text>
+          <Text size="xs" c="dimmed">
+            Contact:{" "}
+            <a href={CONTACT_MAILTO} className={classes.footerLink}>
+              {CONTACT_EMAIL}
+            </a>
+          </Text>
+        </Container>
+      </AppShell.Footer>
     </AppShell>
   );
 }

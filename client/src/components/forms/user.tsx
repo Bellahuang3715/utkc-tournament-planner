@@ -12,7 +12,8 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { showNotification } from '@mantine/notifications';
-import { IconCheck, IconLogout } from '@tabler/icons-react';
+import { IconCheck } from '@tabler/icons-react';
+import { FirebaseError } from 'firebase/app';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next/pages';
 import { CircleFlag } from 'react-circle-flags';
@@ -27,22 +28,26 @@ import {
 import { PasswordStrength } from '../utils/password';
 import { useAuth } from '../../context/AuthContext';
 
+function profileValuesFromUser(user: UserInterface) {
+  return {
+    name: user.name ?? '',
+    email: user.email ?? '',
+    phone: user.phone ?? '',
+    organization: user.organization ?? '',
+    title: user.title ?? '',
+    city: user.city ?? '',
+    country: user.country || DEFAULT_COUNTRY,
+    bio: user.bio ?? '',
+  };
+}
+
 export default function UserForm({ user }: { user: UserInterface }) {
   const { t } = useTranslation();
-  const { logout } = useAuth();
   const router = useRouter();
+  const { hasPasswordProvider, updateUserPassword } = useAuth();
 
   const detailsForm = useForm({
-    initialValues: {
-      name: user.name ?? '',
-      email: user.email ?? '',
-      phone: user.phone ?? '',
-      organization: user.organization ?? '',
-      title: user.title ?? '',
-      city: user.city ?? '',
-      country: user.country || DEFAULT_COUNTRY,
-      bio: user.bio ?? '',
-    },
+    initialValues: profileValuesFromUser(user),
     validate: {
       name: (value) => (value !== '' ? null : t('empty_name_validation')),
       email: (value) => (value !== '' ? null : t('empty_email_validation')),
@@ -60,21 +65,39 @@ export default function UserForm({ user }: { user: UserInterface }) {
   });
 
   useEffect(() => {
-    detailsForm.setValues({
-      name: user.name ?? '',
-      email: user.email ?? '',
-      phone: user.phone ?? '',
-      organization: user.organization ?? '',
-      title: user.title ?? '',
-      city: user.city ?? '',
-      country: user.country || DEFAULT_COUNTRY,
-      bio: user.bio ?? '',
-    });
+    const values = profileValuesFromUser(user);
+    detailsForm.setValues(values);
+    detailsForm.resetDirty(values);
   }, [user]);
 
-  const createdLabel = user.created
-    ? new Date(user.created).toLocaleString()
-    : '—';
+  const dirty =
+    detailsForm.isDirty() || passwordForm.values.password.length > 0;
+
+  useEffect(() => {
+    if (!dirty) return;
+
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    const onRouteStart = (url: string) => {
+      if (url === router.asPath) return;
+      const ok = window.confirm(
+        t('unsaved_prompt', 'You have unsaved changes. Continue anyway?'),
+      );
+      if (!ok) {
+        router.events.emit('routeChangeError');
+        throw 'Route change aborted.';
+      }
+    };
+
+    window.addEventListener('beforeunload', onBeforeUnload);
+    router.events.on('routeChangeStart', onRouteStart);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      router.events.off('routeChangeStart', onRouteStart);
+    };
+  }, [dirty, router, t]);
 
   return (
     <Box maw={560} w="100%">
@@ -90,6 +113,7 @@ export default function UserForm({ user }: { user: UserInterface }) {
             country: values.country?.trim() || DEFAULT_COUNTRY,
             bio: values.bio || null,
           });
+          detailsForm.resetDirty(values);
           showNotification({
             title: t('success', 'Saved'),
             message: t('profile_saved', 'Your profile was updated'),
@@ -124,7 +148,7 @@ export default function UserForm({ user }: { user: UserInterface }) {
           <Textarea
             mt="sm"
             label={t('bio_input_label', 'About')}
-            placeholder={t('bio_input_placeholder', 'A short bio (optional)')}
+            placeholder={t('bio_input_placeholder', 'A short bio')}
             minRows={3}
             autosize
             {...detailsForm.getInputProps('bio')}
@@ -186,59 +210,50 @@ export default function UserForm({ user }: { user: UserInterface }) {
         </Button>
       </form>
 
-      <Fieldset legend={t('security_section', 'Security')} mt="xl" radius="md">
-        <Text size="sm" c="dimmed" mb="sm">
-          {t('change_password_description', 'Update your account password')}
-        </Text>
-        <form
-          onSubmit={passwordForm.onSubmit(async (values) => {
-            await updatePassword(user.id, values.password);
-            passwordForm.reset();
-            showNotification({
-              title: t('success', 'Saved'),
-              message: t('password_saved', 'Your password was updated'),
-              color: 'green',
-              icon: <IconCheck size={16} />,
-            });
-          })}
-        >
-          <PasswordStrength form={passwordForm} />
-          <Button fullWidth mt="md" color="green" type="submit">
-            {t('update_password_button', 'Update password')}
-          </Button>
-        </form>
-      </Fieldset>
-
-      <Fieldset legend={t('account_section', 'Account')} mt="xl" radius="md">
-        <Grid>
-          <Grid.Col span={{ sm: 6 }}>
-            <Text size="xs" c="dimmed" tt="uppercase">
-              {t('account_type_label', 'Account type')}
-            </Text>
-            <Text size="sm" fw={500}>
-              {user.account_type || '—'}
-            </Text>
-          </Grid.Col>
-          <Grid.Col span={{ sm: 6 }}>
-            <Text size="xs" c="dimmed" tt="uppercase">
-              {t('member_since_label', 'Member since')}
-            </Text>
-            <Text size="sm" fw={500}>
-              {createdLabel}
-            </Text>
-          </Grid.Col>
-        </Grid>
-        <Button
-          fullWidth
-          mt="lg"
-          color="red"
-          variant="outline"
-          leftSection={<IconLogout size={18} />}
-          onClick={() => logout(t, router)}
-        >
-          {t('logout_title')}
-        </Button>
-      </Fieldset>
+      {hasPasswordProvider && (
+        <Fieldset legend={t('security_section', 'Security')} mt="xl" radius="md">
+          <Text size="sm" c="dimmed" mb="sm">
+            {t('change_password_description', 'Update your account password')}
+          </Text>
+          <form
+            onSubmit={passwordForm.onSubmit(async (values) => {
+              try {
+                await updateUserPassword(values.password);
+                await updatePassword(user.id, values.password);
+                passwordForm.reset();
+                showNotification({
+                  title: t('success', 'Saved'),
+                  message: t('password_saved', 'Your password was updated'),
+                  color: 'green',
+                  icon: <IconCheck size={16} />,
+                });
+              } catch (error) {
+                const needsReauth =
+                  error instanceof FirebaseError &&
+                  error.code === 'auth/requires-recent-login';
+                showNotification({
+                  color: 'red',
+                  title: t('error', 'Error'),
+                  message: needsReauth
+                    ? t(
+                        'password_reauth_required',
+                        'For security, sign out and sign in again before changing your password.'
+                      )
+                    : t(
+                        'password_update_error',
+                        'Could not update your password. Please try again.'
+                      ),
+                });
+              }
+            })}
+          >
+            <PasswordStrength form={passwordForm} />
+            <Button fullWidth mt="md" color="green" type="submit">
+              {t('update_password_button', 'Update password')}
+            </Button>
+          </form>
+        </Fieldset>
+      )}
     </Box>
   );
 }

@@ -417,6 +417,7 @@ export const PROBLEM_TOPICS: ProblemTopic[] = [
       "Share a participant code — no account needed",
       "Look up by name or player code",
       "See schedule, brackets, and live scores on the public site",
+      "Works best on a phone",
     ],
   },
   {

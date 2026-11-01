@@ -7,7 +7,7 @@ export default function FeaturesRedirectPage() {
 
 export const getServerSideProps: GetServerSideProps = async () => ({
   redirect: {
-    destination: "/welcome",
+    destination: "/",
     permanent: false,
   },
 });
