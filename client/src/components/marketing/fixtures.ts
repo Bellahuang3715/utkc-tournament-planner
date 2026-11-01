@@ -1,8 +1,9 @@
 export const GITHUB_URL = "https://github.com/Bellahuang3715/utkc-tournament-planner";
 export const GITHUB_ISSUES_URL = `${GITHUB_URL}/issues`;
-export const DISCORD_URL = "https://discord.gg/TDSBsXj6Ck";
 export const BRACKET_URL = "https://github.com/evroon/bracket";
 export const LICENSE_FILE_URL = `${GITHUB_URL}/blob/main/LICENSE`;
+export const CONTACT_EMAIL = "kenmanage@gmail.com";
+export const CONTACT_MAILTO = `mailto:${CONTACT_EMAIL}`;
 
 export type DemoPlayer = {
   id: string;

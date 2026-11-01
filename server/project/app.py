@@ -78,42 +78,49 @@ routers = {
     "Users": users.router,
 }
 
-table_of_contents = "\n\n".join(
-    [f"- [{tag}](#tag/{tag.replace(' ', '-')})" for tag in routers.keys()]
-)
-
-
-description = f"""
+description = """
 ### Description
-This API allows you to do everything the frontend of [Bracket](https://github.com/evroon/bracket)
-allows you to do (the frontend uses this API as well).
+This is the HTTP API for **KenManage**, open-source kendo tournament software.
+The web app uses these endpoints for organizers, scorekeepers, and the public
+participant dashboard.
 
-Fore more information, see the [documentation](https://docs.bracketapp.nl).
+KenManage grew out of [Bracket](https://github.com/evroon/bracket); this API and
+product are maintained separately.
 
-### Table of Contents
-*(links only work for [ReDoc](https://api.bracketapp.nl/redoc), not for Swagger UI)*
+For organizer-oriented walkthroughs (including how to call this API), see the
+**Usage Guide** in the KenManage web app (`/usage-guide`).
 
-{table_of_contents}
+### Auth (quick reference)
+- **Organizers:** Firebase ID token as `Authorization: Bearer …`
+- **Scorekeepers:** `X-Scorekeeper-Token` (from tournament Settings), plus
+  `X-Edit-Session-Id` when editing scores
+- **Public participant site:** no auth when the tournament is published; otherwise
+  `?preview=` with the tournament preview token
+
+There are no long-lived organizer API keys.
+
+Use the tag list in Swagger UI (left sidebar / filter) to jump between Auth, Clubs,
+Tournaments, Divisions, Brackets, and the rest.
 
 ### Links
-GitHub: <https://github.com/evroon/bracket>
-
-Docs: <https://docs.bracketapp.nl>
-
-Demo: <https://www.bracketapp.nl/demo>
-
-API docs (Redoc): <https://api.bracketapp.nl/redoc>
-
-API docs (Swagger UI): <https://api.bracketapp.nl/docs>
+- GitHub: <https://github.com/Bellahuang3715/utkc-tournament-planner>
+- Contact: <mailto:kenmanage@gmail.com>
+- Interactive API docs: [/docs](/docs)
 """
 
 app = FastAPI(
-    title="Bracket API",
+    title="KenManage API",
     docs_url="/docs",
+    redoc_url=None,
     version="1.0.0",
     lifespan=lifespan,
-    summary="API for Bracket, an open source tournament system.",
+    summary="API for KenManage, open-source kendo tournament software.",
     description=description,
+    contact={
+        "name": "KenManage",
+        "email": "kenmanage@gmail.com",
+        "url": "https://github.com/Bellahuang3715/utkc-tournament-planner",
+    },
     license_info={
         "name": "AGPL-3.0",
         "url": "https://www.gnu.org/licenses/agpl-3.0.en.html",

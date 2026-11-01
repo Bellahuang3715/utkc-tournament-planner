@@ -7,7 +7,7 @@ export default function AboutRedirectPage() {
 
 export const getServerSideProps: GetServerSideProps = async () => ({
   redirect: {
-    destination: "/welcome",
+    destination: "/welcome#about",
     permanent: false,
   },
 });

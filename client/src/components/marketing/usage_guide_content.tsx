@@ -499,7 +499,7 @@ blockMins = max(10, round(raw / 10) × 10)`}</code>
         <a href={apiDocsUrl} target="_blank" rel="noreferrer">
           {apiDocsUrl}
         </a>
-        . ReDoc is typically available at the same host under <code>/redoc</code>.
+        .
       </p>
       <h3>Authentication</h3>
       <ul>

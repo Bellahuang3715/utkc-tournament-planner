@@ -101,7 +101,10 @@ export default function WelcomePage() {
         </div>
       </section>
 
-      <section className={`${classes.section} ${classes.sectionWash}`}>
+      <section
+        id="about"
+        className={`${classes.section} ${classes.sectionWash} ${classes.aboutAnchor}`}
+      >
         <div className={classes.wrap}>
           <Reveal>
             <p className={classes.kicker}>The product</p>
