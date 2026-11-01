@@ -211,6 +211,8 @@ export default function WelcomePage() {
             <h2 className={classes.display}>How are you joining?</h2>
             <p className={classes.deck}>
               Pick a role. New here? The <Link href="/guide">guide</Link> walks through each path.
+              Organizers planning a full event can use the{" "}
+              <Link href="/usage-guide">Usage Guide</Link>.
             </p>
             <div className={classes.roles}>
               {ROLES.map((role, index) => (
@@ -228,6 +230,11 @@ export default function WelcomePage() {
                     <Link className={`${classes.btn} ${classes.primary}`} href={role.href}>
                       {role.cta}
                     </Link>
+                    {role.title === "Organizer" ? (
+                      <p className={classes.fine} style={{ marginTop: 12 }}>
+                        <Link href="/usage-guide">Full usage guide for organizers</Link>
+                      </p>
+                    ) : null}
                   </article>
                 </Reveal>
               ))}

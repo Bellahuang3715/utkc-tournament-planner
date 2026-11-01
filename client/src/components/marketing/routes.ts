@@ -1,6 +1,7 @@
 export const MARKETING_TITLES: Record<string, string> = {
   "/welcome": "KenManage",
   "/guide": "Guide · KenManage",
+  "/usage-guide": "Usage Guide · KenManage",
   "/faq": "FAQ · KenManage",
   "/contact": "Contact · KenManage",
   "/license": "License · KenManage",

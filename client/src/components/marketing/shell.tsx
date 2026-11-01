@@ -99,6 +99,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
           </div>
           <nav className={classes.footerNav} aria-label="Site">
             <Link href="/welcome">Home</Link>
+            <Link href="/usage-guide">Usage Guide</Link>
             <Link href="/contact">Contact</Link>
             <Link href="/license">License</Link>
             <a href={GITHUB_URL}>GitHub</a>

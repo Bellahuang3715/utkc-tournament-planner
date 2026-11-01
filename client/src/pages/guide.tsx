@@ -6,12 +6,24 @@ import { marketingServerProps } from "../components/marketing/server_props";
 import { MarketingShell } from "../components/marketing/shell";
 import classes from "../components/landing/landing.module.css";
 
-const GUIDES = [
+type GuideRole = {
+  id: string;
+  label: string;
+  href: string;
+  cta: string;
+  secondaryHref?: string;
+  secondaryCta?: string;
+  steps: string[];
+};
+
+const GUIDES: GuideRole[] = [
   {
     id: "organizer",
     label: "Organizer",
     href: "/login",
     cta: "Log in as an organizer",
+    secondaryHref: "/usage-guide",
+    secondaryCta: "Full usage guide",
     steps: [
       "Create an account and start a tournament.",
       "Import players from Excel first (that sets the columns). After that you can add players by hand. Teams are built from those players.",
@@ -88,6 +100,11 @@ export default function GuidePage() {
               <Link className={`${classes.btn} ${classes.primary}`} href={guide.href}>
                 {guide.cta}
               </Link>
+              {guide.secondaryHref && guide.secondaryCta ? (
+                <Link className={`${classes.btn} ${classes.ghost}`} href={guide.secondaryHref}>
+                  {guide.secondaryCta}
+                </Link>
+              ) : null}
             </p>
           </Reveal>
         </div>

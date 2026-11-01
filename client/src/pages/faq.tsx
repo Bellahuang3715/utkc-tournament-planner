@@ -42,7 +42,8 @@ export default function FaqPage() {
             <p className={classes.kicker}>FAQ</p>
             <h1 className={`${classes.display} ${classes.pageTitle}`}>Before you join.</h1>
             <p className={classes.deck}>
-              Practical answers. The <Link href="/guide">guide</Link> is the step-by-step version.
+              Practical answers. The <Link href="/guide">guide</Link> is the short path by role; the{" "}
+              <Link href="/usage-guide">Usage Guide</Link> covers the full organizer workflow.
               Still stuck? <Link href="/contact">Contact</Link> for bugs and collaboration.
             </p>
             <div className={classes.faq}>
