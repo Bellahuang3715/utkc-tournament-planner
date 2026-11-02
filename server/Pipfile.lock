@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "89bc01cbb3faa52240a256be45b5c9f48a9268918146bc7f6662d190b9c028e5"
+            "sha256": "74374aba17cbd9d59e8bb914b910195f0e1e97c4158f6fd1a05fc61a4dca9812"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -245,11 +245,11 @@
         },
         "anyio": {
             "hashes": [
-                "sha256:6152fdbbf9a77fdec97731721bebf7c4c44f7c29b424b0065826173efc7ed101",
-                "sha256:9f28306018cbd6d329e64a36d58256edff76dd996fe423bc957326e578b82a94"
+                "sha256:59bb03251907983d1603d27c3087ddb1e93299ea2163adcdba37899a4fb12ffb",
+                "sha256:c66ae634e0b8228396b801741beb3294326d4b6102f7bba4041c0dfb58c29026"
             ],
             "markers": "python_version >= '3.10'",
-            "version": "==4.15.1"
+            "version": "==4.16.0"
         },
         "ast-serialize": {
             "hashes": [
@@ -866,12 +866,12 @@
         },
         "fastapi": {
             "hashes": [
-                "sha256:4076b88434452e20289379068e976c4a04c65ffc8e6be31510106e150a422f0f",
-                "sha256:a1363080cf9aeedecd99f4e1a23669d7e77542227f6536f4d7bbd59f07ecaa94"
+                "sha256:3785963de305dd09912426cb81f2d230fce98ab3521cdfe97265c8d14983128c",
+                "sha256:6a22c1e2e6e32e0633ee7e170f00009a29b8228b16feb219ee42f32fd8d88a8f"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.10'",
-            "version": "==0.161.1"
+            "version": "==0.162.0"
         },
         "fastapi-cache2": {
             "hashes": [
@@ -2004,11 +2004,11 @@
         },
         "opentelemetry-api": {
             "hashes": [
-                "sha256:aa38ed19bcc084ba42782a73255b3582283eced7ad6dddbd6695189e69adfb75",
-                "sha256:b31553efa588ae44bc306f863c785c5333a9ecc091248c6ee68b4b6c87fdedfb"
+                "sha256:2cbd737377e710ee740d261c94e93fa0f08e6d037c18f17513cc0a2d94479a34",
+                "sha256:d7b0008e21e5fd61cbe7a7f34ca3b6905a78ab677d9bc395e299359c75cda6b4"
             ],
             "markers": "python_version >= '3.10'",
-            "version": "==1.45.1"
+            "version": "==1.45.2"
         },
         "parameterized": {
             "hashes": [
@@ -2379,6 +2379,7 @@
                 "sha256:7efbf7507b937931cd32a5755acb00ea1cf5ccb1d4e8067a5850d5069e382118",
                 "sha256:fb7b2db6cefe8414dd612edeede49c4c433acb0432b0f92b95024e45f66c505d"
             ],
+            "index": "pypi",
             "markers": "python_version >= '3.10'",
             "version": "==2.14.2"
         },
