@@ -26,7 +26,6 @@ import {
   PROBLEM_TOPICS,
   arrangePlayers,
   seedingNote,
-  type DayStepId,
   type DemoPlayer,
   type LookupPerson,
 } from "./fixtures";
@@ -65,243 +64,6 @@ function Stage({ title, children }: { title: string; children: React.ReactNode }
         <span>{title}</span>
       </div>
       <div className={classes.stageBody}>{children}</div>
-    </div>
-  );
-}
-
-function ImportVisual() {
-  return (
-    <div className={classes.dayVisualInner} data-kind="import" aria-hidden="true">
-      <div className={classes.daySheets}>
-        <span>TOR.xlsx</span>
-        <span>MTL.xlsx</span>
-        <span>VAN.xlsx</span>
-      </div>
-      <div className={classes.dayArrow}>↓ one roster</div>
-      <div className={classes.dayTable}>
-        <div className={classes.dayTableHead}>
-          <span>Name</span>
-          <span>Club</span>
-          <span>Rank</span>
-          <span>Code</span>
-        </div>
-        <div className={classes.dayTableRow}>
-          <span>Aiko Sato</span>
-          <span>Toronto</span>
-          <span>3 dan</span>
-          <span>T-01</span>
-        </div>
-        <div className={classes.dayTableRow}>
-          <span>Mei Chen</span>
-          <span>Montreal</span>
-          <span>2 dan</span>
-          <span>M-04</span>
-        </div>
-        <div className={classes.dayTableRow}>
-          <span>Hana Kim</span>
-          <span>Vancouver</span>
-          <span>1 kyu</span>
-          <span>V-03</span>
-        </div>
-      </div>
-      <div className={classes.dayFoot}>
-        <span>48 players</span>
-        <span>Filter · build divisions</span>
-      </div>
-      <span className={classes.dayChip}>Import once</span>
-    </div>
-  );
-}
-
-function BracketsVisual() {
-  return (
-    <div className={classes.dayVisualInner} data-kind="brackets" aria-hidden="true">
-      <div className={classes.dayBracket}>
-        <div className={classes.dayBracketRound}>
-          <div className={classes.dayMatch}>
-            <span>
-              <i style={{ background: "#c41e3a" }} />
-              Sato
-              <em title="Strong player">★</em>
-            </span>
-            <span>
-              <i style={{ background: "#1d4f91" }} />
-              Chen
-            </span>
-          </div>
-          <div className={classes.dayMatch}>
-            <span>
-              <i style={{ background: "#0b1f3a" }} />
-              Kim
-            </span>
-            <span>
-              <i style={{ background: "#4a6fa5" }} />
-              Abe
-            </span>
-          </div>
-        </div>
-        <div className={classes.dayBracketLines} />
-        <div className={classes.dayBracketRound}>
-          <div className={`${classes.dayMatch} ${classes.dayMatchFinal}`}>
-            <span>Winner SF1</span>
-            <span>Winner SF2</span>
-          </div>
-        </div>
-      </div>
-      <div className={classes.dayRuleRow}>
-        <span>Clubs apart</span>
-        <span>Bias apart</span>
-        <span data-tone="neutral">Export PDF</span>
-      </div>
-      <div className={classes.dayFoot}>
-        <span>8 players · 2 groups</span>
-        <span>Generate, then tweak</span>
-      </div>
-    </div>
-  );
-}
-
-function CourtsVisual() {
-  return (
-    <div className={classes.dayVisualInner} data-kind="courts" aria-hidden="true">
-      <div className={classes.dayCourtsWrap}>
-        <div className={classes.dayTimeRail} aria-hidden="true">
-          <span>9:00</span>
-          <span>9:30</span>
-          <span>10:00</span>
-        </div>
-        <div className={classes.dayCourts}>
-          {["Court 1", "Court 2", "Court 3"].map((name, index) => (
-            <div key={name} className={classes.dayCourtCol}>
-              <p>{name}</p>
-              <div
-                className={classes.dayCourtBlock}
-                data-kind={index === 0 ? "live" : index === 1 ? "wait" : "done"}
-                style={{ marginTop: index === 1 ? 18 : index === 2 ? 8 : 0 }}
-              >
-                {index === 0 ? "Div A · G1" : index === 1 ? "Div B · G2" : "Team · Final"}
-              </div>
-              <div
-                className={classes.dayCourtBlock}
-                data-kind={index === 0 ? "wait" : "done"}
-                style={{ height: index === 2 ? 28 : 36 }}
-              >
-                {index === 0 ? "Div A · G2" : index === 1 ? "Break" : "Done"}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className={classes.dayFoot}>
-        <span>Same division staggered</span>
-        <span>Drag blocks onto courts</span>
-      </div>
-      <span className={classes.dayChip}>No double-book</span>
-    </div>
-  );
-}
-
-function ScoreVisual() {
-  return (
-    <div className={classes.dayVisualInner} data-kind="score" aria-hidden="true">
-      <div className={classes.dayScoreLayout}>
-        <div className={classes.dayScoreCard}>
-          <div className={classes.dayScoreMeta}>
-            <span className={classes.live}>
-              <i />
-              Live
-            </span>
-            <span>Semi 1 · Court 2</span>
-          </div>
-          <div className={classes.dayScoreRow}>
-            <span className={classes.dayScoreName}>Aiko Sato</span>
-            <span className={classes.dayMarks}>
-              <b>K</b>
-              <b data-empty="true" />
-            </span>
-          </div>
-          <div className={`${classes.dayScoreRow} ${classes.dayScoreWinner}`}>
-            <span className={classes.dayScoreName}>
-              Mei Chen <em>wins</em>
-            </span>
-            <span className={classes.dayMarks}>
-              <b>M</b>
-              <b>K</b>
-            </span>
-          </div>
-        </div>
-        <div className={classes.dayScoreSide}>
-          <div className={classes.dayMarkPad}>
-            <span>M</span>
-            <span>K</span>
-            <span>D</span>
-            <span>T</span>
-          </div>
-          <div className={classes.dayFoot} style={{ paddingRight: 0 }}>
-            <span>1 editor at a time</span>
-            <span>Bracket updates live</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PublishVisual() {
-  return (
-    <div className={classes.dayVisualInner} data-kind="publish" aria-hidden="true">
-      <div className={classes.dayPublishRow}>
-        <div className={classes.dayPhone}>
-          <div className={classes.dayPhoneBar} />
-          <p className={classes.dayPhoneCode}>UTKC26</p>
-          <div className={classes.dayPhoneTabs}>
-            <span data-active="true">Schedule</span>
-            <span>Brackets</span>
-            <span>Scores</span>
-          </div>
-          <div className={classes.dayPhoneRows}>
-            <div>
-              <strong>Court 1</strong>
-              <span>Sato vs Chen · 10:20</span>
-            </div>
-            <div>
-              <strong>Court 2</strong>
-              <span>Kim vs Abe · 10:20</span>
-            </div>
-          </div>
-        </div>
-        <div className={classes.dayShareStack}>
-          <div className={classes.dayShareCard}>
-            <p>Participants</p>
-            <strong>kenmanage.app/join</strong>
-            <span>Code · UTKC26</span>
-          </div>
-          <div className={classes.dayShareCard}>
-            <p>Scorekeepers</p>
-            <strong>Access code</strong>
-            <span data-tone="neutral">SK-4F91</span>
-          </div>
-          <p className={classes.dayShareNote}>No account needed</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const DAY_VISUALS: Record<DayStepId, () => React.ReactNode> = {
-  import: ImportVisual,
-  brackets: BracketsVisual,
-  courts: CourtsVisual,
-  score: ScoreVisual,
-  publish: PublishVisual,
-};
-
-/** Compact product mock for each “A tournament day” step. */
-export function DayStepVisual({ stepId }: { stepId: DayStepId }) {
-  const Visual = DAY_VISUALS[stepId];
-  return (
-    <div className={classes.dayVisual} role="img" aria-label={`Illustration for ${stepId}`}>
-      <Visual />
     </div>
   );
 }
@@ -808,68 +570,70 @@ export function ProblemStudio() {
 
   return (
     <div className={classes.compareBlock}>
-      <div className={classes.compareToolbar}>
-        <p className={classes.compareCaption}>Traditional tournament planning vs KenManage</p>
-        <div className={classes.compareMode} role="group" aria-label="Table detail level">
-          <button
-            type="button"
-            className={classes.compareModeBtn}
-            data-active={mode === "summary" ? "true" : "false"}
-            aria-pressed={mode === "summary"}
-            onClick={() => setMode("summary")}
-          >
-            Summary
-          </button>
-          <button
-            type="button"
-            className={classes.compareModeBtn}
-            data-active={mode === "full" ? "true" : "false"}
-            aria-pressed={mode === "full"}
-            onClick={() => setMode("full")}
-          >
-            Full
-          </button>
+      <div className={classes.comparePanel}>
+        <div className={classes.compareToolbar}>
+          <p className={classes.compareCaption}>Traditional tournament planning vs KenManage</p>
+          <div className={classes.compareMode} role="group" aria-label="Table detail level">
+            <button
+              type="button"
+              className={classes.compareModeBtn}
+              data-active={mode === "summary" ? "true" : "false"}
+              aria-pressed={mode === "summary"}
+              onClick={() => setMode("summary")}
+            >
+              Summary
+            </button>
+            <button
+              type="button"
+              className={classes.compareModeBtn}
+              data-active={mode === "full" ? "true" : "false"}
+              aria-pressed={mode === "full"}
+              onClick={() => setMode("full")}
+            >
+              Full
+            </button>
+          </div>
         </div>
-      </div>
-      <div className={classes.compareTableWrap}>
-        <table className={classes.compareTable} data-mode={mode}>
-          <thead>
-            <tr>
-              <th scope="col">Area</th>
-              <th scope="col">Traditional</th>
-              <th scope="col">KenManage</th>
-            </tr>
-          </thead>
-          <tbody>
-            {PROBLEM_TOPICS.map((item) => (
-              <tr key={item.id}>
-                <th scope="row">{item.label}</th>
-                <td>
-                  {full ? (
-                    <ul className={classes.compareList}>
-                      {item.before.map((line) => (
-                        <li key={line}>{line}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className={classes.compareSummary}>{item.beforeSummary}</p>
-                  )}
-                </td>
-                <td className={classes.compareAfter}>
-                  {full ? (
-                    <ul className={classes.compareList}>
-                      {item.after.map((line) => (
-                        <li key={line}>{line}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className={classes.compareSummary}>{item.afterSummary}</p>
-                  )}
-                </td>
+        <div className={classes.compareTableWrap}>
+          <table className={classes.compareTable} data-mode={mode}>
+            <thead>
+              <tr>
+                <th scope="col">Area</th>
+                <th scope="col">Traditional</th>
+                <th scope="col">KenManage</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {PROBLEM_TOPICS.map((item) => (
+                <tr key={item.id}>
+                  <th scope="row">{item.label}</th>
+                  <td className={classes.compareBefore}>
+                    {full ? (
+                      <ul className={classes.compareList}>
+                        {item.before.map((line) => (
+                          <li key={line}>{line}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className={classes.compareSummary}>{item.beforeSummary}</p>
+                    )}
+                  </td>
+                  <td className={classes.compareAfter}>
+                    {full ? (
+                      <ul className={classes.compareList}>
+                        {item.after.map((line) => (
+                          <li key={line}>{line}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className={classes.compareSummary}>{item.afterSummary}</p>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

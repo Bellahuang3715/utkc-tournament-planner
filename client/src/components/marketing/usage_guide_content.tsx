@@ -64,14 +64,14 @@ export function UsageGuideContent() {
       <p>KenManage has three roles:</p>
       <ul>
         <li>
-          <strong>Organizer</strong> — creates an account, owns tournaments, edits everything.
+          <strong>Organizer</strong> — account registration required. Owns tournaments data, edits everything.
         </li>
         <li>
-          <strong>Participant</strong> — no account. Uses a tournament code (or link) to open the
-          public site at <code>/t/&#123;code&#125;</code>.
+          <strong>Participant</strong> — no account required. Receives a tournament code (or link) from the organizer to view the
+          tournament public site at <code>/t/&#123;participant_code&#125;</code>.
         </li>
         <li>
-          <strong>Scorekeeper</strong> — no account. Redeems a separate access code at{" "}
+          <strong>Scorekeeper</strong> — no account required. Redeems a separate access code at{" "}
           <Link href="/scorekeeping">/scorekeeping</Link> and can only edit scores for that
           tournament.
         </li>

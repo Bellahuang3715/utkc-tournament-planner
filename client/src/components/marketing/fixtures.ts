@@ -287,35 +287,150 @@ export const HERO_SLIDES = [
   },
 ];
 
-export const DAY_STEPS = [
+/** Icon keys mapped in the Features grid UI. */
+export type FeatureIcon =
+  | "import"
+  | "seeding"
+  | "courts"
+  | "scores"
+  | "participants"
+  | "share";
+
+export const FEATURES = [
   {
     id: "import",
-    label: "Import the roster",
-    detail: "Skip the multi-club Excel merge — import once, then filter and build divisions.",
+    icon: "import" as FeatureIcon,
+    title: "Roster import",
+    body: "Drop club Excels into one filterable table — skip the multi-sheet merge that eats a weekend.",
   },
   {
-    id: "brackets",
-    label: "Draw the brackets",
-    detail: "Skip hand-drawn trees — generate with club and bias rules, then tweak and export.",
+    id: "seeding",
+    icon: "seeding" as FeatureIcon,
+    title: "Smart seeding",
+    body: "A custom algorithm builds draws with club and strong-player rules — zero room for human error or bias. Tweak anything, then export.",
   },
   {
     id: "courts",
-    label: "Lay out the courts",
-    detail: "Skip paper court grids — place blocks so the same division is not double-booked.",
+    icon: "courts" as FeatureIcon,
+    title: "Court timetable",
+    body: "Schedules auto-generate from match timing and placement rules, then you fine-tune blocks so divisions are not double-booked.",
   },
   {
-    id: "score",
-    label: "Keep score",
-    detail: "Skip poster, binder, and retyping — scorekeepers enter marks; the bracket updates live.",
+    id: "scores",
+    icon: "scores" as FeatureIcon,
+    title: "Live scorekeeping",
+    body: "Scorekeepers collaborate with an access code — real-time sync to the bracket, one editor per sheet so nothing gets overwritten.",
   },
   {
-    id: "publish",
-    label: "Publish the day",
-    detail: "Skip “where do I play?” chaos — share a code for schedule, brackets, and scores.",
+    id: "participants",
+    icon: "participants" as FeatureIcon,
+    title: "Participant site",
+    body: "One short code. Athletes see schedule, brackets, and live scores on their phone — no account, no guessing where to play.",
+  },
+  {
+    id: "share",
+    icon: "share" as FeatureIcon,
+    title: "One living record",
+    body: "Participant and scorekeeper codes, Excel export when you want paper, and a centralized history of the day — not a binder that disappears after the awards.",
   },
 ] as const;
 
-export type DayStepId = (typeof DAY_STEPS)[number]["id"];
+export type OrganizerStepRole = "Organizer" | "Scorekeeper" | "Participant";
+
+export const ORGANIZER_STEPS = [
+  {
+    id: "account",
+    label: "Create an account",
+    role: "Organizer" as OrganizerStepRole,
+    detail:
+      "Register or log in. Organizers own tournament data; participants and scorekeepers never need an account.",
+    shotLabel: "Screenshot: registration or login screen",
+    imageSrc: null as string | null,
+  },
+  {
+    id: "clubs",
+    label: "Add clubs",
+    role: "Organizer" as OrganizerStepRole,
+    detail:
+      "Create clubs once and reuse them across tournaments. Every imported player belongs to a club you pick in the wizard.",
+    shotLabel: "Screenshot: clubs list and add-club form",
+    imageSrc: null as string | null,
+  },
+  {
+    id: "tournament",
+    label: "Create a tournament",
+    role: "Organizer" as OrganizerStepRole,
+    detail:
+      "Open a new event from the tournament list. This is the shell for roster, brackets, courts, and sharing codes.",
+    shotLabel: "Screenshot: create tournament modal and tournament home",
+    imageSrc: null as string | null,
+  },
+  {
+    id: "settings",
+    label: "Settings & codes",
+    role: "Organizer" as OrganizerStepRole,
+    detail:
+      "Generate a participant code for the public site and a separate scorekeeper code. Publish or preview when ready.",
+    shotLabel: "Screenshot: Settings with participant link, publish toggle, and scorekeeper code",
+    imageSrc: null as string | null,
+  },
+  {
+    id: "import",
+    label: "Import the roster",
+    role: "Organizer" as OrganizerStepRole,
+    detail:
+      "Import Excel into the players table — map headers once, filter, and build divisions from the same roster.",
+    shotLabel: "Screenshot: Excel import mapping step",
+    imageSrc: null as string | null,
+  },
+  {
+    id: "brackets",
+    label: "Divisions & brackets",
+    role: "Organizer" as OrganizerStepRole,
+    detail:
+      "Create divisions, generate brackets with club and bias rules (teams optional), then tweak seeding before the day.",
+    shotLabel: "Screenshot: generate-brackets wizard and seeding editor",
+    imageSrc: null as string | null,
+  },
+  {
+    id: "schedule",
+    label: "Schedule courts",
+    role: "Organizer" as OrganizerStepRole,
+    detail:
+      "Drag division blocks onto the court timetable. Block length comes from match duration plus margin.",
+    shotLabel: "Screenshot: court timetable with dragged blocks",
+    imageSrc: null as string | null,
+  },
+  {
+    id: "score",
+    label: "Run the day",
+    role: "Scorekeeper" as OrganizerStepRole,
+    detail:
+      "Scorekeepers redeem the access code at /scorekeeping and enter marks. One editor per sheet; brackets update live for everyone.",
+    shotLabel: "Screenshot: scores page with group edit lock",
+    imageSrc: null as string | null,
+  },
+  {
+    id: "participants",
+    label: "Participants follow",
+    role: "Participant" as OrganizerStepRole,
+    detail:
+      "Athletes open /t/{code} for schedule, brackets, and scores — look up by name or player code on a phone.",
+    shotLabel: "Screenshot: participant public site on mobile",
+    imageSrc: null as string | null,
+  },
+  {
+    id: "export",
+    label: "Export / wrap up",
+    role: "Organizer" as OrganizerStepRole,
+    detail:
+      "Export brackets to Excel when you still want paper. End the tournament when the day is done.",
+    shotLabel: "Screenshot: division export to Excel",
+    imageSrc: null as string | null,
+  },
+] as const;
+
+export type OrganizerStepId = (typeof ORGANIZER_STEPS)[number]["id"];
 
 export type ProblemTopic = {
   id: string;

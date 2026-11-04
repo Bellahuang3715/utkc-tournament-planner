@@ -1,14 +1,9 @@
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React from "react";
 
-import {
-  DayStepVisual,
-  FeatureStudio,
-  HeroBoard,
-  ProblemStudio,
-  SeedingStudio,
-} from "../components/marketing/demos";
-import { BRACKET_URL, DAY_STEPS, GITHUB_URL } from "../components/marketing/fixtures";
+import { HeroBoard, ProblemStudio } from "../components/marketing/demos";
+import { BRACKET_URL, GITHUB_URL } from "../components/marketing/fixtures";
+import { FeaturesGrid, OrganizerJourney } from "../components/marketing/journey";
 import { Reveal } from "../components/marketing/reveal";
 import { marketingServerProps } from "../components/marketing/server_props";
 import { MarketingShell } from "../components/marketing/shell";
@@ -43,32 +38,8 @@ const ROLES = [
   },
 ];
 
-const STEP_MS = 4200;
-
 /** Public KenManage home. */
 export default function HomePage() {
-  const [step, setStep] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [tick, setTick] = useState(0);
-
-  useEffect(() => {
-    if (paused) return;
-    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      return;
-    }
-    const id = window.setInterval(() => {
-      setStep((current) => (current + 1) % DAY_STEPS.length);
-      setTick((value) => value + 1);
-    }, STEP_MS);
-    return () => window.clearInterval(id);
-  }, [paused]);
-
-  const selectStep = (index: number) => {
-    setPaused(true);
-    setStep(index);
-    setTick((value) => value + 1);
-  };
-
   return (
     <MarketingShell>
       <section className={classes.hero}>
@@ -113,10 +84,6 @@ export default function HomePage() {
               Start with the Summary table; switch to Full when you want every bullet.
             </p>
             <ProblemStudio />
-            <p className={classes.problemBridge}>
-              Want to feel the seeding rules? Try the interactive draw below. Schedule, scoring, and
-              participant lookup are further down.
-            </p>
             <p className={classes.whyLine}>
               Built for real tournament days (including UTKC-scale events) — free under AGPL-3.0,
               grew out of <a href={BRACKET_URL}>Bracket</a>, source on{" "}
@@ -126,81 +93,35 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className={classes.section}>
+      <section className={classes.section} id="features">
         <div className={classes.wrap}>
           <Reveal>
-            <p className={classes.kicker}>A tournament day</p>
-            <h2 className={classes.display}>From a messy merge to a public board.</h2>
+            <p className={classes.kicker}>Features</p>
+            <h2 className={classes.display}>What KenManage does.</h2>
             <p className={classes.deck}>
-              Five jobs in order. Each step replaces a manual bottleneck. Click anytime to take
-              over.
+              The core pieces of a tournament day — from roster to public board — in one place.
             </p>
-            <div
-              className={classes.flow}
-              onMouseEnter={() => setPaused(true)}
-              onMouseLeave={() => setPaused(false)}
-            >
-              <div className={classes.stepList} role="tablist" aria-label="Tournament day">
-                {DAY_STEPS.map((item, index) => (
-                  <button
-                    key={item.label}
-                    type="button"
-                    className={classes.step}
-                    role="tab"
-                    data-active={index === step ? "true" : "false"}
-                    aria-selected={index === step}
-                    onClick={() => selectStep(index)}
-                  >
-                    <span className={classes.stepIndex}>{String(index + 1).padStart(2, "0")}</span>
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-              <div className={classes.stepPanel}>
-                <p key={`${step}-${tick}`} className={classes.stepDetail}>
-                  {DAY_STEPS[step].detail}
-                </p>
-                <DayStepVisual key={`visual-${step}-${tick}`} stepId={DAY_STEPS[step].id} />
-                <div
-                  key={`progress-${tick}`}
-                  className={classes.stepProgress}
-                  data-running={paused ? "false" : "true"}
-                />
-              </div>
-            </div>
+            <FeaturesGrid />
           </Reveal>
         </div>
       </section>
 
-      <section className={`${classes.section} ${classes.sectionWash}`} style={{ paddingTop: 64 }}>
+      <section className={`${classes.section} ${classes.sectionWash}`} id="how-it-works">
         <div className={classes.wrap}>
           <Reveal>
-            <p className={classes.kicker}>Try a draw</p>
-            <h2 className={classes.display}>Seeding you can see.</h2>
+            <p className={classes.kicker}>How it works</p>
+            <h2 className={classes.display}>Organizer path, end to end.</h2>
             <p className={classes.deck}>
-              Real KenManage bracket trees (same component as Edit seeding). Toggle club and
-              strong-player rules — sample players only; nothing is saved.
+              Follow the same order as the{" "}
+              <Link href="/usage-guide">Usage Guide</Link>. Click a step anytime — screenshots come
+              later; placeholders mark each screen for now.
             </p>
-            <SeedingStudio />
+            <OrganizerJourney />
           </Reveal>
         </div>
       </section>
 
-      <section className={classes.section}>
-        <div className={classes.wrap}>
-          <Reveal>
-            <p className={classes.kicker}>In the product</p>
-            <h2 className={classes.display}>Courts, scores, and lookup.</h2>
-            <p className={classes.deck}>
-              Working samples with made-up players. Switch tabs to try the pieces participants and
-              scorekeepers actually use.
-            </p>
-            <FeatureStudio />
-          </Reveal>
-        </div>
-      </section>
-
-      <section className={`${classes.section} ${classes.sectionWash} ${classes.start}`} id="start">
+      <section className={`${classes.section} ${classes.start}`} id="start">
         <div className={classes.wrap}>
           <Reveal>
             <p className={classes.kicker}>Get started</p>
