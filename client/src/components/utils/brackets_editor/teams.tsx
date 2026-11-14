@@ -92,7 +92,7 @@ function BracketPairCardTeams({
         <Group justify="flex-start" align="center" gap="sm" wrap="nowrap">
           <Box style={{ flexShrink: 0 }}>
             <CollapsedLeft.Teams
-              size={left.num_players as 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 16}
+              size={left.num_players as 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16}
               teams={leftTeamNames}
               teamIDFontFamily={style.teamIDFontFamily}
               teamIDColor={style.teamIDColor}
@@ -102,7 +102,7 @@ function BracketPairCardTeams({
           {right && rightTeamNames && (
             <Box style={{ flexShrink: 0 }}>
               <CollapsedRight.Teams
-                size={right.num_players as 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 16}
+                size={right.num_players as 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16}
                 teams={rightTeamNames}
                 teamIDFontFamily={style.teamIDFontFamily}
                 teamIDColor={style.teamIDColor}
@@ -204,7 +204,7 @@ export function PosterGroupsSectionTeams({
           <Badge variant="light">{`Group ${b.index}`}</Badge>
           <Box style={{ maxWidth: "100%", overflowX: "auto" }}>
             <Expanded.Teams
-              size={b.num_players as 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 16}
+              size={b.num_players as 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16}
               teams={toUITeamNames(b)}
               mode="view"
               fontFamily={style.teamIDFontFamily}

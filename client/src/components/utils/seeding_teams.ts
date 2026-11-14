@@ -1,7 +1,7 @@
 /**
  * Team bracket seeding: spread same-club / same-tier teams apart.
  * Team codes: "ClubId Letter" e.g. "JCC A", "JCC B". A = strongest, then B, C, ...
- * Bracket sizes: 6–16 (excluding 15). A teams get priority for bye spots. Some randomness.
+ * Bracket sizes: 5–16. A teams get priority for bye spots. Some randomness.
  */
 
 // ---- Types ----
@@ -27,12 +27,13 @@ export interface ParsedTeam {
   bias?: boolean; // strong team: spread + bye priority
 }
 
-// ---- Config (teams: 6–16 excluding 15) ----
-const ALLOWED_SIZES = [6, 7, 8, 9, 10, 11, 12, 13, 14, 16] as const;
+// ---- Config (teams: 5–16) ----
+const ALLOWED_SIZES = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16] as const;
 const MIN = ALLOWED_SIZES[0];
 const MAX = ALLOWED_SIZES[ALLOWED_SIZES.length - 1];
 
 export const BRACKET_BYES_TEAMS: Record<number, number> = {
+  5: 3,
   6: 2,
   7: 1,
   8: 0,
@@ -42,6 +43,7 @@ export const BRACKET_BYES_TEAMS: Record<number, number> = {
   12: 4,
   13: 3,
   14: 2,
+  15: 1,
   16: 0,
 };
 
@@ -63,7 +65,7 @@ function enumerateTuples(
 }
 
 /**
- * Returns all valid bracket size combinations for N teams (includes 6- and 7-team brackets).
+ * Returns all valid bracket size combinations for N teams (sizes 5–16).
  * Used by the teams "Generate Brackets" modal for the size dropdown.
  */
 export function getTeamBracketSizeOptions(N: number): number[][] {
@@ -197,7 +199,7 @@ export function orderSizesToMatchCurrent(
 
 /**
  * Choose the bracket-size combination for teams that is closest to the current layout.
- * Uses team allowed sizes (6–16, no 15). Returns sizes in an order that minimizes
+ * Uses team allowed sizes (5–16). Returns sizes in an order that minimizes
  * per-bracket change (e.g. [9,10,9,10] +1 → [10,10,9,10] not [9,10,10,10]).
  */
 export function pickClosestSizesTeams(
@@ -427,7 +429,7 @@ function orderTeamBracket(
 /**
  * Assign team codes into bracket groups. Same-club and same-tier (e.g. "A") teams
  * are spread apart. Bias (strong) teams and A teams get priority for byes.
- * Bracket sizes 6–16 (no 15). Optional seed for reproducible runs.
+ * Bracket sizes 5–16. Optional seed for reproducible runs.
  * If options.sizes is provided, use that combination (and order) instead of default.
  */
 export function assignTeamBrackets(

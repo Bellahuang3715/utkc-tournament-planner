@@ -31,6 +31,9 @@ export interface BracketGroup {
 
 // ---- 1) Static config ----
 export const BRACKET_BYES: Record<number, number> = {
+  5: 3,
+  6: 2,
+  7: 1,
   8: 0,
   9: 1,
   10: 6,
@@ -42,7 +45,7 @@ export const BRACKET_BYES: Record<number, number> = {
   16: 0,
 };
 
-const ALLOWED_SIZES = [8, 9, 10, 11, 12, 13, 14, 15, 16] as const;
+const ALLOWED_SIZES = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16] as const;
 const MIN = ALLOWED_SIZES[0];
 const MAX = ALLOWED_SIZES[ALLOWED_SIZES.length - 1];
 

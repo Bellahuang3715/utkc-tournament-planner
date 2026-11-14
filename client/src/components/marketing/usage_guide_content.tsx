@@ -432,7 +432,7 @@ export function UsageGuideContent() {
 
       <h3>Bracket size requirements</h3>
       <ul>
-        <li>Each individual group supports 8–16 players.</li>
+        <li>Each individual group supports 5–16 players.</li>
         <li>
           The number of groups must be a power of two: 1, 2, 4, 8, and so on.
         </li>
@@ -461,7 +461,7 @@ export function UsageGuideContent() {
 
       <h3>Group size requirements</h3>
       <ul>
-        <li>Each individual group supports 8–16 players.</li>
+        <li>Each individual group supports 5–16 players.</li>
         <li>
           The number of groups must be a power of two: 1, 2, 4, 8, and so on.
         </li>
@@ -533,7 +533,7 @@ export function UsageGuideContent() {
 
       <h3>Team bracket requirements</h3>
       <ul>
-        <li>Supported group sizes are 6–16 teams, excluding 15.</li>
+        <li>Supported group sizes are 5–16 teams.</li>
         <li>
           Group counts and balancing rules follow the same general principles as
           individual brackets.
