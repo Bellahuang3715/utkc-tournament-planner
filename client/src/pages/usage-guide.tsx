@@ -43,8 +43,8 @@ export default function UsageGuidePage() {
             <h1 className={`${classes.display} ${classes.pageTitle}`}>Plan and run a tournament.</h1>
             <p className={classes.deck}>
               Detailed organizer instructions — from account creation through brackets, schedule,
-              scores, exports, and the API. For a short path by role, use the{" "}
-              <Link href="/guide">quick guide</Link>.
+              scores, exports, and the API. Not running a tournament yet?{" "}
+              <Link href="/#start">Get started</Link> by role.
             </p>
           </Reveal>
 

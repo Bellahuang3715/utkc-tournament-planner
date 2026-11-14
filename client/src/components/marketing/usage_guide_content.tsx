@@ -57,9 +57,9 @@ export function UsageGuideContent() {
       <h2 id="before-you-start">1. Before you start</h2>
       <p>
         This guide walks an organizer through planning and running a KenManage tournament: account
-        setup, clubs, roster, brackets, schedule, scores, sharing codes, exports, and the API. For a
-        short path per role (organizer, participant, scorekeeper), see the{" "}
-        <Link href="/guide">quick guide</Link>.
+        setup, clubs, roster, brackets, schedule, scores, sharing codes, exports, and the API.
+        Participants and scorekeepers can jump in from{" "}
+        <Link href="/#start">Get started</Link> with a code from the organizer.
       </p>
       <p>KenManage has three roles:</p>
       <ul>

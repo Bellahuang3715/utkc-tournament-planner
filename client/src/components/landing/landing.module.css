@@ -16,6 +16,7 @@
   background: var(--paper);
   font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
   line-height: 1.5;
+  overflow-x: clip;
 }
 
 .page,
@@ -88,6 +89,8 @@
   align-items: center;
   gap: 28px;
   min-height: 76px;
+  /* Inset the right so left-aligned Support/Project menus stay on-screen. */
+  padding-right: 28px;
 }
 
 .brand {
@@ -170,8 +173,8 @@
   top: calc(100% + 8px);
   left: 0;
   z-index: 30;
-  min-width: 280px;
-  padding: 12px;
+  width: 220px;
+  padding: 10px;
   border-radius: 14px;
   border: 1px solid var(--line);
   background: var(--card);
@@ -197,7 +200,7 @@
 .navPanelLink {
   display: grid;
   gap: 2px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 10px;
   text-decoration: none;
   color: inherit;
@@ -219,6 +222,7 @@
   font-size: 0.8rem;
   line-height: 1.35;
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .loginLink {

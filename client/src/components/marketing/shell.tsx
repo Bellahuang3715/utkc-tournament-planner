@@ -37,17 +37,12 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     id: "guides",
-    label: "Guides",
+    label: "Guide",
     items: [
       {
-        href: "/guide",
-        label: "Quick guide",
-        description: "Short path for organizers, participants, and scorekeepers",
-      },
-      {
         href: "/usage-guide",
-        label: "Organizer usage guide",
-        description: "Detailed setup from account to tournament day",
+        label: "Usage guide",
+        description: "Organizer setup from account to tournament day",
       },
       { href: "/faq", label: "FAQ", description: "Common questions before you join" },
     ],

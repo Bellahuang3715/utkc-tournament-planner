@@ -55,8 +55,8 @@ export default function HomePage() {
               <a className={`${classes.btn} ${classes.primary}`} href="#start">
                 Get started
               </a>
-              <Link className={`${classes.btn} ${classes.ghost}`} href="/guide">
-                Read the guide
+              <Link className={`${classes.btn} ${classes.ghost}`} href="/usage-guide">
+                Usage guide
               </Link>
             </div>
           </div>
@@ -130,9 +130,8 @@ export default function HomePage() {
             <p className={classes.kicker}>Get started</p>
             <h2 className={classes.display}>Ready for tournament day?</h2>
             <p className={classes.deck}>
-              Whether you're competing, keeping score, or running the event, KenManage has a place for you. Choose your role to get started.
-              New here? The <Link href="/guide">guide</Link> walks through each path.
-              Organizers planning a full event can use the{" "}
+              Whether you're competing, keeping score, or running the event, KenManage has a place for
+              you. Choose your role to get started. Organizers planning a full event can use the{" "}
               <Link href="/usage-guide">Usage Guide</Link>.
             </p>
             <div className={classes.roles}>
