@@ -8,17 +8,31 @@ from project.routes.auth import firebase_user_authenticated, firebase_user_optio
 from project.routes.authorization import SCOREKEEPER_TOKEN_HEADER, require_club_owner
 from project.routes.models import ClubResponse, ClubsResponse, SuccessResponse
 from project.sql.clubs import (
+    ClubTournamentUsage,
     create_club,
     get_all_clubs,
     get_clubs_owned_by_user_id,
     sql_delete_club,
+    sql_get_club_tournament_usage,
     sql_update_club,
 )
 from project.sql.tournaments import sql_get_tournament_by_scorekeeper_token
-from project.utils.errors import ForeignKey, check_foreign_key_violation
 from project.utils.id_types import ClubId
 
 router = APIRouter()
+
+
+def _club_in_use_detail(club_name: str, usage: list[ClubTournamentUsage]) -> str:
+    tournament_names = ", ".join(item.name for item in usage)
+    players = sum(item.player_count for item in usage)
+    teams = sum(item.team_count for item in usage)
+    parts: list[str] = []
+    if players:
+        parts.append(f"{players} player{'s' if players != 1 else ''}")
+    if teams:
+        parts.append(f"{teams} team{'s' if teams != 1 else ''}")
+    counts = f" ({', '.join(parts)})" if parts else ""
+    return f'Can\'t delete "{club_name}". Still used in: {tournament_names}{counts}.'
 
 
 @router.get("/clubs", response_model=ClubsResponse)
@@ -57,11 +71,16 @@ async def create_new_club(
 @router.delete("/clubs/{club_id}", response_model=SuccessResponse)
 async def delete_club(
     club_id: ClubId,
-    _: Club = Depends(require_club_owner),
+    club: Club = Depends(require_club_owner),
 ) -> SuccessResponse:
-    with check_foreign_key_violation({ForeignKey.tournaments_club_id_fkey}):
-        await sql_delete_club(club_id)
+    usage = await sql_get_club_tournament_usage(club_id)
+    if usage:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=_club_in_use_detail(club.name, usage),
+        )
 
+    await sql_delete_club(club_id)
     return SuccessResponse()
 
 

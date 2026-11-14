@@ -20,6 +20,7 @@ import { IconMail, IconPencil, IconPlus, IconTrash } from "@tabler/icons-react";
 import { CircleFlag } from "react-circle-flags";
 
 import { Club } from "../../interfaces/club";
+import { requestSucceeded } from "../../services/adapter";
 import { deleteClub } from "../../services/club";
 import {
   countryCodeFromName,
@@ -52,8 +53,11 @@ export default function ClubsTable({
       }),
     );
     if (!ok) return;
-    await Promise.all(rows.map((r) => deleteClub(r.original.id)));
-    await swrClubsResponse.mutate();
+    const results = await Promise.all(rows.map((r) => deleteClub(r.original.id)));
+    // deleteClub already toasts API errors; only refresh when at least one delete succeeded.
+    if (results.some((result) => result != null && requestSucceeded(result))) {
+      await swrClubsResponse.mutate();
+    }
   };
 
   const columns = useMemo<MRT_ColumnDef<Club>[]>(

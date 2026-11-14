@@ -1,7 +1,17 @@
+from typing import NamedTuple
+
 from project.database import database
 from project.models.db.club import Club, ClubCreateBody, ClubUpdateBody
 from project.utils.id_types import ClubId, UserId
 from project.utils.types import assert_some
+
+
+class ClubTournamentUsage(NamedTuple):
+    """A tournament that still references this club via players and/or teams."""
+
+    name: str
+    player_count: int
+    team_count: int
 
 
 # async def sql_give_user_access_to_club(user_id: UserId, club_id: ClubId) -> None:
@@ -79,6 +89,51 @@ async def sql_delete_club(club_id: ClubId) -> None:
         WHERE id = :club_id
         """
     await database.execute(query=query, values={"club_id": club_id})
+
+
+async def sql_get_club_tournament_usage(club_id: ClubId) -> list[ClubTournamentUsage]:
+    """Tournaments that still have players or teams linked to this club."""
+    query = """
+        WITH player_usage AS (
+            SELECT tournament_id, COUNT(*)::int AS player_count
+            FROM players
+            WHERE club_id = :club_id
+            GROUP BY tournament_id
+        ),
+        team_usage AS (
+            SELECT tournament_id, COUNT(DISTINCT team_id)::int AS team_count
+            FROM (
+                SELECT tournament_id, id AS team_id
+                FROM teams
+                WHERE club_id = :club_id
+                UNION
+                SELECT t.tournament_id, t.id
+                FROM teams_x_clubs txc
+                JOIN teams t ON t.id = txc.team_id
+                WHERE txc.club_id = :club_id
+            ) linked_teams
+            GROUP BY tournament_id
+        )
+        SELECT
+            t.name AS name,
+            COALESCE(p.player_count, 0)::int AS player_count,
+            COALESCE(tm.team_count, 0)::int AS team_count
+        FROM tournaments t
+        LEFT JOIN player_usage p ON p.tournament_id = t.id
+        LEFT JOIN team_usage tm ON tm.tournament_id = t.id
+        WHERE COALESCE(p.player_count, 0) > 0
+           OR COALESCE(tm.team_count, 0) > 0
+        ORDER BY t.name ASC, t.id ASC
+        """
+    rows = await database.fetch_all(query=query, values={"club_id": club_id})
+    return [
+        ClubTournamentUsage(
+            name=str(row["name"]),
+            player_count=int(row["player_count"]),
+            team_count=int(row["team_count"]),
+        )
+        for row in rows
+    ]
 
 
 async def get_all_clubs() -> list[Club]:

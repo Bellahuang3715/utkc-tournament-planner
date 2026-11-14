@@ -170,9 +170,9 @@ export function UsageGuideContent() {
 
       <Callout tone="warn">
         <p>
-          <strong>Before deleting a club:</strong> KenManage won't allow you to
-          delete a club that still has players or teams attached. Move or delete
-          those records first.
+          <strong>Before deleting a club:</strong> KenManage blocks delete when
+          players or teams still use that club. You&apos;ll see which tournaments
+          still reference it — move or delete those records first.
         </p>
       </Callout>
 
