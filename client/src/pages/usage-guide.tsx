@@ -39,15 +39,18 @@ export default function UsageGuidePage() {
       <section className={`${classes.section} ${classes.guideDocs}`}>
         <div className={classes.wrap}>
           <Reveal>
-            <p className={classes.kicker}>Usage guide</p>
-            <h1 className={`${classes.display} ${classes.pageTitle}`}>Plan and run a tournament.</h1>
+            <p className={classes.kicker}>Organizer's handbook</p>
+            <h1 className={`${classes.display} ${classes.pageTitle}`}>
+              Everything you need to run your tournament.
+            </h1>
             <p className={classes.deck}>
-              Detailed organizer instructions — from account creation through brackets, schedule,
-              scores, exports, and the API. Not running a tournament yet?{" "}
-              <Link href="/#start">Get started</Link> by role.
+              Your step-by-step guide to setting up and managing a tournament
+              with KenManage — from importing players and building brackets
+              to scheduling courts, tracking scores, and publishing results.
+              Looking to join a tournament instead?{" "}
+              <Link href="/#start">Find your starting point.</Link>
             </p>
           </Reveal>
-
           <div className={classes.guideLayout}>
             <aside className={classes.toc} aria-label="On this page">
               <p className={classes.tocLabel}>On this page</p>
