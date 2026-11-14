@@ -1,7 +1,7 @@
 import Link from "next/link";
 import React from "react";
 
-import { HeroBoard, ProblemStudio } from "../components/marketing/demos";
+import { ProblemStudio } from "../components/marketing/demos";
 import { BRACKET_URL, GITHUB_URL } from "../components/marketing/fixtures";
 import { FeaturesGrid, OrganizerJourney } from "../components/marketing/journey";
 import { Reveal } from "../components/marketing/reveal";
@@ -43,13 +43,13 @@ export default function HomePage() {
   return (
     <MarketingShell>
       <section className={classes.hero}>
-        <div className={`${classes.wrap} ${classes.heroGrid}`}>
+        <div className={`${classes.wrapMid} ${classes.heroGrid}`}>
           <div className={classes.heroCopy}>
-            <p className={classes.eyebrow}>Kendo tournament software</p>
+            <p className={classes.eyebrow}>Less organizing. More kendo</p>
             <h1 className={`${classes.display} ${classes.brandHero}`}>KenManage</h1>
             <p className={classes.lede}>
-              Cut tournament planning from weeks or months of spreadsheets down to minutes — one
-              place for organizers, scorekeepers, and participants.
+              A software for planning, organizing, and running kendo tournaments. One
+              place for organizers, scorekeepers, and participants. From registration to final match. All in one place.
             </p>
             <div className={classes.heroActions}>
               <a className={`${classes.btn} ${classes.primary}`} href="#start">
@@ -59,13 +59,13 @@ export default function HomePage() {
                 Read the guide
               </Link>
             </div>
-            <p className={classes.fine}>
-              Leave Excel merges, hand-drawn trees, and poster boards behind. Participants and
-              scorekeepers do not need an account.
-            </p>
           </div>
           <div className={classes.heroBoardWrap}>
-            <HeroBoard />
+            <img
+              className={classes.heroShot}
+              src="/4-player.png"
+              alt="Four-player KenManage bracket with live scores"
+            />
           </div>
         </div>
       </section>
@@ -79,9 +79,11 @@ export default function HomePage() {
             <p className={classes.kicker}>Why KenManage</p>
             <h2 className={classes.display}>Weeks of planning. Minutes in KenManage.</h2>
             <p className={classes.deck}>
-              Traditional kendo tournament prep can take weeks or months. KenManage collapses the
-              same work — roster, brackets, courts, scores, and the public board — into minutes.
-              Start with the Summary table; switch to Full when you want every bullet.
+              Running a tournament shouldn't mean wrestling with spreadsheets, manually building brackets, figuring out seeding,and chasing down scores. 
+              KenManage brings your entire tournament workflow together — from player registration and bracket generation to court assignments, live scorekeeping, and public results. 
+            </p>
+            <p className={classes.deck}>
+              Spend less time managing logistics and more time making the tournament happen!
             </p>
             <ProblemStudio />
             <p className={classes.whyLine}>
@@ -97,9 +99,9 @@ export default function HomePage() {
         <div className={classes.wrap}>
           <Reveal>
             <p className={classes.kicker}>Features</p>
-            <h2 className={classes.display}>What KenManage does.</h2>
+            <h2 className={classes.display}>One tournament. One platform.</h2>
             <p className={classes.deck}>
-              The core pieces of a tournament day — from roster to public board — in one place.
+              From player registration to final standings, manage every stage of your tournament in one place.
             </p>
             <FeaturesGrid />
           </Reveal>
@@ -110,11 +112,12 @@ export default function HomePage() {
         <div className={classes.wrap}>
           <Reveal>
             <p className={classes.kicker}>How it works</p>
-            <h2 className={classes.display}>Organizer path, end to end.</h2>
+            <h2 className={classes.display}>From registration to tournament day.</h2>
             <p className={classes.deck}>
-              Follow the same order as the{" "}
-              <Link href="/usage-guide">Usage Guide</Link>. Click a step anytime — screenshots come
-              later; placeholders mark each screen for now.
+              Set up your tournament in a few simple steps. Import your players, generate brackets, assign courts, and get your scorekeepers ready. 
+              KenManage keeps everything connected so you can focus on running the event.
+              For detailed instructions, check out the{" "}
+              <Link href="/usage-guide">Usage Guide</Link>
             </p>
             <OrganizerJourney />
           </Reveal>
@@ -125,9 +128,10 @@ export default function HomePage() {
         <div className={classes.wrap}>
           <Reveal>
             <p className={classes.kicker}>Get started</p>
-            <h2 className={classes.display}>How are you joining?</h2>
+            <h2 className={classes.display}>Ready for tournament day?</h2>
             <p className={classes.deck}>
-              Pick a role. New here? The <Link href="/guide">guide</Link> walks through each path.
+              Whether you're competing, keeping score, or running the event, KenManage has a place for you. Choose your role to get started.
+              New here? The <Link href="/guide">guide</Link> walks through each path.
               Organizers planning a full event can use the{" "}
               <Link href="/usage-guide">Usage Guide</Link>.
             </p>

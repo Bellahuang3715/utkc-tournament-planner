@@ -56,6 +56,19 @@
   margin-inline: auto;
 }
 
+/** Wider than content wrap; used by header (near full-bleed). */
+.wrapWide {
+  width: calc(100% - 48px);
+  max-width: none;
+  margin-inline: auto;
+}
+
+/** Mid width for hero + footer — wider than body, still capped. */
+.wrapMid {
+  width: min(1280px, calc(100% - 48px));
+  margin-inline: auto;
+}
+
 .header {
   position: sticky;
   top: 0;
@@ -320,8 +333,8 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-  gap: 56px;
+  grid-template-columns: minmax(0, 0.8fr) minmax(280px, 1.35fr);
+  gap: 36px;
   align-items: center;
   padding: 72px 0 88px;
 }
@@ -482,6 +495,32 @@
   background: var(--wash);
 }
 
+.heroBoardWrap {
+  justify-self: stretch;
+  width: 100%;
+  max-width: none;
+}
+
+.heroShot {
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  min-height: 320px;
+  object-fit: contain;
+  object-position: center right;
+  border-radius: 16px;
+  border: 1px solid rgba(237, 243, 251, 0.14);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.35);
+  background: rgba(255, 255, 255, 0.04);
+  transition: transform 280ms ease, box-shadow 280ms ease;
+}
+
+.heroBoardWrap:hover .heroShot {
+  transform: translateY(-4px);
+  box-shadow: 0 34px 80px rgba(0, 0, 0, 0.42);
+}
+
 .board {
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.06);
@@ -490,11 +529,6 @@
   overflow: hidden;
   backdrop-filter: blur(10px);
   transition: transform 280ms ease, box-shadow 280ms ease;
-}
-
-.heroBoardWrap:hover .board {
-  transform: translateY(-4px);
-  box-shadow: 0 34px 80px rgba(0, 0, 0, 0.42);
 }
 
 .boardTop {
@@ -2385,7 +2419,8 @@
   .splitBlock:hover,
   .contactCard:hover,
   .supportCard:hover,
-  .loginLink:hover {
+  .loginLink:hover,
+  .heroBoardWrap:hover .heroShot {
     transform: none;
   }
 }

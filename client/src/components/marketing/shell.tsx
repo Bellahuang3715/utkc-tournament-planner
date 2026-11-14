@@ -189,7 +189,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
   return (
     <div className={classes.page}>
       <header className={classes.header}>
-        <div className={`${classes.wrap} ${classes.headerInner}`}>
+        <div className={`${classes.wrapWide} ${classes.headerInner}`}>
           <Link href="/" className={classes.brand} aria-label="KenManage home">
             <img className={classes.brandLogo} src={LOGO_SRC} alt="" />
             <span className={classes.brandName}>KenManage</span>
@@ -257,7 +257,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
         </div>
         <div
           id="marketing-menu"
-          className={`${classes.wrap} ${classes.mobileNav}`}
+          className={`${classes.wrapWide} ${classes.mobileNav}`}
           data-open={mobileOpen ? "true" : "false"}
           hidden={!mobileOpen}
         >
@@ -286,7 +286,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
       </header>
       <main>{children}</main>
       <footer className={classes.footer}>
-        <div className={`${classes.wrap} ${classes.footerSimple}`}>
+        <div className={`${classes.wrapMid} ${classes.footerSimple}`}>
           <p className={classes.footerCopy}>
             © {year} KenManage. Free software under AGPL-3.0.
           </p>
