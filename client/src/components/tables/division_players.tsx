@@ -12,7 +12,7 @@ import { Player } from "../../interfaces/player";
 import RequestErrorAlert from "../utils/error_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
 import { removePlayersFromDivision } from "../../services/division";
-import { assignBrackets, pickClosestSizes } from "../utils/seeding";
+import { assignBrackets, MIN_BRACKET_SIZE, pickClosestSizes } from "../utils/seeding";
 import {
   fetchDivisionBracketsWithPlayers,
   postDivisionBrackets,
@@ -138,6 +138,18 @@ export default function DivisionPlayersTable({
   ) => {
     if (locked || !selectedIds.length) return;
 
+    const remaining = players.length - selectedIds.length;
+    if (remaining < MIN_BRACKET_SIZE) {
+      window.alert(
+        t(
+          "cannot_remove_below_min_players",
+          "A division needs at least {{min}} players. Removing these would leave {{remaining}}.",
+          { min: MIN_BRACKET_SIZE, remaining },
+        ),
+      );
+      return;
+    }
+
     const names = players
       .filter((p) => selectedIds.includes(p.id))
       .map((p) => `${p.name} (${p.club ?? "-"})`)
@@ -169,6 +181,7 @@ export default function DivisionPlayersTable({
     tableInstance.resetRowPinning();
 
     const removedId = selectedIds[0];
+    const nextPlayerIds = players.map((p) => p.id).filter((id) => id !== removedId);
 
     // 1) Adjust brackets minimally around the removed player
     const bracketsRes = await fetchDivisionBracketsWithPlayers(divisionId);
@@ -204,6 +217,17 @@ export default function DivisionPlayersTable({
           largestBrackets.find((b) => b.id !== sourceBracket.id) ?? largestBrackets[0] ?? null;
 
         const isSourceLargest = sourceBracket.num_players === maxSize;
+        // Minimal shrink always reduces some group by 1 — reseed if that would go below min.
+        const shrinkTargetSize = isSourceLargest
+          ? sourceSize
+          : (largestBracket?.num_players ?? sourceSize);
+        if (shrinkTargetSize - 1 < MIN_BRACKET_SIZE) {
+          const applied = await onChangeRosterAndBrackets(nextPlayerIds);
+          if (!applied) return;
+          await removePlayersFromDivision(divisionId, selectedIds);
+          await swrDivisionPlayersResponse.mutate();
+          return;
+        }
 
         if (isSourceLargest) {
           // Case 1: removed player is from one of the largest groups

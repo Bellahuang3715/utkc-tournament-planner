@@ -46,7 +46,9 @@ export const BRACKET_BYES: Record<number, number> = {
 };
 
 const ALLOWED_SIZES = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16] as const;
-const MIN = ALLOWED_SIZES[0];
+/** Minimum players required to create/seed a division (also the smallest bracket size). */
+export const MIN_BRACKET_SIZE = ALLOWED_SIZES[0];
+const MIN = MIN_BRACKET_SIZE;
 const MAX = ALLOWED_SIZES[ALLOWED_SIZES.length - 1];
 
 /** Maximum allowed spread between smallest and largest bracket in a combination (keeps sizes "approximately equal"). */
@@ -77,6 +79,7 @@ function enumerateTuples(
  * Bracket count is restricted to powers of 2 (1, 2, 4, 8, 16).
  */
 export function getBracketSizeOptions(N: number): number[][] {
+  if (N < MIN) return [];
   const out: number[][] = [];
   const seen = new Set<string>();
   for (let k = 1; k <= 16; k *= 2) {
@@ -104,6 +107,9 @@ export function getBracketSizeOptions(N: number): number[][] {
 
 // ---- 2) Pick bracket sizes (JS logic) ----
 export function pickBracketSizes(N: number): number[] {
+  // Return [] below minimum — callers that compute UI options may run on selection.
+  // assignBrackets enforces the minimum when actually generating.
+  if (N < MIN) return [];
   let count = 1;
   while (count * MAX < N) count <<= 1;
 
@@ -543,10 +549,20 @@ export function assignBrackets(
   players: ReadonlyArray<DivisionPlayer>,
   sizes?: number[]
 ): BracketGroup[] {
+  if (players.length < MIN) {
+    throw new Error(
+      `At least ${MIN} players are required to generate brackets (got ${players.length}).`,
+    );
+  }
   const resolvedSizes =
     sizes != null && sizes.length > 0
       ? sizes
       : pickBracketSizes(players.length);
+  if (resolvedSizes.reduce((s, n) => s + n, 0) !== players.length) {
+    throw new Error(
+      `Bracket sizes [${resolvedSizes.join(", ")}] do not sum to player count ${players.length}.`,
+    );
+  }
 
   const byeQuotaByClub = computeByeQuotaByClub(players, resolvedSizes);
   const byeAssignedPerClub = new Map<ClubCode, number>();

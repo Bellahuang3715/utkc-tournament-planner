@@ -109,6 +109,7 @@ function seededToBracketPayload(
   return seeded.map((g) => {
     const players = g.players
       .map((p, idx) => {
+        if (p == null || p.id == null) return null;
         const id = Number(p.id);
         if (!Number.isFinite(id)) return null;
         return { player_id: id, bracket_idx: idx };

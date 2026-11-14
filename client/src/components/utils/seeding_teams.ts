@@ -29,7 +29,9 @@ export interface ParsedTeam {
 
 // ---- Config (teams: 5–16) ----
 const ALLOWED_SIZES = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16] as const;
-const MIN = ALLOWED_SIZES[0];
+/** Minimum teams required to create/seed a division (also the smallest bracket size). */
+export const MIN_TEAM_BRACKET_SIZE = ALLOWED_SIZES[0];
+const MIN = MIN_TEAM_BRACKET_SIZE;
 const MAX = ALLOWED_SIZES[ALLOWED_SIZES.length - 1];
 
 export const BRACKET_BYES_TEAMS: Record<number, number> = {
@@ -69,6 +71,7 @@ function enumerateTuples(
  * Used by the teams "Generate Brackets" modal for the size dropdown.
  */
 export function getTeamBracketSizeOptions(N: number): number[][] {
+  if (N < MIN) return [];
   const out: number[][] = [];
   const seen = new Set<string>();
   for (let k = 1; k <= 16; k *= 2) {
@@ -120,6 +123,9 @@ export function toParsedTeam(entry: TeamSeedEntry): ParsedTeam {
 
 // ---- Pick bracket sizes (same logic as players) ----
 export function pickTeamBracketSizes(N: number): number[] {
+  // Return [] below minimum — UI option memos may run on selection.
+  // assignTeamBrackets enforces the minimum when actually generating.
+  if (N < MIN) return [];
   let count = 1;
   while (count * MAX < N) count <<= 1;
 
@@ -436,6 +442,11 @@ export function assignTeamBrackets(
   teamCodes: string[],
   options?: { seed?: number; teamIds?: number[]; biasTeamIds?: number[]; sizes?: number[] }
 ): TeamBracketGroup[] {
+  if (teamCodes.length < MIN) {
+    throw new Error(
+      `At least ${MIN} teams are required to generate brackets (got ${teamCodes.length}).`,
+    );
+  }
   const rng = createRng(options?.seed);
   const ids = options?.teamIds;
   const biasSet = new Set(options?.biasTeamIds ?? []);
@@ -452,6 +463,11 @@ export function assignTeamBrackets(
     options?.sizes != null && options.sizes.length > 0
       ? options.sizes
       : [...defaultSizes].sort((a, b) => a - b);
+  if (sizes.reduce((s, n) => s + n, 0) !== entries.length) {
+    throw new Error(
+      `Bracket sizes [${sizes.join(", ")}] do not sum to team count ${entries.length}.`,
+    );
+  }
   const parsed = entries.map(toParsedTeam);
   const grouped = distributeTeamsIntoBrackets(parsed, sizes, rng);
 

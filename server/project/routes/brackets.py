@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from project.models.db.bracket_edit_lock import (
     BracketEditLockClaimBody,
@@ -64,11 +64,55 @@ from project.sql.bracket_cells import (
 router = APIRouter()
 
 EDIT_SESSION_HEADER = "X-Edit-Session-Id"
+MIN_BRACKET_SIZE = 5
 
 
 def _edit_session_id(request: Request) -> str | None:
     raw = request.headers.get(EDIT_SESSION_HEADER)
     return raw.strip() if raw and raw.strip() else None
+
+
+def _validate_bracket_sizes(
+    brackets: list,
+    *,
+    kind: str,
+    slots_attr: str,
+) -> None:
+    """Reject divisions/brackets below the minimum supported group size."""
+    if not brackets:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"At least one {kind} bracket is required",
+        )
+    sizes = [int(b.num_players) for b in brackets]
+    total = sum(sizes)
+    if total < MIN_BRACKET_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"A division needs at least {MIN_BRACKET_SIZE} {kind}s "
+                f"(got {total})"
+            ),
+        )
+    for bracket in brackets:
+        size = int(bracket.num_players)
+        if size < MIN_BRACKET_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Each bracket must have at least {MIN_BRACKET_SIZE} "
+                    f"{kind}s (got {size})"
+                ),
+            )
+        slots = getattr(bracket, slots_attr, None) or []
+        if len(slots) != size:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Bracket size {size} does not match number of "
+                    f"{kind} slots ({len(slots)})"
+                ),
+            )
 
 
 @router.get("/divisions/{division_id}/brackets", response_model=BracketsResponse)
@@ -278,6 +322,7 @@ async def create_division_brackets(
     _: Division = Depends(require_division_owner),
 ) -> BracketsResponse:
     await sql_ensure_division_unlocked(division_id)
+    _validate_bracket_sizes(body.brackets, kind="player", slots_attr="players")
     created = await sql_create_division_brackets(division_id, body, replace=replace)
     return BracketsResponse(data=created)
 
@@ -290,6 +335,7 @@ async def create_division_brackets_teams(
     _: Division = Depends(require_division_owner),
 ) -> BracketsResponse:
     await sql_ensure_division_unlocked(division_id)
+    _validate_bracket_sizes(body.brackets, kind="team", slots_attr="teams")
     created = await sql_create_division_brackets_teams(division_id, body, replace=replace)
     return BracketsResponse(data=created)
 

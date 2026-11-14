@@ -14,9 +14,11 @@ import {
   Divider,
   ScrollArea,
   Alert,
+  Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from "@mantine/form";
+import { showNotification } from "@mantine/notifications";
 import BuildIcon from "@mui/icons-material/Build";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useRouter } from "next/router";
@@ -29,10 +31,19 @@ import {
 } from "../../services/division";
 import { DivisionType, DivisionPlayer } from "../../interfaces/division";
 import { getTournamentIdFromRouter } from "../utils/util";
-import { assignBrackets, getBracketSizeOptions, pickBracketSizes } from "../utils/seeding";
+import {
+  assignBrackets,
+  getBracketSizeOptions,
+  pickBracketSizes,
+  MIN_BRACKET_SIZE,
+} from "../utils/seeding";
 import { fetchDivisionPlayers } from "../../services/division";
 import { postDivisionBrackets, postDivisionBracketsTeams } from "../../services/bracket";
-import { assignTeamBrackets, getTeamBracketSizeOptions } from "../utils/seeding_teams";
+import {
+  assignTeamBrackets,
+  getTeamBracketSizeOptions,
+  MIN_TEAM_BRACKET_SIZE,
+} from "../utils/seeding_teams";
 import { updatePlayerCodes } from "../../services/player";
 import ModalFooter from "./modal_footer";
 
@@ -199,11 +210,17 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
 
   // Bracket size options for selected count (recomputed when selectedCount changes)
   const bracketSizeOptions = useMemo(
-    () => (selectedCount > 0 ? getBracketSizeOptions(selectedCount) : []),
+    () =>
+      selectedCount >= MIN_BRACKET_SIZE
+        ? getBracketSizeOptions(selectedCount)
+        : [],
     [selectedCount]
   );
   const defaultSizes = useMemo(
-    () => (selectedCount > 0 ? pickBracketSizes(selectedCount) : []),
+    () =>
+      selectedCount >= MIN_BRACKET_SIZE
+        ? pickBracketSizes(selectedCount)
+        : [],
     [selectedCount]
   );
 
@@ -238,6 +255,19 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
   };
 
   const handleSubmit = async (values: typeof form.values) => {
+    if (selectedPlayerIds.length < MIN_BRACKET_SIZE) {
+      showNotification({
+        color: "red",
+        title: t("too_few_players_title", "Not enough players"),
+        message: t(
+          "too_few_players_message",
+          "A division needs at least {{min}} players to generate brackets.",
+          { min: MIN_BRACKET_SIZE },
+        ),
+      });
+      return;
+    }
+
     const createRes = await createDivision({
       tournament_id: tournamentId,
       name: values.name.trim(),
@@ -305,16 +335,34 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
     resetWizard();
   };
 
+  const tooFewPlayers = selectedCount < MIN_BRACKET_SIZE;
+  const generatePlayersLabel = t(
+    "generate_brackets",
+    "Generate Brackets with Selected Players",
+  );
+
   return (
     <>
-      <Button
-        leftSection={<BuildIcon />}
-        disabled={selectedCount === 0}
-        onClick={open}
-        style={{ textTransform: "none" }}
+      <Tooltip
+        label={t(
+          "min_players_for_division",
+          "Select at least {{min}} players to create a division.",
+          { min: MIN_BRACKET_SIZE },
+        )}
+        disabled={!tooFewPlayers}
+        withArrow
       >
-        {t("generate_brackets", "Generate Brackets with Selected Players")}
-      </Button>
+        <span>
+          <Button
+            leftSection={<BuildIcon />}
+            disabled={tooFewPlayers}
+            onClick={open}
+            style={{ textTransform: "none" }}
+          >
+            {generatePlayersLabel}
+          </Button>
+        </span>
+      </Tooltip>
 
       <Modal
         opened={opened}
@@ -638,7 +686,10 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
   );
 
   const bracketSizeOptions = useMemo(
-    () => (selectedCount > 0 ? getTeamBracketSizeOptions(selectedCount) : []),
+    () =>
+      selectedCount >= MIN_TEAM_BRACKET_SIZE
+        ? getTeamBracketSizeOptions(selectedCount)
+        : [],
     [selectedCount],
   );
 
@@ -670,6 +721,19 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
   };
 
   const handleSubmit = async (values: typeof form.values) => {
+    if (selectedTeamIds.length < MIN_TEAM_BRACKET_SIZE) {
+      showNotification({
+        color: "red",
+        title: t("too_few_teams_title", "Not enough teams"),
+        message: t(
+          "too_few_teams_message",
+          "A division needs at least {{min}} teams to generate brackets.",
+          { min: MIN_TEAM_BRACKET_SIZE },
+        ),
+      });
+      return;
+    }
+
     const createRes = await createDivision({
       tournament_id: Number(tournamentId),
       name: values.name.trim(),
@@ -719,16 +783,34 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
     resetWizard();
   };
 
+  const tooFewTeams = selectedCount < MIN_TEAM_BRACKET_SIZE;
+  const generateTeamsLabel = t(
+    "generate_brackets_teams",
+    "Generate Brackets with Selected Teams",
+  );
+
   return (
     <>
-      <Button
-        leftSection={<BuildIcon />}
-        disabled={selectedCount === 0}
-        onClick={open}
-        style={{ textTransform: "none" }}
+      <Tooltip
+        label={t(
+          "min_teams_for_division",
+          "Select at least {{min}} teams to create a division.",
+          { min: MIN_TEAM_BRACKET_SIZE },
+        )}
+        disabled={!tooFewTeams}
+        withArrow
       >
-        {t("generate_brackets_teams", "Generate Brackets with Selected Teams")}
-      </Button>
+        <span>
+          <Button
+            leftSection={<BuildIcon />}
+            disabled={tooFewTeams}
+            onClick={open}
+            style={{ textTransform: "none" }}
+          >
+            {generateTeamsLabel}
+          </Button>
+        </span>
+      </Tooltip>
 
       <Modal
         opened={opened}

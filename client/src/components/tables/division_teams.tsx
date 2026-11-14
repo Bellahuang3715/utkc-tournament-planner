@@ -24,7 +24,11 @@ import {
 } from "../../services/bracket";
 import type { DivisionTeam } from "../../interfaces/division";
 import type { BracketWithTeams } from "../../interfaces/bracket";
-import { assignTeamBrackets, pickClosestSizesTeams } from "../utils/seeding_teams";
+import {
+  assignTeamBrackets,
+  MIN_TEAM_BRACKET_SIZE,
+  pickClosestSizesTeams,
+} from "../utils/seeding_teams";
 import { categoryChipBackground, chipTextColor } from "../../utils/chipStyle";
 
 export default function DivisionTeamsTable({
@@ -207,6 +211,18 @@ export default function DivisionTeamsTable({
   ) => {
     if (locked || !selectedIds.length) return;
 
+    const remaining = teams.length - selectedIds.length;
+    if (remaining < MIN_TEAM_BRACKET_SIZE) {
+      window.alert(
+        t(
+          "cannot_remove_below_min_teams",
+          "A division needs at least {{min}} teams. Removing these would leave {{remaining}}.",
+          { min: MIN_TEAM_BRACKET_SIZE, remaining },
+        ),
+      );
+      return;
+    }
+
     if (selectedIds.length > 1) {
       window.alert(
         t(
@@ -220,6 +236,7 @@ export default function DivisionTeamsTable({
     tableInstance.resetRowSelection();
 
     const removedId = selectedIds[0];
+    const nextTeamIds = teams.map((t) => t.id).filter((id) => id !== removedId);
 
     const bracketsRes = await fetchDivisionBracketsWithTeams(divisionId);
     const brackets = (bracketsRes.data?.data ?? []) as BracketWithTeams[];
@@ -252,6 +269,16 @@ export default function DivisionTeamsTable({
           largestBrackets.find((b) => b.id !== sourceBracket.id) ?? largestBrackets[0] ?? null;
 
         const isSourceLargest = sourceBracket.num_players === maxSize;
+        const shrinkTargetSize = isSourceLargest
+          ? sourceSize
+          : (largestBracket?.num_players ?? sourceSize);
+        if (shrinkTargetSize - 1 < MIN_TEAM_BRACKET_SIZE) {
+          const applied = await onChangeRosterAndBrackets(nextTeamIds);
+          if (!applied) return;
+          await removeTeamsFromDivision(divisionId, selectedIds);
+          await swrDivisionTeamsResponse.mutate();
+          return;
+        }
 
         if (isSourceLargest) {
           const lastIdx = sourceSize - 1;

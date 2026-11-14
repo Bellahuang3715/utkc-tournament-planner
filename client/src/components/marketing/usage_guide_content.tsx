@@ -392,7 +392,9 @@ export function UsageGuideContent() {
         Start from <strong>Participants → Players</strong>, apply any filters
         you need, select the players to include, and choose{" "}
         <strong>Generate brackets</strong>. The selected players will respect
-        the filters currently applied to the table.
+        the filters currently applied to the table. You need at least{" "}
+        <strong>5 players</strong> (or <strong>5 teams</strong> for team
+        divisions) — that is also the smallest supported bracket size.
       </p>
       <p>
         You don't create an empty division directly from the Divisions page.
