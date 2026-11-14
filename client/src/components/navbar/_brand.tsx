@@ -7,7 +7,11 @@ import { LOGO_SRC } from '../marketing/fixtures';
 export function Brand() {
   return (
     <Center mr="1rem">
-      <UnstyledButton component={Link} href="/" aria-label="KenManage home">
+      <UnstyledButton
+        component={Link}
+        href="/tournaments"
+        aria-label="KenManage tournaments"
+      >
         <Group gap={8} wrap="nowrap" align="center">
           <Image
             src={LOGO_SRC}

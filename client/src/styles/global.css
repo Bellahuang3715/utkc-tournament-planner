@@ -1,0 +1,11 @@
+/* Align organizer UI (incl. MRT) with landing typography. */
+html,
+body {
+  font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+}
+
+/* Mantine React Table roots inherit system font unless forced. */
+[class*="MRT_"],
+[class*="mrt-"] {
+  font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+}

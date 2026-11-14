@@ -51,12 +51,10 @@ function getMenuItemsForLink(
       target="_blank"
       rel="noopener noreferrer"
     >
-      <Center>
-        <item.icon />
-        <span style={{ marginLeft: "0.25rem", marginTop: "0.2rem" }}>
-          {item.label}
-        </span>
-      </Center>
+      <Group gap="xs" justify="flex-start" wrap="nowrap">
+        <item.icon size={16} stroke={1.5} />
+        <span>{item.label}</span>
+      </Group>
     </Link>
   ));
   return (

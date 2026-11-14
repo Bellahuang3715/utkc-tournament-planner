@@ -17,8 +17,25 @@ import PrivateRoute from "../components/protector/private_route";
 
 // import "bootstrap/dist/css/bootstrap.min.css";
 import "tournament-brackets-ui/style.css";
+import "../styles/global.css";
 
 const theme = createTheme({
+  // App UI: Sora throughout. Syne is reserved for the KenManage wordmark + marketing heroes.
+  fontFamily: '"Sora", "Avenir Next", "Segoe UI", sans-serif',
+  fontFamilyMonospace: 'ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace',
+  headings: {
+    fontFamily: '"Sora", "Avenir Next", "Segoe UI", sans-serif',
+    fontWeight: '700',
+    sizes: {
+      h1: { fontSize: '2.25rem', lineHeight: '1.15' },
+      h2: { fontSize: '1.75rem', lineHeight: '1.2' },
+      h3: { fontSize: '1.35rem', lineHeight: '1.25' },
+      h4: { fontSize: '1.15rem', lineHeight: '1.3' },
+      h5: { fontSize: '1rem', lineHeight: '1.35' },
+      h6: { fontSize: '0.92rem', lineHeight: '1.4' },
+    },
+  },
+  defaultRadius: 'md',
   colors: {
     dark: [
       '#C1C2C5',
@@ -32,6 +49,50 @@ const theme = createTheme({
       '#141517',
       '#101113',
     ],
+  },
+  components: {
+    Title: {
+      styles: {
+        root: {
+          letterSpacing: '-0.02em',
+        },
+      },
+    },
+    // MRT tables use Mantine Table / Paper; force Sora through those shells.
+    Table: {
+      styles: {
+        table: {
+          fontFamily: '"Sora", "Avenir Next", "Segoe UI", sans-serif',
+        },
+        th: {
+          fontFamily: '"Sora", "Avenir Next", "Segoe UI", sans-serif',
+        },
+        td: {
+          fontFamily: '"Sora", "Avenir Next", "Segoe UI", sans-serif',
+        },
+      },
+    },
+    Paper: {
+      styles: {
+        root: {
+          fontFamily: '"Sora", "Avenir Next", "Segoe UI", sans-serif',
+        },
+      },
+    },
+    TextInput: {
+      styles: {
+        input: {
+          fontFamily: '"Sora", "Avenir Next", "Segoe UI", sans-serif',
+        },
+      },
+    },
+    Button: {
+      styles: {
+        root: {
+          fontFamily: '"Sora", "Avenir Next", "Segoe UI", sans-serif',
+        },
+      },
+    },
   },
 });
 
