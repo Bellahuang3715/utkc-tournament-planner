@@ -65,6 +65,36 @@ async def test_create_team(
         await assert_row_count_and_clear(teams, 1)
 
 
+async def test_create_team_rejects_duplicate_name_in_category(
+    startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
+) -> None:
+    async with inserted_team_category(auth_context.tournament.id) as cat_mix:
+        async with inserted_team(
+            DUMMY_TEAM1.model_copy(
+                update={
+                    "tournament_id": auth_context.tournament.id,
+                    "club_id": auth_context.club.id,
+                    "category_id": cat_mix.id,
+                    "code": "UOT A",
+                }
+            )
+        ):
+            body = {
+                "code": "uot a",
+                "club_id": auth_context.club.id,
+                "category_id": cat_mix.id,
+                "player_ids": [],
+            }
+            response = await send_tournament_request(
+                HTTPMethod.POST, "teams", auth_context, None, body
+            )
+            assert response["detail"] == (
+                "A team with this name already exists in this category. "
+                "Team names must be unique within each category."
+            )
+            await assert_row_count_and_clear(teams, 1)
+
+
 async def test_delete_team(
     startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
 ) -> None:

@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Center, Loader, Modal, Stack, TextInput, Select, Text } from "@mantine/core";
 import { useTranslation } from "next-i18next/pages";
 
-import { getClubs, getPlayers, getTeamCategories } from "../../services/adapter";
+import { getClubs, getPlayers, getTeamCategories, getTeams } from "../../services/adapter";
 import type { Club } from "../../interfaces/club";
+import type { TeamInterface } from "../../interfaces/team";
 import { createTeam } from "../../services/team";
 import { resolveClubIdByName } from "../../utils/clubs";
 import type { TeamCategoryInterface } from "../../interfaces/team_category";
@@ -41,6 +42,8 @@ export default function AddNewTeamModal({
   const clubs: Club[] = swrClubs.data?.data ?? [];
   const swrCats = getTeamCategories(tournamentId);
   const cats = swrCats.data?.data ?? [];
+  const swrTeams = getTeams(tournamentId);
+  const existingTeams: TeamInterface[] = swrTeams.data?.data?.teams ?? [];
   const playersResponse = getPlayers(tournamentId, false);
   const playersLoaded = playersResponse.data != null;
   const playerCount = playersResponse.data?.data?.players?.length ?? 0;
@@ -84,6 +87,20 @@ export default function AddNewTeamModal({
       setError(t("club_required", "Select a club."));
       return;
     }
+    const nameTaken = existingTeams.some(
+      (team) =>
+        String(team.category_id) === categoryId &&
+        team.code.trim().toLowerCase() === trimmedName.toLowerCase(),
+    );
+    if (nameTaken) {
+      setError(
+        t(
+          "duplicate_team_name_in_category",
+          "A team with this name already exists in this category.",
+        ),
+      );
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {
@@ -94,6 +111,16 @@ export default function AddNewTeamModal({
         [clubIdNum],
         catNum,
       );
+      if (res == null || (res as { name?: string }).name === "AxiosError") {
+        const detail = (res as { response?: { data?: { detail?: unknown } } })
+          ?.response?.data?.detail;
+        setError(
+          typeof detail === "string"
+            ? detail
+            : t("create_team_error", "Failed to create team."),
+        );
+        return;
+      }
       const data = res?.data ?? res;
       const newTeamId = typeof data?.data?.id === "number" ? data.data.id : data?.id;
       if (typeof newTeamId !== "number") {
@@ -142,7 +169,10 @@ export default function AddNewTeamModal({
           label={t("team_name", "Team name")}
           placeholder={t("team_name_placeholder", "e.g. Club A")}
           value={name}
-          onChange={(e) => setName(e.currentTarget.value)}
+          onChange={(e) => {
+            setName(e.currentTarget.value);
+            setError(null);
+          }}
           error={error && !name.trim() ? error : undefined}
         />
         <Select
@@ -153,7 +183,10 @@ export default function AddNewTeamModal({
             label: c.name,
           }))}
           value={categoryId || null}
-          onChange={(v) => setCategoryId(v ?? "")}
+          onChange={(v) => {
+            setCategoryId(v ?? "");
+            setError(null);
+          }}
           disabled={cats.length === 0}
         />
         <Select
@@ -165,7 +198,10 @@ export default function AddNewTeamModal({
           }))}
           searchable
           value={clubId || null}
-          onChange={(v) => setClubId(v ?? "")}
+          onChange={(v) => {
+            setClubId(v ?? "");
+            setError(null);
+          }}
         />
         {error && name.trim() ? (
           <Text size="sm" c="red">

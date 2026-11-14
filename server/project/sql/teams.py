@@ -2,7 +2,7 @@ from typing import cast
 
 from project.database import database
 from project.models.db.team import FullTeamWithPlayers, Team
-from project.utils.id_types import TeamId, TournamentId
+from project.utils.id_types import TeamCategoryId, TeamId, TournamentId
 from project.utils.types import dict_without_none
 
 
@@ -170,6 +170,49 @@ async def get_team_count(tournament_id: TournamentId) -> int:
         """
     values = dict_without_none({"tournament_id": tournament_id})
     return cast(int, await database.fetch_val(query=query, values=values))
+
+
+async def sql_team_code_exists_in_category(
+    tournament_id: TournamentId,
+    category_id: TeamCategoryId,
+    code: str,
+    *,
+    exclude_team_id: TeamId | None = None,
+) -> bool:
+    """True if another team in this tournament+category already uses this code (case-insensitive)."""
+    # Avoid `:param IS NULL` — asyncpg cannot infer the type of a NULL-only bind param.
+    if exclude_team_id is None:
+        query = """
+            SELECT 1
+            FROM teams
+            WHERE tournament_id = :tournament_id
+              AND category_id = :category_id
+              AND LOWER(TRIM(code)) = LOWER(TRIM(:code))
+            LIMIT 1
+        """
+        values = {
+            "tournament_id": tournament_id,
+            "category_id": category_id,
+            "code": code,
+        }
+    else:
+        query = """
+            SELECT 1
+            FROM teams
+            WHERE tournament_id = :tournament_id
+              AND category_id = :category_id
+              AND LOWER(TRIM(code)) = LOWER(TRIM(:code))
+              AND id <> :exclude_team_id
+            LIMIT 1
+        """
+        values = {
+            "tournament_id": tournament_id,
+            "category_id": category_id,
+            "code": code,
+            "exclude_team_id": exclude_team_id,
+        }
+    row = await database.fetch_one(query=query, values=values)
+    return row is not None
 
 
 async def sql_delete_team(tournament_id: TournamentId, team_id: TeamId) -> None:

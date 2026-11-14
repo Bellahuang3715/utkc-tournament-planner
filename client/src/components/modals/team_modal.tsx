@@ -109,6 +109,27 @@ function withRefilledCodes(
   });
 }
 
+function normalizeTeamCode(code: string) {
+  return code.trim().toLowerCase();
+}
+
+/** True if another team already uses this name in the same category. */
+function isDuplicateTeamName(
+  code: string,
+  categoryId: string,
+  existingTeams: TeamInterface[],
+  excludeTeamId?: number,
+) {
+  const normalized = normalizeTeamCode(code);
+  if (!normalized || !categoryId) return false;
+  return existingTeams.some(
+    (team) =>
+      team.id !== excludeTeamId &&
+      String(team.category_id) === categoryId &&
+      normalizeTeamCode(team.code) === normalized,
+  );
+}
+
 export default function TeamModal({
   team,
   tournament_id,
@@ -132,6 +153,8 @@ export default function TeamModal({
   const [drafts, setDrafts] = useState<DraftTeam[]>([]);
   const [multiSubmitting, setMultiSubmitting] = useState(false);
   const [multiError, setMultiError] = useState<string | null>(null);
+  const [singleError, setSingleError] = useState<string | null>(null);
+  const [singleSubmitting, setSingleSubmitting] = useState(false);
 
   const playersResponse = getPlayers(tournament_id, false);
   const players: Player[] = playersResponse.data?.data.players || [];
@@ -209,6 +232,8 @@ export default function TeamModal({
       setDrafts([]);
       setMultiError(null);
       setMultiSubmitting(false);
+      setSingleError(null);
+      setSingleSubmitting(false);
       draftSeq.current = 0;
       return;
     }
@@ -328,30 +353,71 @@ export default function TeamModal({
   const handleSubmit = form.onSubmit(async (values) => {
     if (!isEdit && playersLoaded && players.length === 0) return;
     const cid = Number(values.category_id);
-    if (!Number.isFinite(cid)) return;
-
-    if (isEdit) {
-      await updateTeam(
-        tournament_id,
-        team!.id,
-        values.code,
-        values.player_ids,
-        values.club_ids.map(Number),
-        cid,
-        values.specifyPositions ? values.positions : undefined,
-      );
-    } else {
-      await createTeam(
-        tournament_id,
-        values.code,
-        values.player_ids,
-        values.club_ids.map(Number),
-        cid,
-        values.specifyPositions ? values.positions : undefined,
-      );
+    if (!values.category_id || !Number.isFinite(cid) || cid <= 0) {
+      setSingleError(t("category_required", "Select a category"));
+      return;
     }
-    await swrTeamsResponse.mutate();
-    setOpened(false);
+
+    const trimmedCode = values.code.trim();
+    if (
+      isDuplicateTeamName(
+        trimmedCode,
+        values.category_id,
+        existingTeams,
+        isEdit ? team?.id : undefined,
+      )
+    ) {
+      setSingleError(
+        t(
+          "duplicate_team_name_in_category",
+          "A team with this name already exists in this category.",
+        ),
+      );
+      return;
+    }
+
+    setSingleError(null);
+    setSingleSubmitting(true);
+    try {
+      let result;
+      if (isEdit) {
+        result = await updateTeam(
+          tournament_id,
+          team!.id,
+          trimmedCode,
+          values.player_ids,
+          values.club_ids.map(Number),
+          cid,
+          values.specifyPositions ? values.positions : undefined,
+        );
+      } else {
+        result = await createTeam(
+          tournament_id,
+          trimmedCode,
+          values.player_ids,
+          values.club_ids.map(Number),
+          cid,
+          values.specifyPositions ? values.positions : undefined,
+        );
+      }
+      // createTeam/updateTeam return AxiosError on failure (toast already shown).
+      if (result == null || (result as { name?: string }).name === "AxiosError") {
+        const detail = (result as { response?: { data?: { detail?: unknown } } })
+          ?.response?.data?.detail;
+        setSingleError(
+          typeof detail === "string"
+            ? detail
+            : t("create_team_error", "Failed to create team."),
+        );
+        return;
+      }
+      await swrTeamsResponse.mutate();
+      setOpened(false);
+    } catch {
+      setSingleError(t("create_team_error", "Failed to create team."));
+    } finally {
+      setSingleSubmitting(false);
+    }
   });
 
   const handleMultiClubChange = (value: string | null) => {
@@ -429,6 +495,32 @@ export default function TeamModal({
       }
     }
 
+    const seenInBatch = new Set<string>();
+    for (const draft of drafts) {
+      const key = `${draft.category_id}::${normalizeTeamCode(draft.code)}`;
+      if (seenInBatch.has(key)) {
+        setMultiError(
+          t(
+            "duplicate_team_name_in_category",
+            "A team with this name already exists in this category.",
+          ),
+        );
+        return;
+      }
+      seenInBatch.add(key);
+      if (
+        isDuplicateTeamName(draft.code, draft.category_id, existingTeams)
+      ) {
+        setMultiError(
+          t(
+            "duplicate_team_name_in_category",
+            "A team with this name already exists in this category.",
+          ),
+        );
+        return;
+      }
+    }
+
     setMultiError(null);
     setMultiSubmitting(true);
     try {
@@ -441,11 +533,16 @@ export default function TeamModal({
           Number(draft.category_id),
           draft.specifyPositions ? draft.positions : undefined,
         );
-        if (created == null) {
+        if (created == null || (created as { name?: string }).name === "AxiosError") {
+          const detail = (created as { response?: { data?: { detail?: unknown } } })
+            ?.response?.data?.detail;
           showNotification({
             color: "red",
             title: t("error", "Error"),
-            message: t("create_team_error", "Failed to create team."),
+            message:
+              typeof detail === "string"
+                ? detail
+                : t("create_team_error", "Failed to create team."),
           });
           await swrTeamsResponse.mutate();
           return;
@@ -467,6 +564,10 @@ export default function TeamModal({
         label={t("team_name_input_label", "Team ID")}
         placeholder={t("team_name_input_placeholder")}
         {...form.getInputProps("code")}
+        onChange={(e) => {
+          form.setFieldValue("code", e.currentTarget.value);
+          setSingleError(null);
+        }}
       />
       <MultiSelect
         label={t("team_clubs_label", "Clubs")}
@@ -498,11 +599,13 @@ export default function TeamModal({
             setConfigOpen(true);
           } else {
             form.setFieldValue("category_id", val);
+            setSingleError(null);
           }
         }}
         placeholder={t("select_category", "Select category")}
         searchable
         mt="sm"
+        error={form.errors.category_id}
       />
       <MultiSelect
         data={playerSelectData}
@@ -539,10 +642,17 @@ export default function TeamModal({
         </Stack>
       )}
 
+      {singleError ? (
+        <Alert variant="light" color="red" mt="sm">
+          {singleError}
+        </Alert>
+      ) : null}
+
       <ModalFooter
         onCancel={() => setOpened(false)}
         primaryLabel={t("save_button")}
         primaryType="submit"
+        primaryLoading={singleSubmitting}
       />
     </form>
   );
@@ -610,6 +720,7 @@ export default function TeamModal({
                       setConfigOpen(true);
                       return;
                     }
+                    setMultiError(null);
                     updateDraft(draft.key, {
                       category_id: val,
                       codeTouched: false,
@@ -627,12 +738,13 @@ export default function TeamModal({
                       : t("team_name_input_placeholder")
                   }
                   value={draft.code}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    setMultiError(null);
                     updateDraft(draft.key, {
                       code: e.currentTarget.value,
                       codeTouched: true,
-                    })
-                  }
+                    });
+                  }}
                 />
               </Group>
               <MultiSelect

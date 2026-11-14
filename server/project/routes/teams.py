@@ -1,3 +1,4 @@
+import asyncpg
 from fastapi import APIRouter, Depends, HTTPException
 from heliclockter import datetime_utc
 from starlette import status
@@ -27,6 +28,7 @@ from project.sql.teams import (
     get_team_count,
     get_teams_with_members,
     sql_delete_team,
+    sql_team_code_exists_in_category,
 )
 from project.sql.validation import check_foreign_keys_belong_to_tournament
 from project.utils.id_types import ClubId, PlayerId, TeamId, TournamentId
@@ -93,6 +95,12 @@ async def get_teams(
     )
 
 
+DUPLICATE_TEAM_NAME_DETAIL = (
+    "A team with this name already exists in this category. "
+    "Team names must be unique within each category."
+)
+
+
 @router.put("/tournaments/{tournament_id}/teams/{team_id}", response_model=SingleTeamResponse)
 async def update_team_by_id(
     tournament_id: TournamentId,
@@ -102,12 +110,32 @@ async def update_team_by_id(
 ) -> SingleTeamResponse:
     await check_foreign_keys_belong_to_tournament(team_body, tournament_id)
 
-    await database.execute(
-        query=teams.update().where(
-            (teams.c.id == team.id) & (teams.c.tournament_id == tournament_id)
-        ),
-        values=team_body.model_dump(exclude={"player_ids", "positions", "club_ids"}),
-    )
+    code = team_body.code.strip()
+    if await sql_team_code_exists_in_category(
+        tournament_id,
+        team_body.category_id,
+        code,
+        exclude_team_id=team.id,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=DUPLICATE_TEAM_NAME_DETAIL,
+        )
+
+    values = team_body.model_dump(exclude={"player_ids", "positions", "club_ids"})
+    values["code"] = code
+    try:
+        await database.execute(
+            query=teams.update().where(
+                (teams.c.id == team.id) & (teams.c.tournament_id == tournament_id)
+            ),
+            values=values,
+        )
+    except asyncpg.exceptions.UniqueViolationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=DUPLICATE_TEAM_NAME_DETAIL,
+        ) from exc
     await replace_team_clubs(team.id, team_body.resolved_club_ids())
 
     positions_by_id = (
@@ -148,14 +176,33 @@ async def create_team(
     existing_teams = await get_teams_with_members(tournament_id)
     check_requirement(existing_teams, user, "max_teams")
 
+    code = team_to_insert.code.strip()
+    if await sql_team_code_exists_in_category(
+        tournament_id,
+        team_to_insert.category_id,
+        code,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=DUPLICATE_TEAM_NAME_DETAIL,
+        )
+
     now = datetime_utc.now()
+    insert_values = team_to_insert.model_dump(exclude={"player_ids", "positions", "club_ids"})
+    insert_values["code"] = code
     insertable = TeamInsertable(
-        **team_to_insert.model_dump(exclude={"player_ids", "positions", "club_ids"}),
+        **insert_values,
         created=now,
         updated=now,
         tournament_id=tournament_id,
     )
-    await database.execute(query=teams.insert(), values=insertable.model_dump())
+    try:
+        await database.execute(query=teams.insert(), values=insertable.model_dump())
+    except asyncpg.exceptions.UniqueViolationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=DUPLICATE_TEAM_NAME_DETAIL,
+        ) from exc
     team_result = await get_latest_team_for_tournament(tournament_id)
     if team_result is None:
         raise HTTPException(

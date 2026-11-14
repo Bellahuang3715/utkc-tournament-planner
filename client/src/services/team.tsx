@@ -12,19 +12,16 @@ export async function createTeam(
   category_id: number,
   positions?: Record<string, string>,
 ) {
-  try {
-    const axiosInstance = await createAxios();
-    return await axiosInstance.post(`tournaments/${tournament_id}/teams`, {
+  return awaitRequestAndHandleError(async (axios) =>
+    axios.post(`tournaments/${tournament_id}/teams`, {
       code,
       club_ids,
       club_id: club_ids[0] ?? null,
       category_id,
       player_ids: player_ids.map((id) => Number(id)),
       ...(positions && Object.keys(positions).length > 0 && { positions }),
-    });
-  } catch (error: any) {
-    return handleRequestError(error);
-  }
+    }),
+  );
 }
 
 export async function deleteTeam(tournament_id: number, team_id: number) {

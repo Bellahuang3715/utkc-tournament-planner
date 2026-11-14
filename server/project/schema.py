@@ -151,6 +151,13 @@ teams = Table(
     Column("tournament_id", BigInteger, ForeignKey("tournaments.id", ondelete="CASCADE"), index=True, nullable=False),
     Column("wins", Integer, nullable=False, server_default="0"),
     Index("ix_teams_team_category_id", "category_id"),
+    # Same team name allowed across categories; not within one category.
+    UniqueConstraint(
+        "tournament_id",
+        "category_id",
+        "code",
+        name="uq_teams_tournament_category_code",
+    ),
 )
 
 teams_x_clubs = Table(

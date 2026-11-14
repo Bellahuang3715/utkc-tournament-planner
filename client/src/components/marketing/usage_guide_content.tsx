@@ -273,9 +273,19 @@ export function UsageGuideContent() {
         <li>Review potential duplicates and confirm the import.</li>
       </ol>
 
+      <Callout>
+        <p>
+          <strong>Important: Do not leave empty rows between players.</strong>
+        </p>
+        <p>
+          The first row with an empty player name is treated as the end of the
+          spreadsheet, so any valid players below that blank row are not
+          imported.
+        </p>
+      </Callout>
+
       <h3>Import considerations</h3>
       <ul>
-        <li>Rows with empty player names will stop the import.</li>
         <li>
           Subsequent imports must include headers marked{" "}
           <code>import_required</code> in the field configuration.
@@ -325,7 +335,9 @@ export function UsageGuideContent() {
       <ul>
         <li>
           <strong>Team name:</strong> Enter a name for the team. By default,
-          KenManage generates team names based on the club and category.
+          KenManage generates team names based on the club and category. Names
+          must be unique within a category (the same name may be reused in a
+          different category).
         </li>
         <li>
           <strong>Category:</strong> Assign a category such as Mixed or Womens.
@@ -1092,7 +1104,8 @@ blockMins = max(10, round(raw / 10) × 10)`}</code>
         <li>
           <strong>Excel import fails because of player names?</strong> Every
           row must have a player name. You can use a single name column or
-          combine First and Last columns. Empty names will stop the import.
+          combine First and Last columns. An empty name is treated as the end
+          of the data, so blank rows between players will cut off the import.
         </li>
         <li>
           <strong>Players are assigned to the wrong club?</strong> The club is
