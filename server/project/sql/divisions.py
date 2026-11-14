@@ -10,6 +10,81 @@ from project.utils.id_types import DivisionId, TeamId, TournamentId
 from project.models.db.player import PlayerInDivision
 from project.models.db.team import TeamInDivision
 
+def _normalize_division_prefix(prefix: str | None) -> str | None:
+    if prefix is None:
+        return None
+    trimmed = prefix.strip()
+    return trimmed or None
+
+
+async def sql_division_name_exists(
+    tournament_id: TournamentId,
+    name: str,
+    *,
+    exclude_division_id: DivisionId | None = None,
+) -> bool:
+    # Avoid `:param IS NULL` — asyncpg cannot infer the type of a NULL-only bind param.
+    if exclude_division_id is None:
+        query = """
+            SELECT 1
+            FROM divisions
+            WHERE tournament_id = :tournament_id
+              AND name = :name
+            LIMIT 1
+        """
+        values = {"tournament_id": tournament_id, "name": name}
+    else:
+        query = """
+            SELECT 1
+            FROM divisions
+            WHERE tournament_id = :tournament_id
+              AND name = :name
+              AND id <> :exclude_division_id
+            LIMIT 1
+        """
+        values = {
+            "tournament_id": tournament_id,
+            "name": name,
+            "exclude_division_id": exclude_division_id,
+        }
+    row = await database.fetch_one(query=query, values=values)
+    return row is not None
+
+
+async def sql_division_prefix_exists(
+    tournament_id: TournamentId,
+    prefix: str,
+    *,
+    exclude_division_id: DivisionId | None = None,
+) -> bool:
+    # Avoid `:param IS NULL` — asyncpg cannot infer the type of a NULL-only bind param.
+    if exclude_division_id is None:
+        query = """
+            SELECT 1
+            FROM divisions
+            WHERE tournament_id = :tournament_id
+              AND prefix = :prefix
+            LIMIT 1
+        """
+        values = {"tournament_id": tournament_id, "prefix": prefix}
+    else:
+        query = """
+            SELECT 1
+            FROM divisions
+            WHERE tournament_id = :tournament_id
+              AND prefix = :prefix
+              AND id <> :exclude_division_id
+            LIMIT 1
+        """
+        values = {
+            "tournament_id": tournament_id,
+            "prefix": prefix,
+            "exclude_division_id": exclude_division_id,
+        }
+    row = await database.fetch_one(query=query, values=values)
+    return row is not None
+
+
 async def create_division(body: DivisionCreateBody) -> Division:
     query = """
         INSERT INTO divisions (name, prefix, tournament_id, duration_mins, margin_mins, division_type, created)
@@ -17,8 +92,8 @@ async def create_division(body: DivisionCreateBody) -> Division:
         RETURNING *
     """
     values = {
-        "name": body.name,
-        "prefix": body.prefix,
+        "name": body.name.strip(),
+        "prefix": _normalize_division_prefix(body.prefix),
         "tournament_id": body.tournament_id,
         "duration_mins": body.duration_mins,
         "margin_mins": body.margin_mins,
@@ -44,8 +119,8 @@ async def sql_update_division(division_id: DivisionId, body: DivisionUpdateBody)
     """
     values = {
         "division_id": division_id,
-        "name": body.name,
-        "prefix": body.prefix,
+        "name": body.name.strip(),
+        "prefix": _normalize_division_prefix(body.prefix),
         "duration_mins": body.duration_mins,
         "margin_mins": body.margin_mins,
         "division_type": body.division_type.value if hasattr(body.division_type, "value") else body.division_type,

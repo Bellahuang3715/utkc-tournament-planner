@@ -18,7 +18,6 @@ import {
   Modal,
 } from "@mantine/core";
 import {
-  IconAlertCircle,
   IconCircleCheck,
   IconInfoCircle,
   IconUpload,
@@ -32,6 +31,7 @@ import ClubModal from "./club_modal";
 import { Club } from "../../interfaces/club";
 import { getTournamentIdFromRouter } from "../utils/util";
 import type { FieldInsertable } from "../../interfaces/player_fields";
+import { WarningAlert } from "../utils/warning_alert";
 import ModalFooter from "./modal_footer";
 
 export interface PlayersUpload {
@@ -457,11 +457,7 @@ export default function PlayersImportModal({
         size="sm"
       >
         <Stack gap="lg">
-          <Alert
-            variant="light"
-            color="orange"
-            icon={<IconAlertCircle size={16} />}
-          >
+          <WarningAlert>
             {duplicateKind === "added"
               ? t(
                   "duplicate_excel_added",
@@ -471,7 +467,7 @@ export default function PlayersImportModal({
                   "duplicate_excel_imported",
                   "A file with the same name has already been imported for this tournament.",
                 )}
-          </Alert>
+          </WarningAlert>
           <Paper withBorder radius="md" p="sm">
             <Text size="sm" fw={600} lh={1.5} style={{ wordBreak: "break-word" }}>
               {duplicateFile?.name}
@@ -625,16 +621,12 @@ export default function PlayersImportModal({
               </Group>
 
               {!hasNameHeader(currentHeaders) && (
-                <Alert
-                  variant="light"
-                  color="red"
-                  icon={<IconAlertCircle size={16} />}
-                >
+                <WarningAlert>
                   {t(
                     "missing_name_header_msg",
                     'You must include at least one Name field (e.g. "Name", "Full Name", "First Name", "Last Name").',
                   )}
-                </Alert>
+                </WarningAlert>
               )}
 
               {/* First import: pick which Excel columns become tournament fields */}
@@ -744,11 +736,7 @@ export default function PlayersImportModal({
                   }
 
                   return (
-                    <Alert
-                      variant="light"
-                      color="red"
-                      icon={<IconAlertCircle size={16} />}
-                    >
+                    <WarningAlert>
                       <Stack gap={4}>
                         <Text size="sm">
                           {t(
@@ -771,7 +759,7 @@ export default function PlayersImportModal({
                           </Text>
                         )}
                       </Stack>
-                    </Alert>
+                    </WarningAlert>
                   );
                 })()
               )}

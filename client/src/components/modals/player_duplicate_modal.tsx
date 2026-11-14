@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   Badge,
   Checkbox,
   Divider,
@@ -11,7 +10,7 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
-import { IconAlertTriangle, IconInfoCircle } from "@tabler/icons-react";
+import { WarningAlert } from "../utils/warning_alert";
 import { useTranslation } from "next-i18next/pages";
 
 import { FieldInsertable } from "../../interfaces/player_fields";
@@ -135,10 +134,7 @@ export default function PlayerDuplicateModal({
       size="lg"
     >
       <Stack gap="md">
-        <Alert
-          variant="light"
-          color="orange"
-          icon={<IconAlertTriangle size={18} />}
+        <WarningAlert
           title={
             context === "import"
               ? t(
@@ -160,7 +156,7 @@ export default function PlayerDuplicateModal({
                 "duplicate_player_single_intro",
                 "A club can have more than one player with the same name. The saved player stays, and you can add this one too.",
               )}
-        </Alert>
+        </WarningAlert>
         <ScrollArea.Autosize mah={480} type="auto" offsetScrollbars>
           <Stack gap="lg">
             {groups?.map((group, index) => (

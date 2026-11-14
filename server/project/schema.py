@@ -209,6 +209,9 @@ divisions = Table(
       nullable=False,
     ),
     Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
+    # Name unique within a tournament. Prefix unique when set (NULLs allowed many times).
+    UniqueConstraint("tournament_id", "name", name="uq_divisions_tournament_name"),
+    UniqueConstraint("tournament_id", "prefix", name="uq_divisions_tournament_prefix"),
 )
 
 players_x_divisions = Table(

@@ -17,7 +17,6 @@ import {
   TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { showNotification } from "@mantine/notifications";
 import {
   IconInfoCircle,
   IconPlus,
@@ -29,8 +28,14 @@ import { useTranslation } from "next-i18next/pages";
 import { SWRResponse } from "swr";
 
 import { Player } from "../../interfaces/player";
-import { getClubs, getPlayers, getTeamCategories } from "../../services/adapter";
+import {
+  getClubs,
+  getErrorDetail,
+  getPlayers,
+  getTeamCategories,
+} from "../../services/adapter";
 import { createTeam, updateTeam } from "../../services/team";
+import { WarningAlert } from "../utils/warning_alert";
 import CategoryConfigModal from "./category_config_modal";
 import NoPlayersForTeam from "./no_players_for_team";
 import ModalFooter from "./modal_footer";
@@ -400,14 +405,10 @@ export default function TeamModal({
           values.specifyPositions ? values.positions : undefined,
         );
       }
-      // createTeam/updateTeam return AxiosError on failure (toast already shown).
       if (result == null || (result as { name?: string }).name === "AxiosError") {
-        const detail = (result as { response?: { data?: { detail?: unknown } } })
-          ?.response?.data?.detail;
         setSingleError(
-          typeof detail === "string"
-            ? detail
-            : t("create_team_error", "Failed to create team."),
+          getErrorDetail(result) ??
+            t("create_team_error", "Failed to create team."),
         );
         return;
       }
@@ -534,16 +535,10 @@ export default function TeamModal({
           draft.specifyPositions ? draft.positions : undefined,
         );
         if (created == null || (created as { name?: string }).name === "AxiosError") {
-          const detail = (created as { response?: { data?: { detail?: unknown } } })
-            ?.response?.data?.detail;
-          showNotification({
-            color: "red",
-            title: t("error", "Error"),
-            message:
-              typeof detail === "string"
-                ? detail
-                : t("create_team_error", "Failed to create team."),
-          });
+          setMultiError(
+            getErrorDetail(created) ??
+              t("create_team_error", "Failed to create team."),
+          );
           await swrTeamsResponse.mutate();
           return;
         }
@@ -643,9 +638,7 @@ export default function TeamModal({
       )}
 
       {singleError ? (
-        <Alert variant="light" color="red" mt="sm">
-          {singleError}
-        </Alert>
+        <WarningAlert mt="sm">{singleError}</WarningAlert>
       ) : null}
 
       <ModalFooter
@@ -822,9 +815,7 @@ export default function TeamModal({
         </Stack>
       )}
       {multiError && (
-        <Alert variant="light" color="red">
-          {multiError}
-        </Alert>
+        <WarningAlert>{multiError}</WarningAlert>
       )}
       <ModalFooter
         onCancel={() => setOpened(false)}

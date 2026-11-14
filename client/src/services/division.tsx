@@ -8,7 +8,8 @@ export async function createDivision(values: DivisionCreateValues) {
     const axios = await createAxios();
     return await axios.post('divisions', values);
   } catch (err: any) {
-    return handleRequestError(err);
+    // Callers show inline WarningAlert for expected conflicts (duplicate name/prefix).
+    return err;
   }
 }
 
@@ -17,7 +18,8 @@ export async function updateDivision(division_id: number, values: DivisionFormVa
     const axios = await createAxios();
     return await axios.put(`divisions/${division_id}`, values);
   } catch (err: any) {
-    return handleRequestError(err);
+    handleRequestError(err);
+    return err;
   }
 }
 

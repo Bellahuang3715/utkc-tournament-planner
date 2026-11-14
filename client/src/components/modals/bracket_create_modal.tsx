@@ -18,7 +18,6 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from "@mantine/form";
-import { showNotification } from "@mantine/notifications";
 import BuildIcon from "@mui/icons-material/Build";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useRouter } from "next/router";
@@ -29,7 +28,11 @@ import {
   addPlayersToDivision,
   addTeamsToDivision,
 } from "../../services/division";
-import { DivisionType, DivisionPlayer } from "../../interfaces/division";
+import {
+  DivisionType,
+  DivisionPlayer,
+  type Division,
+} from "../../interfaces/division";
 import { getTournamentIdFromRouter } from "../utils/util";
 import {
   assignBrackets,
@@ -45,7 +48,44 @@ import {
   MIN_TEAM_BRACKET_SIZE,
 } from "../utils/seeding_teams";
 import { updatePlayerCodes } from "../../services/player";
+import {
+  getDivisions,
+  getErrorDetail,
+  requestSucceeded,
+} from "../../services/adapter";
+import { WarningAlert } from "../utils/warning_alert";
 import ModalFooter from "./modal_footer";
+
+const DUPLICATE_DIVISION_NAME_MSG =
+  "A division with this name already exists in this tournament. Division names must be unique.";
+const DUPLICATE_DIVISION_PREFIX_MSG =
+  "A division with this prefix already exists in this tournament. Prefixes must be unique.";
+
+function findDivisionIdentityConflict(
+  divisions: Division[],
+  name: string,
+  prefix: string | undefined,
+): string | null {
+  const cleanedName = name.trim();
+  const cleanedPrefix = prefix?.trim() || "";
+  if (
+    divisions.some(
+      (d) => d.name.trim().toLowerCase() === cleanedName.toLowerCase(),
+    )
+  ) {
+    return DUPLICATE_DIVISION_NAME_MSG;
+  }
+  if (
+    cleanedPrefix &&
+    divisions.some(
+      (d) =>
+        (d.prefix ?? "").trim().toLowerCase() === cleanedPrefix.toLowerCase(),
+    )
+  ) {
+    return DUPLICATE_DIVISION_PREFIX_MSG;
+  }
+  return null;
+}
 
 type PlayerRow = {
   id: string | number;
@@ -131,28 +171,35 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
   const { id: tournamentId } = getTournamentIdFromRouter();
   const router = useRouter();
   const { t } = useTranslation();
+  const swrDivisions = getDivisions(
+    tournamentId != null ? Number(tournamentId) : null,
+  );
+  const existingDivisions: Division[] = swrDivisions.data?.data ?? [];
 
   const [opened, { open, close }] = useDisclosure(false);
   const [active, setActive] = useState(0);
+  const [formWarning, setFormWarning] = useState<string | null>(null);
 
-  // selection
+  // selection — only count while closed; materialize rows when the wizard opens
   const selectedRows = table.getSelectedRowModel().rows;
   const selectedCount = selectedRows.length;
   const selectedPlayers = useMemo(
-    () => selectedRows.map((r) => r.original as PlayerRow),
-    [selectedRows],
+    () =>
+      opened ? selectedRows.map((r) => r.original as PlayerRow) : [],
+    [opened, selectedRows],
   );
   const selectedPlayerIds = useMemo(
     () => selectedPlayers.map((p) => p.id),
     [selectedPlayers],
   );
 
-  // filters snapshot
+  // filters snapshot (only needed inside the open wizard)
   const appliedFilters = useMemo(
-    () => summarizeFilters(table),
+    () => (opened ? summarizeFilters(table) : []),
     // depend specifically on changing state slices to avoid extra re-renders
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
+      opened,
       table.getState().columnFilters,
       table.getState().globalFilter,
       table.getState().sorting,
@@ -189,6 +236,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
 
   // Group players by club, sorted alphabetically within each club
   const playersByClub = useMemo(() => {
+    if (!opened) return [];
     const byClub = new Map<string, PlayerRow[]>();
     const noClubLabel = t("no_club", "No club");
     for (const p of selectedPlayers) {
@@ -206,29 +254,28 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
       if (b === noClubLabel) return -1;
       return a.localeCompare(b, undefined, { sensitivity: "base" });
     });
-  }, [selectedPlayers, t]);
+  }, [opened, selectedPlayers, t]);
 
-  // Bracket size options for selected count (recomputed when selectedCount changes)
+  // Bracket size options — only when the wizard is open (was freezing select-all)
   const bracketSizeOptions = useMemo(
     () =>
-      selectedCount >= MIN_BRACKET_SIZE
+      opened && selectedCount >= MIN_BRACKET_SIZE
         ? getBracketSizeOptions(selectedCount)
         : [],
-    [selectedCount]
+    [opened, selectedCount]
   );
   const defaultSizes = useMemo(
     () =>
-      selectedCount >= MIN_BRACKET_SIZE
+      opened && selectedCount >= MIN_BRACKET_SIZE
         ? pickBracketSizes(selectedCount)
         : [],
-    [selectedCount]
+    [opened, selectedCount]
   );
 
   // form
   const form = useForm({
     initialValues: {
       name: "",
-      withPrefix: false,
       prefix: "",
       durationMinutes: 3,
       marginMinutes: 1,
@@ -240,10 +287,6 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
     },
     validate: {
       name: (v) => (v.trim().length < 1 ? "Division name is required" : null),
-      prefix: (v, values) =>
-        values.withPrefix && v.trim().length < 1
-          ? "Prefix cannot be empty when enabled"
-          : null,
       durationMinutes: (v) => (v <= 0 ? "Must be > 0" : null),
       marginMinutes: (v) => (v < 0 ? "Cannot be negative" : null),
     },
@@ -251,86 +294,104 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
 
   const resetWizard = () => {
     setActive(0);
+    setFormWarning(null);
     form.reset();
   };
 
   const handleSubmit = async (values: typeof form.values) => {
     if (selectedPlayerIds.length < MIN_BRACKET_SIZE) {
-      showNotification({
-        color: "red",
-        title: t("too_few_players_title", "Not enough players"),
-        message: t(
+      setFormWarning(
+        t(
           "too_few_players_message",
           "A division needs at least {{min}} players to generate brackets.",
           { min: MIN_BRACKET_SIZE },
         ),
-      });
+      );
       return;
     }
 
+    const prefix = values.prefix.trim();
+    const name = values.name.trim();
+    const conflict = findDivisionIdentityConflict(
+      existingDivisions,
+      name,
+      prefix || undefined,
+    );
+    if (conflict) {
+      setFormWarning(t(
+        conflict.includes("prefix")
+          ? "duplicate_division_prefix"
+          : "duplicate_division_name",
+        conflict,
+      ));
+      return;
+    }
+
+    setFormWarning(null);
+
     const createRes = await createDivision({
       tournament_id: tournamentId,
-      name: values.name.trim(),
-      prefix: values.withPrefix ? values.prefix.trim() : undefined,
+      name,
+      prefix: prefix || undefined,
       duration_mins: values.durationMinutes,
       margin_mins: values.marginMinutes,
       division_type: values.type === "TEAMS" ? "TEAMS" : "INDIVIDUALS",
     });
 
-    const divisionId: number = createRes?.data?.data?.id ?? createRes?.data?.id;
+    if (!createRes || !requestSucceeded(createRes)) {
+      setFormWarning(
+        getErrorDetail(createRes) ??
+          t("create_division_failed", "Failed to create division."),
+      );
+      return;
+    }
 
-    if (divisionId && selectedPlayerIds.length) {
+    const divisionId: number = createRes?.data?.data?.id ?? createRes?.data?.id;
+    if (!divisionId) {
+      return;
+    }
+
+    if (selectedPlayerIds.length) {
       await addPlayersToDivision(divisionId, selectedPlayerIds, biasIds);
     }
 
-    // TO-DO: this should only be called if addPlayersToDivision is successful
-    if (divisionId) {
-      
-      if (values.withPrefix) {
-        const codes = makePlayerCodes(values.prefix, selectedPlayerIds.length);
-        console.log("Generated player codes", codes);
-
-        console.log("Updating player codes for players", selectedPlayerIds);
-        
-        await updatePlayerCodes(
-          Number(tournamentId),
-          selectedPlayerIds.map((id, i) => ({
-            player_id: Number(id),
-            code: codes[i],
-          })),
-        );
-      }
-
-      const res = await fetchDivisionPlayers(divisionId);
-      const apiPlayers = res?.data?.players ?? [];
-      console.log("apiPlayers", apiPlayers);
-      
-      let chosenSizes: number[] | undefined;
-      const orderOverride = form.values.bracketSizeOrder?.trim();
-      if (orderOverride) {
-        try {
-          const parsed = JSON.parse(orderOverride) as unknown;
-          chosenSizes = Array.isArray(parsed) ? parsed : undefined;
-        } catch {
-          chosenSizes = undefined;
-        }
-      }
-      if (chosenSizes == null && form.values.bracketSizesKey !== "") {
-        try {
-          const parsed = JSON.parse(form.values.bracketSizesKey) as unknown;
-          chosenSizes = Array.isArray(parsed) ? parsed : undefined;
-        } catch {
-          chosenSizes = undefined;
-        }
-      }
-      const seeded = assignBrackets(apiPlayers, chosenSizes);
-      console.log('Seeding result for division', divisionId, seeded);
-
-      await postDivisionBrackets(divisionId, seeded, true);
+    // Auto-generate player codes whenever a prefix is provided.
+    if (prefix) {
+      const codes = makePlayerCodes(prefix, selectedPlayerIds.length);
+      await updatePlayerCodes(
+        Number(tournamentId),
+        selectedPlayerIds.map((id, i) => ({
+          player_id: Number(id),
+          code: codes[i],
+        })),
+      );
     }
 
-    router.push(`/tournaments/${tournamentId}/divisions`);
+    const res = await fetchDivisionPlayers(divisionId);
+    const apiPlayers = res?.data?.players ?? [];
 
+    let chosenSizes: number[] | undefined;
+    const orderOverride = form.values.bracketSizeOrder?.trim();
+    if (orderOverride) {
+      try {
+        const parsed = JSON.parse(orderOverride) as unknown;
+        chosenSizes = Array.isArray(parsed) ? parsed : undefined;
+      } catch {
+        chosenSizes = undefined;
+      }
+    }
+    if (chosenSizes == null && form.values.bracketSizesKey !== "") {
+      try {
+        const parsed = JSON.parse(form.values.bracketSizesKey) as unknown;
+        chosenSizes = Array.isArray(parsed) ? parsed : undefined;
+      } catch {
+        chosenSizes = undefined;
+      }
+    }
+    const seeded = assignBrackets(apiPlayers, chosenSizes);
+    await postDivisionBrackets(divisionId, seeded, true);
+
+    router.push(`/tournaments/${tournamentId}/divisions`);
     close();
     resetWizard();
   };
@@ -495,21 +556,37 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
                   placeholder="Division A"
                   withAsterisk
                   {...form.getInputProps("name")}
+                  onChange={(e) => {
+                    form.setFieldValue("name", e.currentTarget.value);
+                    setFormWarning(null);
+                  }}
                 />
 
                 <TextInput
                   label={t("prefix", "Prefix")}
                   placeholder="A"
-                  {...form.getInputProps("prefix")}
-                />
-                <Checkbox
-                  label={t("use_prefix", "Generate player ID")}
                   description={t(
-                    "prefix_note",
-                    "Prefix will be used to generate player code/ID (ex. A01, A02, ...)",
+                    "prefix_optional_hint",
+                    "Optional. Leave blank if you do not need player codes.",
                   )}
-                  {...form.getInputProps("withPrefix", { type: "checkbox" })}
+                  {...form.getInputProps("prefix")}
+                  onChange={(e) => {
+                    form.setFieldValue("prefix", e.currentTarget.value);
+                    setFormWarning(null);
+                  }}
                 />
+                <Alert
+                  variant="light"
+                  color="blue"
+                  icon={<IconInfoCircle size={16} />}
+                >
+                  {t(
+                    "prefix_note",
+                    "Prefix will be used to generate player code/ID (ex. A01, A02, ...). Specify a prefix if you want player codes.",
+                  )}
+                </Alert>
+
+                {formWarning ? <WarningAlert>{formWarning}</WarningAlert> : null}
 
                 <Divider label={t("bracket_layout", "Bracket Layout")} labelPosition="left" />
 
@@ -657,28 +734,41 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
   const { id: tournamentId } = getTournamentIdFromRouter();
   const router = useRouter();
   const { t } = useTranslation();
+  const swrDivisions = getDivisions(
+    tournamentId != null ? Number(tournamentId) : null,
+  );
+  const existingDivisions: Division[] = swrDivisions.data?.data ?? [];
 
   const [opened, { open, close }] = useDisclosure(false);
   const [active, setActive] = useState(0);
   const [biasTeamIds, setBiasTeamIds] = useState<number[]>([]);
+  const [formWarning, setFormWarning] = useState<string | null>(null);
 
   const selectedRows = table.getSelectedRowModel().rows;
   const selectedCount = selectedRows.length;
   const selectedTeamIds = useMemo(
-    () => selectedRows.map((r) => Number((r.original as RowWithId).id)),
-    [selectedRows],
+    () =>
+      opened
+        ? selectedRows.map((r) => Number((r.original as RowWithId).id))
+        : [],
+    [opened, selectedRows],
   );
   const selectedTeamNames = useMemo(
     () =>
-      selectedRows.map(
-        (r) => String((r.original as RowWithId & { code?: string }).code ?? "")
-      ),
-    [selectedRows],
+      opened
+        ? selectedRows.map(
+            (r) =>
+              String((r.original as RowWithId & { code?: string }).code ?? ""),
+          )
+        : [],
+    [opened, selectedRows],
   );
 
   const appliedFilters = useMemo(
-    () => summarizeFilters(table),
+    () => (opened ? summarizeFilters(table) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
+      opened,
       table.getState().columnFilters,
       table.getState().globalFilter,
       table.getState().sorting,
@@ -687,10 +777,10 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
 
   const bracketSizeOptions = useMemo(
     () =>
-      selectedCount >= MIN_TEAM_BRACKET_SIZE
+      opened && selectedCount >= MIN_TEAM_BRACKET_SIZE
         ? getTeamBracketSizeOptions(selectedCount)
         : [],
-    [selectedCount],
+    [opened, selectedCount],
   );
 
   const form = useForm({
@@ -711,6 +801,7 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
   const resetWizard = () => {
     setActive(0);
     setBiasTeamIds([]);
+    setFormWarning(null);
     form.reset();
   };
 
@@ -722,32 +813,44 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
 
   const handleSubmit = async (values: typeof form.values) => {
     if (selectedTeamIds.length < MIN_TEAM_BRACKET_SIZE) {
-      showNotification({
-        color: "red",
-        title: t("too_few_teams_title", "Not enough teams"),
-        message: t(
+      setFormWarning(
+        t(
           "too_few_teams_message",
           "A division needs at least {{min}} teams to generate brackets.",
           { min: MIN_TEAM_BRACKET_SIZE },
         ),
-      });
+      );
       return;
     }
 
+    const name = values.name.trim();
+    const conflict = findDivisionIdentityConflict(existingDivisions, name, undefined);
+    if (conflict) {
+      setFormWarning(t("duplicate_division_name", conflict));
+      return;
+    }
+
+    setFormWarning(null);
+
     const createRes = await createDivision({
       tournament_id: Number(tournamentId),
-      name: values.name.trim(),
+      name,
       prefix: undefined,
       duration_mins: values.durationMinutes,
       margin_mins: values.marginMinutes,
       division_type: "TEAMS",
     });
 
+    if (!createRes || !requestSucceeded(createRes)) {
+      setFormWarning(
+        getErrorDetail(createRes) ??
+          t("create_division_failed", "Failed to create division."),
+      );
+      return;
+    }
+
     const divisionId: number = createRes?.data?.data?.id ?? createRes?.data?.id;
     if (!divisionId || selectedTeamIds.length === 0) {
-      router.push(`/tournaments/${tournamentId}/divisions`);
-      close();
-      resetWizard();
       return;
     }
 
@@ -913,7 +1016,13 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
                   placeholder="Division A"
                   withAsterisk
                   {...form.getInputProps("name")}
+                  onChange={(e) => {
+                    form.setFieldValue("name", e.currentTarget.value);
+                    setFormWarning(null);
+                  }}
                 />
+
+                {formWarning ? <WarningAlert>{formWarning}</WarningAlert> : null}
 
                 <Divider label={t("bracket_layout", "Bracket Layout")} labelPosition="left" />
 

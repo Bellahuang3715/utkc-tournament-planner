@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Alert,
   Modal,
   Button,
   Checkbox,
@@ -13,7 +12,7 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { showNotification } from "@mantine/notifications";
-import { IconAlertCircle, IconUser, IconUsers } from "@tabler/icons-react";
+import { IconUser, IconUsers } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next/pages";
 import { SWRResponse } from "swr";
 import ExcelJS from "exceljs";
@@ -27,6 +26,7 @@ import {
 } from "../../interfaces/player_fields";
 import PlayersImportModal, { PlayersUpload } from "./players_import_modal";
 import PlayerDuplicateModal from "./player_duplicate_modal";
+import { WarningAlert } from "../utils/warning_alert";
 import ModalFooter from "./modal_footer";
 import { inferFieldsFromSheet } from "../utils/excel";
 import {
@@ -527,16 +527,12 @@ export default function PlayerCreateModal({
         size="sm"
       >
         <Stack gap="md">
-          <Alert
-            variant="light"
-            color="orange"
-            icon={<IconAlertCircle size={16} />}
-          >
+          <WarningAlert>
             {t(
               "leave_import_message",
               "Are you sure you want to leave? You will lose your progress.",
             )}
-          </Alert>
+          </WarningAlert>
           <ModalFooter
             onCancel={() => setConfirmLeave(false)}
             cancelLabel={t("stay_button", "Stay")}

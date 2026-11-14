@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+import asyncpg
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from project.models.db.division import (
     Division,
@@ -35,6 +36,8 @@ from project.sql.divisions import (
     create_division,
     get_divisions_for_tournament,
     sql_delete_division,
+    sql_division_name_exists,
+    sql_division_prefix_exists,
     sql_update_division,
     sql_attach_players_to_division,
     sql_get_players_for_division,
@@ -46,6 +49,46 @@ from project.sql.divisions import (
 from project.utils.id_types import DivisionId, TournamentId
 
 router = APIRouter()
+
+DUPLICATE_DIVISION_NAME_DETAIL = (
+    "A division with this name already exists in this tournament. "
+    "Division names must be unique."
+)
+DUPLICATE_DIVISION_PREFIX_DETAIL = (
+    "A division with this prefix already exists in this tournament. "
+    "Prefixes must be unique."
+)
+
+
+async def _ensure_unique_division_identity(
+    tournament_id: TournamentId,
+    *,
+    name: str,
+    prefix: str | None,
+    exclude_division_id: DivisionId | None = None,
+) -> None:
+    cleaned_name = name.strip()
+    cleaned_prefix = prefix.strip() if prefix and prefix.strip() else None
+
+    if await sql_division_name_exists(
+        tournament_id,
+        cleaned_name,
+        exclude_division_id=exclude_division_id,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=DUPLICATE_DIVISION_NAME_DETAIL,
+        )
+
+    if cleaned_prefix and await sql_division_prefix_exists(
+        tournament_id,
+        cleaned_prefix,
+        exclude_division_id=exclude_division_id,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=DUPLICATE_DIVISION_PREFIX_DETAIL,
+        )
 
 
 @router.get("/tournaments/{tournament_id}/divisions", response_model=DivisionsResponse)
@@ -63,7 +106,24 @@ async def create_new_division(
     user: UserPublic = Depends(firebase_user_authenticated),
 ) -> DivisionResponse:
     await assert_user_owns_tournament(user, body.tournament_id)
-    created = await create_division(body)
+    await _ensure_unique_division_identity(
+        body.tournament_id,
+        name=body.name,
+        prefix=body.prefix,
+    )
+    try:
+        created = await create_division(body)
+    except asyncpg.exceptions.UniqueViolationError as exc:
+        constraint = (exc.as_dict() or {}).get("constraint_name") or ""
+        detail = (
+            DUPLICATE_DIVISION_PREFIX_DETAIL
+            if "prefix" in constraint
+            else DUPLICATE_DIVISION_NAME_DETAIL
+        )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=detail,
+        ) from exc
     return DivisionResponse(data=created)
 
 
@@ -71,9 +131,27 @@ async def create_new_division(
 async def update_division(
     division_id: DivisionId,
     body: DivisionUpdateBody,
-    _: Division = Depends(require_division_owner),
+    division: Division = Depends(require_division_owner),
 ) -> DivisionResponse:
-    updated = await sql_update_division(division_id, body)
+    await _ensure_unique_division_identity(
+        division.tournament_id,
+        name=body.name,
+        prefix=body.prefix,
+        exclude_division_id=division_id,
+    )
+    try:
+        updated = await sql_update_division(division_id, body)
+    except asyncpg.exceptions.UniqueViolationError as exc:
+        constraint = (exc.as_dict() or {}).get("constraint_name") or ""
+        detail = (
+            DUPLICATE_DIVISION_PREFIX_DETAIL
+            if "prefix" in constraint
+            else DUPLICATE_DIVISION_NAME_DETAIL
+        )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=detail,
+        ) from exc
     return DivisionResponse(data=updated)
 
 

@@ -51,18 +51,39 @@ export const BRACKET_BYES_TEAMS: Record<number, number> = {
 
 const BALANCE_SPREAD = 3;
 
-function enumerateTuples(
+/**
+ * Enumerate non-decreasing k-tuples from candidates that sum to target with
+ * max-min <= maxSpread. Avoids ordered-permutation blowup on large N.
+ */
+function enumerateBalancedCombinations(
   k: number,
   target: number,
-  candidates: number[]
+  candidates: number[],
+  maxSpread: number,
 ): number[][] {
-  if (k === 1) return candidates.includes(target) ? [[target]] : [];
+  const sorted = [...candidates].sort((a, b) => a - b);
   const result: number[][] = [];
-  for (const c of candidates) {
-    if (c > target) continue;
-    const rest = enumerateTuples(k - 1, target - c, candidates);
-    for (const r of rest) result.push([c, ...r]);
-  }
+  const path: number[] = [];
+  const maxCand = sorted[sorted.length - 1]!;
+
+  const dfs = (startIdx: number, remK: number, remSum: number) => {
+    if (remK === 0) {
+      if (remSum === 0) result.push(path.slice());
+      return;
+    }
+    for (let i = startIdx; i < sorted.length; i++) {
+      const c = sorted[i]!;
+      if (path.length > 0 && c - path[0]! > maxSpread) break;
+      if (c * remK > remSum) break;
+      if (maxCand * remK < remSum) continue;
+      if (remK > 1 && remSum - c < c * (remK - 1)) continue;
+      path.push(c);
+      dfs(i, remK - 1, remSum - c);
+      path.pop();
+    }
+  };
+
+  dfs(0, k, target);
   return result;
 }
 
@@ -73,23 +94,20 @@ function enumerateTuples(
 export function getTeamBracketSizeOptions(N: number): number[][] {
   if (N < MIN) return [];
   const out: number[][] = [];
-  const seen = new Set<string>();
-  for (let k = 1; k <= 16; k *= 2) {
-    if (k * MIN > N || k * MAX < N) continue;
+  for (let k = 1; k * MIN <= N; k *= 2) {
+    if (k * MAX < N) continue;
     const base = N / k;
     const low = Math.max(MIN, Math.floor(base) - BALANCE_SPREAD);
     const high = Math.min(MAX, Math.ceil(base) + BALANCE_SPREAD);
     const candidates = [...ALLOWED_SIZES].filter((s) => s >= low && s <= high);
     if (candidates.length === 0) continue;
-    const tuples = enumerateTuples(k, N, candidates);
-    for (const t of tuples) {
-      const sorted = [...t].sort((a, b) => a - b);
-      const spread = sorted[sorted.length - 1]! - sorted[0]!;
-      if (spread > BALANCE_SPREAD) continue;
-      const key = sorted.join(",");
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(sorted);
+    for (const combo of enumerateBalancedCombinations(
+      k,
+      N,
+      candidates,
+      BALANCE_SPREAD,
+    )) {
+      out.push(combo);
     }
   }
   return out.sort(

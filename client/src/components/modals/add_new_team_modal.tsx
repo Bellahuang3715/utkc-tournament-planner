@@ -1,13 +1,20 @@
 import { useEffect, useState } from "react";
-import { Center, Loader, Modal, Stack, TextInput, Select, Text } from "@mantine/core";
+import { Center, Loader, Modal, Stack, TextInput, Select } from "@mantine/core";
 import { useTranslation } from "next-i18next/pages";
 
-import { getClubs, getPlayers, getTeamCategories, getTeams } from "../../services/adapter";
+import {
+  getClubs,
+  getErrorDetail,
+  getPlayers,
+  getTeamCategories,
+  getTeams,
+} from "../../services/adapter";
 import type { Club } from "../../interfaces/club";
 import type { TeamInterface } from "../../interfaces/team";
 import { createTeam } from "../../services/team";
 import { resolveClubIdByName } from "../../utils/clubs";
 import type { TeamCategoryInterface } from "../../interfaces/team_category";
+import { WarningAlert } from "../utils/warning_alert";
 import NoPlayersForTeam from "./no_players_for_team";
 import ModalFooter from "./modal_footer";
 
@@ -112,12 +119,9 @@ export default function AddNewTeamModal({
         catNum,
       );
       if (res == null || (res as { name?: string }).name === "AxiosError") {
-        const detail = (res as { response?: { data?: { detail?: unknown } } })
-          ?.response?.data?.detail;
         setError(
-          typeof detail === "string"
-            ? detail
-            : t("create_team_error", "Failed to create team."),
+          getErrorDetail(res) ??
+            t("create_team_error", "Failed to create team."),
         );
         return;
       }
@@ -173,7 +177,6 @@ export default function AddNewTeamModal({
             setName(e.currentTarget.value);
             setError(null);
           }}
-          error={error && !name.trim() ? error : undefined}
         />
         <Select
           label={t("category_table_header", "Category")}
@@ -203,11 +206,7 @@ export default function AddNewTeamModal({
             setError(null);
           }}
         />
-        {error && name.trim() ? (
-          <Text size="sm" c="red">
-            {error}
-          </Text>
-        ) : null}
+        {error ? <WarningAlert>{error}</WarningAlert> : null}
         <ModalFooter
           onCancel={handleClose}
           primaryLabel={t("create_team", "Create team")}

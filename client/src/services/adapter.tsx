@@ -12,6 +12,23 @@ import {
 // TODO: This is a workaround for the fact that axios is not properly typed.
 const axios: typeof Axios = require('axios').default;
 
+/** Pull a human-readable detail string from an Axios/FastAPI error response. */
+export function getErrorDetail(error: unknown): string | null {
+  const detail = (error as { response?: { data?: { detail?: unknown } } })?.response
+    ?.data?.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    const first = detail[0] as { loc?: unknown[]; msg?: string };
+    if (typeof first?.msg === 'string') {
+      const loc = Array.isArray(first.loc)
+        ? first.loc.slice(1).join(' - ')
+        : '';
+      return loc ? `${loc}: ${first.msg}` : first.msg;
+    }
+  }
+  return null;
+}
+
 export function handleRequestError(response: AxiosError) {
   if (response.code === 'ERR_NETWORK') {
     showNotification({
@@ -23,20 +40,8 @@ export function handleRequestError(response: AxiosError) {
     return;
   }
 
-  // @ts-ignore
-  if (response.response != null && response.response.data.detail != null) {
-    // If the detail contains an array, there is likely a pydantic validation error occurring.
-    // @ts-ignore
-    const { detail } = response.response.data;
-    let message: string;
-
-    if (Array.isArray(detail)) {
-      const firstError = detail[0];
-      message = `${firstError.loc.slice(1).join(' - ')}: ${firstError.msg}`;
-    } else {
-      message = detail.toString();
-    }
-
+  const message = getErrorDetail(response);
+  if (message) {
     showNotification({
       color: 'red',
       title: 'An error occurred',
@@ -46,9 +51,9 @@ export function handleRequestError(response: AxiosError) {
   }
 }
 
-export function requestSucceeded(result: AxiosResponse | AxiosError) {
+export function requestSucceeded(result: AxiosResponse | AxiosError | null | undefined) {
   // @ts-ignore
-  return result.name !== 'AxiosError';
+  return result != null && result.name !== 'AxiosError';
 }
 
 export function getBaseApiUrl() {
@@ -108,20 +113,20 @@ export function createPublicAxios() {
 }
 
 export async function awaitRequestAndHandleError(
-  requestFunction: (instance: AxiosInstance) => Promise<AxiosResponse>
+  requestFunction: (instance: AxiosInstance) => Promise<AxiosResponse>,
+  options?: { notify?: boolean },
 ): Promise<AxiosError | AxiosResponse> {
-  let response = null;
+  const notify = options?.notify !== false;
   try {
     const instance = await createAxios();
-    response = await requestFunction(instance);
+    return await requestFunction(instance);
   } catch (exc: any) {
     if (exc.name === 'AxiosError') {
-      handleRequestError(exc);
+      if (notify) handleRequestError(exc);
       return exc;
     }
     throw exc;
   }
-  return response;
 }
 
 const fetcher = async (url: string) => {

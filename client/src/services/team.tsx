@@ -12,15 +12,18 @@ export async function createTeam(
   category_id: number,
   positions?: Record<string, string>,
 ) {
-  return awaitRequestAndHandleError(async (axios) =>
-    axios.post(`tournaments/${tournament_id}/teams`, {
-      code,
-      club_ids,
-      club_id: club_ids[0] ?? null,
-      category_id,
-      player_ids: player_ids.map((id) => Number(id)),
-      ...(positions && Object.keys(positions).length > 0 && { positions }),
-    }),
+  // Callers show inline WarningAlert — do not also toast.
+  return awaitRequestAndHandleError(
+    async (axios) =>
+      axios.post(`tournaments/${tournament_id}/teams`, {
+        code,
+        club_ids,
+        club_id: club_ids[0] ?? null,
+        category_id,
+        player_ids: player_ids.map((id) => Number(id)),
+        ...(positions && Object.keys(positions).length > 0 && { positions }),
+      }),
+    { notify: false },
   );
 }
 
@@ -44,14 +47,17 @@ export async function updateTeam(
   category_id: number,
   positions?: Record<string, string>,
 ) {
-  return awaitRequestAndHandleError(async (axios) =>
-    axios.put(`tournaments/${tournament_id}/teams/${team_id}`, {
-      code,
-      club_ids,
-      club_id: club_ids[0] ?? null,
-      category_id,
-      player_ids: player_ids.map((id) => Number(id)),
-      ...(positions && Object.keys(positions).length > 0 && { positions }),
-    }),
+  // Callers show inline WarningAlert — do not also toast.
+  return awaitRequestAndHandleError(
+    async (axios) =>
+      axios.put(`tournaments/${tournament_id}/teams/${team_id}`, {
+        code,
+        club_ids,
+        club_id: club_ids[0] ?? null,
+        category_id,
+        player_ids: player_ids.map((id) => Number(id)),
+        ...(positions && Object.keys(positions).length > 0 && { positions }),
+      }),
+    { notify: false },
   );
 }
