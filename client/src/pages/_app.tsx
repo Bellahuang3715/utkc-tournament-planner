@@ -20,7 +20,7 @@ import "tournament-brackets-ui/style.css";
 import "../styles/global.css";
 
 const theme = createTheme({
-  // App UI: Sora throughout. Syne is reserved for the KenManage wordmark + marketing heroes.
+  // App UI: Sora throughout. Syne is reserved for the KenManage wordmark.
   fontFamily: '"Sora", "Avenir Next", "Segoe UI", sans-serif',
   fontFamilyMonospace: 'ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace',
   headings: {

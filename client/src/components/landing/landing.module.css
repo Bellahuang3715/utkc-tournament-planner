@@ -46,9 +46,9 @@
 }
 
 .display {
-  font-family: "Syne", "Sora", sans-serif;
+  font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
   font-weight: 700;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.02em;
   line-height: 1.05;
 }
 
@@ -345,6 +345,8 @@
 
 .brandHero {
   margin: 0 0 18px;
+  font-family: "Syne", "Sora", sans-serif;
+  letter-spacing: -0.04em;
   font-size: clamp(3.4rem, 8vw, 5.6rem);
   line-height: 0.92;
   max-width: none;
@@ -1079,10 +1081,10 @@
 
 .featureTitle {
   margin: 0;
-  font-family: "Syne", "Sora", sans-serif;
+  font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
   font-size: 1.05rem;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   line-height: 1.2;
   color: var(--ink);
 }
@@ -1903,7 +1905,7 @@
 
 .prose h3 {
   margin: 28px 0 0;
-  font-family: "Syne", "Sora", sans-serif;
+  font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
   font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -2432,4 +2434,43 @@
   .heroBoardWrap:hover .heroShot {
     transform: none;
   }
+}
+
+.callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.125rem;
+  margin: 1.5rem 0;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+}
+
+.callout[data-tone="important"] {
+  background: #fff8db;
+  border-color: #f2d675;
+  color: #654f12;
+}
+
+.callout[data-tone="warn"] {
+  background: #fff0e8;
+  border-color: #f2b99b;
+  color: #783b20;
+}
+
+.calloutIcon {
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+
+.calloutContent {
+  min-width: 0;
+}
+
+.calloutContent > :first-child {
+  margin-top: 0;
+}
+
+.calloutContent > :last-child {
+  margin-bottom: 0;
 }

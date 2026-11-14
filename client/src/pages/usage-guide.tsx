@@ -45,10 +45,7 @@ export default function UsageGuidePage() {
             </h1>
             <p className={classes.deck}>
               Your step-by-step guide to setting up and managing a tournament
-              with KenManage — from importing players and building brackets
-              to scheduling courts, tracking scores, and publishing results.
-              Looking to join a tournament instead?{" "}
-              <Link href="/#start">Find your starting point.</Link>
+              with KenManage.
             </p>
           </Reveal>
           <div className={classes.guideLayout}>
