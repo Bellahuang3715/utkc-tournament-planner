@@ -7,18 +7,12 @@ import {
 } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next/pages";
+import { getErrorDetail } from "../../services/adapter";
 import { updatePlayerCodes } from "../../services/player";
 import { addPlayersToDivision } from "../../services/division";
 import type { Player } from "../../interfaces/player";
+import { WarningAlert } from "../utils/warning_alert";
 import ModalFooter from "./modal_footer";
-
-/** Infer division code prefix from name (e.g. "Division E" -> "E") when prefix is empty. */
-function effectivePrefix(divisionName: string, divisionPrefix: string | null | undefined): string {
-  const p = (divisionPrefix ?? "").trim();
-  if (p) return p;
-  const match = divisionName.match(/Division\s+([A-Za-z])/i);
-  return match ? match[1].toUpperCase() : "";
-}
 
 /** Get the numeric part of a division code (e.g. "E37" -> 37). */
 function codeNumber(code: string | null | undefined): number | null {
@@ -29,12 +23,11 @@ function codeNumber(code: string | null | undefined): number | null {
 
 /** Next code(s) for this division: continue from current max (e.g. E37 -> E38, E39, ...). */
 function nextDivisionCodes(
-  divisionName: string,
   divisionPrefix: string | null | undefined,
   currentDivisionPlayers: { code?: string | null }[],
-  count: number
+  count: number,
 ): string[] {
-  const prefix = effectivePrefix(divisionName, divisionPrefix);
+  const prefix = (divisionPrefix ?? "").trim();
   if (!prefix) return [];
   let maxNum = 0;
   for (const p of currentDivisionPlayers) {
@@ -67,7 +60,6 @@ export default function AddPlayersToDivisionModal({
   onClose,
   tournamentId,
   divisionId,
-  divisionName,
   divisionPrefix,
   divisionPlayers,
   availableToAdd,
@@ -77,6 +69,9 @@ export default function AddPlayersToDivisionModal({
   const { t } = useTranslation();
   const [adding, setAdding] = useState(false);
   const [selectedExistingIds, setSelectedExistingIds] = useState<string[]>([]);
+  const [formWarning, setFormWarning] = useState<string | null>(null);
+
+  const hasPrefix = Boolean((divisionPrefix ?? "").trim());
 
   const existingOptions = useMemo(
     () =>
@@ -84,7 +79,7 @@ export default function AddPlayersToDivisionModal({
         value: String(p.id),
         label: `${p.name ?? ""} (${p.club ?? "-"})`,
       })),
-    [availableToAdd]
+    [availableToAdd],
   );
 
   const handleAddExisting = async () => {
@@ -93,20 +88,38 @@ export default function AddPlayersToDivisionModal({
       return;
     }
     setAdding(true);
+    setFormWarning(null);
     try {
-      const codes = nextDivisionCodes(divisionName, divisionPrefix, divisionPlayers, ids.length);
-      if (codes.length !== ids.length) {
-        window.alert(t("add_players_code_error", "Could not generate codes for this division."));
-        return;
+      if (hasPrefix) {
+        const codes = nextDivisionCodes(divisionPrefix, divisionPlayers, ids.length);
+        if (codes.length !== ids.length) {
+          setFormWarning(
+            t(
+              "add_players_code_error",
+              "Could not generate codes for this division.",
+            ),
+          );
+          return;
+        }
+        await updatePlayerCodes(
+          tournamentId,
+          ids.map((id, i) => ({ player_id: id, code: codes[i] })),
+        );
       }
-      await updatePlayerCodes(
-        tournamentId,
-        ids.map((id, i) => ({ player_id: id, code: codes[i] }))
-      );
       const nextIds = [...divisionPlayers.map((p) => p.id), ...ids];
       const applied = await onChangeRosterAndBrackets(nextIds);
       if (!applied) return;
-      await addPlayersToDivision(divisionId, ids);
+      const res = await addPlayersToDivision(divisionId, ids);
+      if (res?.response?.status === 409 || res?.isAxiosError) {
+        setFormWarning(
+          getErrorDetail(res) ??
+            t(
+              "add_players_conflict",
+              "One or more selected players cannot be added to this division.",
+            ),
+        );
+        return;
+      }
       onSuccess();
       onClose();
       setSelectedExistingIds([]);
@@ -120,13 +133,17 @@ export default function AddPlayersToDivisionModal({
   return (
     <Modal
       opened={opened}
-      onClose={onClose}
+      onClose={() => {
+        setFormWarning(null);
+        onClose();
+      }}
       closeOnClickOutside={false}
       centered
       title={t("add_players_to_division", "Add players to division")}
       size="md"
     >
       <Stack gap="md">
+        {formWarning ? <WarningAlert>{formWarning}</WarningAlert> : null}
         {availableToAdd.length === 0 ? (
           <Alert
             variant="light"
@@ -145,7 +162,10 @@ export default function AddPlayersToDivisionModal({
               placeholder={t("search_players", "Search or select…")}
               data={existingOptions}
               value={selectedExistingIds}
-              onChange={setSelectedExistingIds}
+              onChange={(next) => {
+                setFormWarning(null);
+                setSelectedExistingIds(next);
+              }}
               searchable
               clearable
             />

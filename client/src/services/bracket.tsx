@@ -43,12 +43,12 @@ export function toUIPlayers(
     const idx = slot.bracket_idx;
     if (idx < 0 || idx >= b.num_players) continue;
 
-    const displayId =
+    // Prefer real player codes only; leave blank when the division has no prefix/codes.
+    const mapped =
       useCodeOnly && playerIdToDisplayCode
-        ? (playerIdToDisplayCode[slot.player_id] ?? "—")
-        : useCodeOnly
-          ? (slot.code ?? slot.participant_number ?? "—")
-          : (slot.code ?? slot.participant_number ?? String(slot.player_id));
+        ? playerIdToDisplayCode[slot.player_id]
+        : undefined;
+    const displayId = (mapped ?? slot.code ?? "").trim();
 
     arr[idx] = {
       id: displayId,
@@ -527,9 +527,7 @@ export function mergeCellsIntoUiPlayers(
       clubName && clubAbbrevByName
         ? clubAbbrevByName.get(clubName) ?? clubName
         : clubName;
-    const displayId =
-      cell.code ??
-      (cell.player_id != null ? String(cell.player_id) : "");
+    const displayId = (cell.code ?? "").trim();
     const existing = out[cell.slot_idx];
     // Prefer preserving seeded opening identity; always apply saved score / fill blanks.
     if (existing && (existing.id || existing.name)) {

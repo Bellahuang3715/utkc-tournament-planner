@@ -32,6 +32,7 @@ import {
   DivisionType,
   DivisionPlayer,
   type Division,
+  type IndividualsPlayerMembership,
 } from "../../interfaces/division";
 import { getTournamentIdFromRouter } from "../utils/util";
 import {
@@ -50,6 +51,7 @@ import {
 import { updatePlayerCodes } from "../../services/player";
 import {
   getDivisions,
+  getIndividualsMemberships,
   getErrorDetail,
   requestSucceeded,
 } from "../../services/adapter";
@@ -60,6 +62,35 @@ const DUPLICATE_DIVISION_NAME_MSG =
   "A division with this name already exists in this tournament. Division names must be unique.";
 const DUPLICATE_DIVISION_PREFIX_MSG =
   "A division with this prefix already exists in this tournament. Prefixes must be unique.";
+
+function findIndividualsMembershipConflicts(
+  memberships: IndividualsPlayerMembership[],
+  playerIds: number[],
+  targetHasPrefix: boolean,
+): IndividualsPlayerMembership[] {
+  const selected = new Set(playerIds);
+  return memberships.filter((m) => {
+    if (!selected.has(m.player_id)) return false;
+    const otherHasPrefix = Boolean((m.prefix ?? "").trim());
+    return targetHasPrefix || otherHasPrefix;
+  });
+}
+
+function membershipConflictDetail(
+  conflicts: IndividualsPlayerMembership[],
+): string {
+  const seen = new Set<number>();
+  const parts: string[] = [];
+  for (const m of conflicts) {
+    if (seen.has(m.player_id)) continue;
+    seen.add(m.player_id);
+    parts.push(`${m.player_name} (${m.division_name})`);
+  }
+  return (
+    "These players are already in another individuals division and cannot be " +
+    `added here when player codes / prefixes are involved: ${parts.join(", ")}.`
+  );
+}
 
 function findDivisionIdentityConflict(
   divisions: Division[],
@@ -174,7 +205,12 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
   const swrDivisions = getDivisions(
     tournamentId != null ? Number(tournamentId) : null,
   );
+  const swrMemberships = getIndividualsMemberships(
+    tournamentId != null ? Number(tournamentId) : null,
+  );
   const existingDivisions: Division[] = swrDivisions.data?.data ?? [];
+  const individualsMemberships: IndividualsPlayerMembership[] =
+    swrMemberships.data?.data ?? [];
 
   const [opened, { open, close }] = useDisclosure(false);
   const [active, setActive] = useState(0);
@@ -329,6 +365,16 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
       return;
     }
 
+    const membershipConflicts = findIndividualsMembershipConflicts(
+      individualsMemberships,
+      selectedPlayerIds.map(Number),
+      Boolean(prefix),
+    );
+    if (membershipConflicts.length) {
+      setFormWarning(membershipConflictDetail(membershipConflicts));
+      return;
+    }
+
     setFormWarning(null);
 
     const createRes = await createDivision({
@@ -354,7 +400,18 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
     }
 
     if (selectedPlayerIds.length) {
-      await addPlayersToDivision(divisionId, selectedPlayerIds, biasIds);
+      const attachRes = await addPlayersToDivision(
+        divisionId,
+        selectedPlayerIds,
+        biasIds,
+      );
+      if (attachRes?.response?.status === 409 || attachRes?.isAxiosError) {
+        setFormWarning(
+          getErrorDetail(attachRes) ??
+            membershipConflictDetail(membershipConflicts),
+        );
+        return;
+      }
     }
 
     // Auto-generate player codes whenever a prefix is provided.

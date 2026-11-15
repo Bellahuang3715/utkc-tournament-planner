@@ -9,6 +9,7 @@ from project.models.db.division import (
     DivisionTeamsAttachBody,
     DivisionPlayersDetachBody,
     DivisionTeamsDetachBody,
+    IndividualsPlayerMembership,
 )
 from project.models.db.tournament import Tournament
 from project.models.db.user import UserPublic
@@ -26,6 +27,7 @@ from project.routes.models import (
     DivisionTeamsResponse,
     DivisionLockResponse,
     DivisionLockStatus,
+    IndividualsMembershipsResponse,
     SuccessResponse,
 )
 from project.sql.bracket_cells import (
@@ -40,7 +42,9 @@ from project.sql.divisions import (
     sql_division_prefix_exists,
     sql_update_division,
     sql_attach_players_to_division,
+    sql_find_individuals_attach_conflicts,
     sql_get_players_for_division,
+    sql_list_individuals_memberships,
     sql_attach_teams_to_division,
     sql_get_teams_for_division,
     sql_detach_players_from_division,
@@ -58,6 +62,23 @@ DUPLICATE_DIVISION_PREFIX_DETAIL = (
     "A division with this prefix already exists in this tournament. "
     "Prefixes must be unique."
 )
+
+
+def _individuals_attach_conflict_detail(
+    conflicts: list[IndividualsPlayerMembership],
+) -> str:
+    seen: set[int] = set()
+    parts: list[str] = []
+    for m in conflicts:
+        if m.player_id in seen:
+            continue
+        seen.add(m.player_id)
+        parts.append(f"{m.player_name} ({m.division_name})")
+    names = ", ".join(parts)
+    return (
+        "These players are already in another individuals division and cannot be "
+        f"added here when player codes / prefixes are involved: {names}."
+    )
 
 
 async def _ensure_unique_division_identity(
@@ -98,6 +119,18 @@ async def list_divisions_for_tournament(
 ) -> DivisionsResponse:
     items = await get_divisions_for_tournament(tournament_id)
     return DivisionsResponse(data=items)
+
+
+@router.get(
+    "/tournaments/{tournament_id}/individuals-memberships",
+    response_model=IndividualsMembershipsResponse,
+)
+async def list_individuals_memberships(
+    tournament_id: TournamentId,
+    _: Tournament = Depends(require_tournament_score_access),
+) -> IndividualsMembershipsResponse:
+    items = await sql_list_individuals_memberships(tournament_id)
+    return IndividualsMembershipsResponse(data=items)
 
 
 @router.post("/divisions", response_model=DivisionResponse)
@@ -189,6 +222,14 @@ async def attach_players_to_division(
     _: Division = Depends(require_division_owner),
 ) -> SuccessResponse:
     await sql_ensure_division_unlocked(division_id)
+    conflicts = await sql_find_individuals_attach_conflicts(
+        division_id, body.player_ids
+    )
+    if conflicts:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=_individuals_attach_conflict_detail(conflicts),
+        )
     await sql_attach_players_to_division(division_id, body.player_ids, body.bias_player_ids or [])
     return SuccessResponse()
 

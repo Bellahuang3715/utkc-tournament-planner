@@ -42,3 +42,12 @@ export interface DivisionFormValues {
 export interface DivisionCreateValues extends DivisionFormValues {
   tournament_id: number;
 }
+
+/** Individuals-division membership row for coded/uncoded roster guards. */
+export interface IndividualsPlayerMembership {
+  player_id: number;
+  player_name: string;
+  division_id: number;
+  division_name: string;
+  prefix?: string | null;
+}

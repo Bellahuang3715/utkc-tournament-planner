@@ -40,7 +40,8 @@ export async function addPlayersToDivision(division_id: number, player_ids: Arra
       bias_player_ids: (bias_player_ids ?? []).map(Number),
     });
   } catch (err: any) {
-    return handleRequestError(err);
+    // Callers show inline WarningAlert for expected conflicts (one-division / codes).
+    return err;
   }
 }
 

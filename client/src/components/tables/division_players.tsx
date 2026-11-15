@@ -7,7 +7,13 @@ import {
 } from "mantine-react-table-open";
 import { useTranslation } from "next-i18next/pages";
 
-import { getPlayerFields, getDivisionPlayers, getPlayers, getDivisionLock } from "../../services/adapter";
+import {
+  getPlayerFields,
+  getDivisionPlayers,
+  getPlayers,
+  getDivisionLock,
+  getIndividualsMemberships,
+} from "../../services/adapter";
 import { Player } from "../../interfaces/player";
 import RequestErrorAlert from "../utils/error_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
@@ -18,7 +24,10 @@ import {
   postDivisionBrackets,
   replaceDivisionBrackets,
 } from "../../services/bracket";
-import type { DivisionPlayer } from "../../interfaces/division";
+import type {
+  DivisionPlayer,
+  IndividualsPlayerMembership,
+} from "../../interfaces/division";
 import type { BracketWithPlayers } from "../../interfaces/bracket";
 import AddPlayersToDivisionModal from "../modals/add_players_to_division_modal";
 
@@ -40,6 +49,7 @@ export default function DivisionPlayersTable({
   const swrPlayerFieldsResponse = getPlayerFields(tournamentId);
   const swrDivisionPlayersResponse = getDivisionPlayers(divisionId);
   const swrAllPlayersResponse = getPlayers(tournamentId);
+  const swrMemberships = getIndividualsMemberships(tournamentId);
   const swrLock = getDivisionLock(divisionId);
   const locked = Boolean(swrLock.data?.data?.locked);
 
@@ -52,8 +62,23 @@ export default function DivisionPlayersTable({
     : Array.isArray(rawAllPlayers)
       ? rawAllPlayers
       : [];
-  const divisionPlayerIds = new Set(players.map((p) => p.id));
-  const availableToAdd = allPlayers.filter((p) => !divisionPlayerIds.has(p.id));
+  const memberships: IndividualsPlayerMembership[] =
+    swrMemberships.data?.data ?? [];
+  const targetHasPrefix = Boolean((divisionPrefix ?? "").trim());
+  const availableToAdd = useMemo(() => {
+    const inThisDivision = new Set(players.map((p) => p.id));
+    const blocked = new Set<number>();
+    for (const m of memberships) {
+      if (m.division_id === divisionId) continue;
+      const otherHasPrefix = Boolean((m.prefix ?? "").trim());
+      if (targetHasPrefix || otherHasPrefix) {
+        blocked.add(m.player_id);
+      }
+    }
+    return allPlayers.filter(
+      (p) => !inThisDivision.has(p.id) && !blocked.has(p.id),
+    );
+  }, [allPlayers, memberships, divisionId, targetHasPrefix, players]);
 
   const playerMetaById = useMemo(() => {
     const m = new Map<number, Player>();
@@ -366,6 +391,7 @@ export default function DivisionPlayersTable({
         onSuccess={async () => {
           await swrDivisionPlayersResponse.mutate();
           await swrAllPlayersResponse.mutate();
+          await swrMemberships.mutate();
         }}
       />
       <MantineReactTable table={table} />

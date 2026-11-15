@@ -431,16 +431,37 @@ export function UsageGuideContent() {
 
       <Callout>
         <p>
-          <strong>Important: Set a division prefix to generate player codes.</strong>
+          <strong>
+            Important: Player codes, prefixes, and how many divisions a player
+            can join.
+          </strong>
         </p>
         <p>
-          If you want players to have unique codes, you must enter a
-          single-character division prefix during bracket generation. This
-          prefix is used to generate their player IDs.
+          KenManage supports two common individual-tournament styles. Choose
+          based on whether you want player codes:
         </p>
+        <ul>
+          <li>
+            <strong>With a prefix (player codes):</strong> Enter a
+            single-character division prefix during bracket generation. Codes
+            are generated from that prefix — for example, <code>A</code>{" "}
+            produces <code>A01</code>, <code>A02</code>, <code>A03</code>, and
+            so on. Each player may belong to{" "}
+            <strong>only one individuals division</strong>. KenManage blocks
+            adding someone who is already in another individuals division.
+          </li>
+          <li>
+            <strong>Without a prefix (no player codes):</strong> Leave the
+            prefix blank. No player codes are generated, and brackets leave the
+            code/ID slot blank (name and club still show). The same player may
+            compete in <strong>more than one individuals division</strong>, as
+            long as those divisions also have no prefix.
+          </li>
+        </ul>
         <p>
-          For example, a prefix of <code>A</code> generates{" "}
-          <code>A01</code>, <code>A02</code>, <code>A03</code>, and so on.
+          Do not mix the two for the same player: someone already in a
+          prefixed (coded) division cannot be added to a no-prefix division,
+          and the reverse is also blocked.
         </p>
       </Callout>
 

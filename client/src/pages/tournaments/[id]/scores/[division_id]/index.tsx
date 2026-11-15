@@ -767,8 +767,8 @@ export default function DivisionScoresEditorPage() {
     const opts: { id: string; name: string; club?: string }[] = [];
     for (const b of bracketsPlayers) {
       for (const slot of b.players ?? []) {
-        const id =
-          slot.code ?? slot.participant_number ?? String(slot.player_id);
+        // Blank when no player code (no-prefix divisions); name still identifies the player.
+        const id = (slot.code ?? "").trim();
         const clubName = slot.club ?? undefined;
         const club = clubName
           ? clubAbbrevByName.get(clubName) ?? clubName

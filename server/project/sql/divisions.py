@@ -2,7 +2,9 @@ from project.database import database
 from project.models.db.division import (
     Division,
     DivisionCreateBody,
+    DivisionType,
     DivisionUpdateBody,
+    IndividualsPlayerMembership,
     PlayerMatchAssignment,
     PlayerMatchDirectoryEntry,
 )
@@ -290,6 +292,91 @@ async def sql_get_players_for_division(division_id: DivisionId) -> list[PlayerIn
     """
     rows = await database.fetch_all(query, {"division_id": division_id})
     return [PlayerInDivision.model_validate(dict(r._mapping)) for r in rows]
+
+
+async def sql_list_individuals_memberships(
+    tournament_id: TournamentId,
+) -> list[IndividualsPlayerMembership]:
+    query = """
+        SELECT
+            p.id AS player_id,
+            p.name AS player_name,
+            d.id AS division_id,
+            d.name AS division_name,
+            d.prefix
+        FROM players_x_divisions px
+        JOIN players p ON p.id = px.player_id
+        JOIN divisions d ON d.id = px.division_id
+        WHERE d.tournament_id = :tournament_id
+          AND d.division_type = 'INDIVIDUALS'
+        ORDER BY p.name, p.id, d.name, d.id
+    """
+    rows = await database.fetch_all(query=query, values={"tournament_id": tournament_id})
+    return [IndividualsPlayerMembership.model_validate(dict(r._mapping)) for r in rows]
+
+
+async def sql_find_individuals_attach_conflicts(
+    division_id: DivisionId,
+    player_ids: list[int],
+) -> list[IndividualsPlayerMembership]:
+    """Return other individuals memberships that block attaching these players.
+
+    Prefixed (coded) target: player may not already be in any other individuals division.
+    No-prefix target: player may not already be in a prefixed individuals division.
+    """
+    if not player_ids:
+        return []
+
+    target = await sql_get_division(division_id)
+    if target is None:
+        return []
+
+    division_type = (
+        target.division_type.value
+        if hasattr(target.division_type, "value")
+        else target.division_type
+    )
+    if division_type != DivisionType.INDIVIDUALS.value:
+        return []
+
+    target_has_prefix = _normalize_division_prefix(target.prefix) is not None
+
+    query = """
+        SELECT
+            p.id AS player_id,
+            p.name AS player_name,
+            d.id AS division_id,
+            d.name AS division_name,
+            d.prefix
+        FROM players_x_divisions px
+        JOIN players p ON p.id = px.player_id
+        JOIN divisions d ON d.id = px.division_id
+        WHERE d.tournament_id = :tournament_id
+          AND d.division_type = 'INDIVIDUALS'
+          AND d.id <> :division_id
+          AND p.id = ANY(CAST(:player_ids AS BIGINT[]))
+        ORDER BY p.name, p.id, d.name, d.id
+    """
+    rows = await database.fetch_all(
+        query=query,
+        values={
+            "tournament_id": target.tournament_id,
+            "division_id": division_id,
+            "player_ids": player_ids,
+        },
+    )
+    memberships = [
+        IndividualsPlayerMembership.model_validate(dict(r._mapping)) for r in rows
+    ]
+
+    if target_has_prefix:
+        return memberships
+
+    return [
+        m
+        for m in memberships
+        if _normalize_division_prefix(m.prefix) is not None
+    ]
 
 
 async def sql_attach_players_to_division(division_id: DivisionId, player_ids: list[int], bias_player_ids: list[int] | None = None) -> None:

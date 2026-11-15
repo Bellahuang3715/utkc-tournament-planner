@@ -329,6 +329,15 @@ export function getDivisions(tournament_id: number | null): SWRResponse {
   );
 }
 
+export function getIndividualsMemberships(tournament_id: number | null): SWRResponse {
+  return useSWR(
+    tournament_id != null && Number.isFinite(tournament_id)
+      ? `tournaments/${tournament_id}/individuals-memberships`
+      : null,
+    fetcher
+  );
+}
+
 export function getDivisionPlayers(division_id: number): SWRResponse {
   return useSWR(
     `divisions/${division_id}/players`,

@@ -312,10 +312,14 @@ export default function BracketsEditorIndividuals({
 
   const playerOptions = useMemo(
     () =>
-      players.map((p) => ({
-        value: String(p.id),
-        label: `${p.code ?? p.participant_number ?? p.id} — ${p.name ?? ""}`.trim(),
-      })),
+      players.map((p) => {
+        const code = (p.code ?? "").trim();
+        const name = (p.name ?? "").trim();
+        return {
+          value: String(p.id),
+          label: code ? `${code} — ${name}`.trim() : name || String(p.id),
+        };
+      }),
     [players]
   );
 

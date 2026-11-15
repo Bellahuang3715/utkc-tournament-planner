@@ -71,6 +71,16 @@ class DivisionPlayersAttachBody(BaseModelORM):
     bias_player_ids: list[int] | None = None
 
 
+class IndividualsPlayerMembership(BaseModelORM):
+    """One individuals-division membership for a player in a tournament."""
+
+    player_id: int
+    player_name: str
+    division_id: DivisionId
+    division_name: str
+    prefix: Optional[str] = None
+
+
 class DivisionPlayersDetachBody(BaseModelORM):
     player_ids: list[int]
 
