@@ -434,9 +434,9 @@ export function UsageGuideContent() {
           <strong>Important: Set a division prefix to generate player codes.</strong>
         </p>
         <p>
-          If you want players to have unique codes, you must enter a division
-          prefix during bracket generation. This prefix is used to generate
-          their player IDs.
+          If you want players to have unique codes, you must enter a
+          single-character division prefix during bracket generation. This
+          prefix is used to generate their player IDs.
         </p>
         <p>
           For example, a prefix of <code>A</code> generates{" "}

@@ -176,6 +176,12 @@ export default function TeamsTable({
         mantineFilterMultiSelectProps: {
           data: categoryFilterOptions,
         },
+        // OR across selected categories (row matches if its category is any of them).
+        filterFn: (row, columnId, filterValue: string[]) => {
+          if (!filterValue?.length) return true;
+          const value = row.getValue<unknown>(columnId);
+          return filterValue.includes(value as string);
+        },
         Cell: ({ row }) => {
           const label = row.original.category;
           const bg = categoryChipBackground(

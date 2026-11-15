@@ -30,7 +30,6 @@ import ClubModal from "../modals/club_modal";
 import { EmptyTableInfo } from "../no_content/empty_table_info";
 import RequestErrorAlert from "../utils/error_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
-
 export default function ClubsTable({
   swrClubsResponse,
 }: {

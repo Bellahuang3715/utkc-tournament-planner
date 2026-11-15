@@ -2,6 +2,7 @@ from enum import Enum as PyEnum
 from typing import Optional
 
 from heliclockter import datetime_utc
+from pydantic import field_validator
 
 from project.models.db.shared import BaseModelORM
 from project.utils.id_types import DivisionId, TournamentId
@@ -10,6 +11,17 @@ from project.utils.id_types import DivisionId, TournamentId
 class DivisionType(str, PyEnum):
     INDIVIDUALS = "INDIVIDUALS"
     TEAMS = "TEAMS"
+
+
+def _normalize_single_char_prefix(value: str | None) -> str | None:
+    if value is None:
+        return None
+    trimmed = value.strip()
+    if not trimmed:
+        return None
+    if len(trimmed) > 1:
+        raise ValueError("Prefix must be a single character")
+    return trimmed
 
 
 # Row shape as stored (includes server-managed timestamps)
@@ -36,6 +48,11 @@ class DivisionCreateBody(BaseModelORM):
     margin_mins: int
     division_type: DivisionType
 
+    @field_validator("prefix")
+    @classmethod
+    def validate_prefix(cls, value: str | None) -> str | None:
+        return _normalize_single_char_prefix(value)
+
 
 class DivisionUpdateBody(BaseModelORM):
     name: str
@@ -43,6 +60,11 @@ class DivisionUpdateBody(BaseModelORM):
     duration_mins: int
     margin_mins: int
     division_type: DivisionType
+
+    @field_validator("prefix")
+    @classmethod
+    def validate_prefix(cls, value: str | None) -> str | None:
+        return _normalize_single_char_prefix(value)
 
 class DivisionPlayersAttachBody(BaseModelORM):
     player_ids: list[int]

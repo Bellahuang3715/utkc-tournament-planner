@@ -165,6 +165,12 @@ export default function PlayersTable({
           col.mantineFilterMultiSelectProps = {
             data: f.options ?? [],
           };
+          // OR across selected options (row matches if its value is any of them).
+          col.filterFn = (row, columnId, filterValue: string[]) => {
+            if (!filterValue?.length) return true;
+            const value = row.getValue<unknown>(columnId);
+            return filterValue.includes(value as string);
+          };
         }
         if (f.type === "NUMBER") {
           col.filterFn = "between";
