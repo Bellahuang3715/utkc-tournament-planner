@@ -35,6 +35,10 @@ npm install
 6. Start the app by running `npm run dev`
 7. Navigate to `http://localhost:3000/` to view the app in action!
 
+## Testing
+
+See [TESTING.md](../TESTING.md) for pytest, Vitest, Playwright, and the manual release checklist.
+
 ## Before Development
 
 1. Find your github issue

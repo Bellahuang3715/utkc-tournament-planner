@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from enum import Enum
 from typing import Any
 
 from heliclockter import datetime_tz
@@ -10,6 +11,8 @@ from project.utils.types import EnumAutoStr
 def _map_to_str(value: Any) -> Any:
     match value:
         case EnumAutoStr():
+            return value.value
+        case Enum():
             return value.value
         case datetime_tz():
             return value.isoformat()

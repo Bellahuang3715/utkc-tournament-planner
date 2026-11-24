@@ -32,6 +32,7 @@ types-passlib = "*"
 types-simplejson = ">=4.2.0.20261104"
 uvicorn = ">=0.54.0"
 firebase-admin = "*"
+psycopg = {extras = ["binary"], version = "*"}
 
 [dev-packages]
 aioresponses = ">=0.7.9"
@@ -44,6 +45,10 @@ pytest-cov = ">=7.1.0"
 pytest-xdist = ">=3.8.0"
 ruff = ">=0.17.4"
 vulture = ">=2.16"
+
+[scripts]
+test = "pytest"
+test-api = "pytest tests/integration_tests/api/ping_test.py tests/integration_tests/api/divisions_test.py tests/integration_tests/api/brackets_test.py tests/integration_tests/api/public_dashboard_test.py"
 
 [requires]
 python_version = "3.12"

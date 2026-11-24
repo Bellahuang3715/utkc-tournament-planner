@@ -7,6 +7,7 @@ from sqlalchemy import Table
 from project.database import database
 from project.models.db.club import Club, ClubInsertable
 from project.models.db.court import Court, CourtInsertable
+from project.models.db.division import Division, DivisionInsertable, DivisionType
 from project.models.db.player import Player, PlayerInsertable
 from project.models.db.player_x_team import PlayerXTeamInsertable
 from project.models.db.team import Team, TeamInsertable
@@ -16,6 +17,7 @@ from project.models.db.user import UserInDB, UserInsertable
 from project.schema import (
     clubs,
     courts,
+    divisions,
     players,
     players_x_teams,
     teams,
@@ -24,8 +26,8 @@ from project.schema import (
     users,
 )
 from project.utils.db import insert_generic
-from project.utils.dummy_records import DUMMY_CLUB, DUMMY_TOURNAMENT
-from project.utils.id_types import TeamId, TournamentId
+from project.utils.dummy_records import DUMMY_CLUB, DUMMY_MOCK_TIME, DUMMY_TOURNAMENT
+from project.utils.id_types import DivisionId, PlayerId, TeamId, TournamentId
 from project.utils.types import BaseModelT
 from tests.integration_tests.mocks import get_mock_user
 from tests.integration_tests.models import AuthContext
@@ -119,9 +121,88 @@ async def inserted_player_in_team(
 
 
 @asynccontextmanager
+async def inserted_division(
+    *,
+    tournament_id: TournamentId,
+    name: str = "Division A",
+    prefix: str | None = "A",
+    duration_mins: int = 5,
+    margin_mins: int = 1,
+    division_type: DivisionType = DivisionType.INDIVIDUALS,
+) -> AsyncIterator[Division]:
+    async with inserted_generic(
+        DivisionInsertable(
+            name=name,
+            prefix=prefix,
+            tournament_id=tournament_id,
+            duration_mins=duration_mins,
+            margin_mins=margin_mins,
+            division_type=division_type,
+            created=DUMMY_MOCK_TIME,
+        ),
+        divisions,
+        Division,
+    ) as row_inserted:
+        yield cast(Division, row_inserted)
+
+
+@asynccontextmanager
+async def inserted_player_in_division(
+    player: PlayerInsertable,
+    division_id: DivisionId,
+    *,
+    bias: bool = False,
+) -> AsyncIterator[Player]:
+    async with inserted_generic(player, players, Player) as row_inserted:
+        player_row = cast(Player, row_inserted)
+        await database.execute(
+            query="""
+                INSERT INTO players_x_divisions (player_id, division_id, bias)
+                VALUES (:player_id, :division_id, :bias)
+            """,
+            values={
+                "player_id": player_row.id,
+                "division_id": division_id,
+                "bias": bias,
+            },
+        )
+        try:
+            yield player_row
+        finally:
+            await database.execute(
+                query="""
+                    DELETE FROM players_x_divisions
+                    WHERE player_id = :player_id AND division_id = :division_id
+                """,
+                values={"player_id": player_row.id, "division_id": division_id},
+            )
+
+
+async def attach_player_to_division(
+    player_id: PlayerId,
+    division_id: DivisionId,
+    *,
+    bias: bool = False,
+) -> None:
+    await database.execute(
+        query="""
+            INSERT INTO players_x_divisions (player_id, division_id, bias)
+            VALUES (:player_id, :division_id, :bias)
+            ON CONFLICT (player_id, division_id) DO NOTHING
+        """,
+        values={
+            "player_id": player_id,
+            "division_id": division_id,
+            "bias": bias,
+        },
+    )
+
+
+@asynccontextmanager
 async def inserted_auth_context() -> AsyncIterator[AuthContext]:
     mock_user = get_mock_user()
-    headers = {"Authorization": "Bearer test-token"}
+    # Bearer test:<email> is accepted by the Firebase verify mock in conftest.
+    headers = {"Authorization": f"Bearer test:{mock_user.email}"}
     async with (
         inserted_user(mock_user) as user_inserted,
         inserted_club(DUMMY_CLUB.model_copy(update={"creator_id": user_inserted.id})) as club_inserted,

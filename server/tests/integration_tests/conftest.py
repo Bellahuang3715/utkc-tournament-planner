@@ -2,8 +2,9 @@
 import asyncio
 import os
 from asyncio import AbstractEventLoop
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from time import sleep
+from unittest.mock import patch
 
 import pytest
 from databases import Database
@@ -23,6 +24,20 @@ def event_loop() -> AsyncIterator[AbstractEventLoop]:  # type: ignore[misc]
 
     yield loop
     loop.close()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def mock_firebase_verify_id_token() -> Iterator[None]:
+    """Accept Bearer test:<email> tokens in integration tests."""
+
+    def _verify(token: str, *args: object, **kwargs: object) -> dict[str, str]:
+        if token.startswith("test:"):
+            email = token.split(":", 1)[1]
+            return {"email": email, "name": email.split("@", 1)[0]}
+        raise ValueError("Invalid test token")
+
+    with patch("project.routes.auth.auth.verify_id_token", side_effect=_verify):
+        yield
 
 
 @pytest.fixture(scope="session", autouse=True)

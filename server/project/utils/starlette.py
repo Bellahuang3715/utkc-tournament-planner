@@ -16,6 +16,9 @@ def _get_route_for_request(request: Request) -> Route | None:
     for route in request.app.routes:
         match, _ = route.matches(request.scope)
         if match is Match.FULL:
+            # Newer Starlette may match Mount/_IncludedRouter first; only cache real Routes.
+            if not isinstance(route, Route) or not isinstance(getattr(route, "path", None), str):
+                continue
             request.state.__route_cached__ = route
             return route
 
@@ -24,8 +27,8 @@ def _get_route_for_request(request: Request) -> Route | None:
 
 def get_route_path(request: Request) -> str:
     if (route := _get_route_for_request(request)) is not None:
-        msg = f"Expected `str` for `route.path`, got: {type(route.path).__name__}"
-        assert isinstance(route.path, str), msg
-        return route.path
+        path = getattr(route, "path", None)
+        if isinstance(path, str):
+            return path
 
     return f"unhandled:{request.url.path}"

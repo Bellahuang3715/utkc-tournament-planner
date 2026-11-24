@@ -53,7 +53,6 @@ class UvicornTestServer(uvicorn.Server):
     async def startup(self, sockets: Sequence[socket.socket] | None = None) -> None:
         sockets_list = list(sockets) if sockets is not None else sockets
         await super().startup(sockets=sockets_list)
-        self.config.setup_event_loop()
         self._startup_done.set()
 
     async def up(self) -> None:
@@ -74,6 +73,21 @@ async def send_request(
     json: JsonDict | None = None,
     headers: JsonDict = {},
 ) -> JsonDict:
+    status, response = await send_request_with_status(
+        method, endpoint, body=body, json=json, headers=headers
+    )
+    # Preserve prior behavior for callers that only inspect the body.
+    _ = status
+    return response
+
+
+async def send_request_with_status(
+    method: HTTPMethod,
+    endpoint: str,
+    body: JsonDict | AsyncIterator[bytes] | aiohttp.FormData | None = None,
+    json: JsonDict | None = None,
+    headers: JsonDict = {},
+) -> tuple[int, JsonDict]:
     async with aiohttp.ClientSession() as session:
         async with session.request(
             method=method.value,
@@ -82,8 +96,11 @@ async def send_request(
             json=json,
             headers=headers,
         ) as resp:
-            response: JsonDict = await resp.json()
-            return response
+            try:
+                response: JsonDict = await resp.json()
+            except Exception:
+                response = {"detail": await resp.text()}
+            return resp.status, response
 
 
 async def send_request_raw(method: HTTPMethod, endpoint: str) -> str:
