@@ -77,14 +77,25 @@ The following tools are required:
 - Yarn
 - Python 3.12
 - Pipenv
-- PostgreSQL
+- PostgreSQL (or [Docker](https://docs.docker.com/get-docker/) / Docker Compose to run Postgres)
 
 ### Quick setup
 
 1. Install the prerequisites listed above.
-2. Create two PostgreSQL databases:
-   - `bracket_dev` — local application database.
-   - `bracket_test` — automated testing database.
+2. Start PostgreSQL and create the databases (pick one):
+
+   **Option A — Docker Compose (recommended)**
+
+   ```bash
+   docker compose up -d postgres
+   ```
+
+   This starts Postgres on `:5432` and creates `bracket_dev` plus `bracket_test` on first boot.
+
+   **Option B — Local Postgres**
+
+   Create `bracket_dev` (app) and `bracket_test` (pytest only) owned by user `bracket_dev` / password `bracket_dev`.
+
 3. Configure your environment files:
    - `server/.env.local` — Firebase Admin credentials.
    - `client/.env.local` — Firebase web configuration and `NEXT_PUBLIC_API_BASE_URL=http://localhost:8400`.
@@ -144,9 +155,10 @@ KenManage includes automated tests and a manual release checklist.
 | Test suite | Command | Description |
 | --- | --- | --- |
 | Backend | `cd server && pipenv run pytest` | pytest integration tests (`bracket_test`) |
+| Backend lint | `cd server && ./check.sh` | ruff format + lint (CI); `./precommit.sh` for local autofix |
 | Frontend | `cd client && yarn --ignore-engines test` | Vitest unit tests |
 | End-to-end | `yarn test:e2e` | Playwright smoke tests; requires the application to be running |
-| CI | [GitHub Actions](.github/workflows/test.yml) | Automated test workflow |
+| CI | [GitHub Actions](.github/workflows/test.yml) | Automated test + lint workflow |
 
 A manual release checklist is also available in [TESTING.md](TESTING.md).
 

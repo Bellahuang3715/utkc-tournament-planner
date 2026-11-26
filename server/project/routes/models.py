@@ -2,23 +2,23 @@ from typing import Generic, TypeVar
 
 from pydantic import BaseModel
 
+from project.models.db.bracket import Bracket, BracketWithPlayers, BracketWithTeams
+from project.models.db.bracket_cell import BracketCell, TeamBracketCell
+from project.models.db.bracket_edit_lock import BracketEditLock
 from project.models.db.club import Club
+from project.models.db.court import Court
 from project.models.db.division import (
     Division,
     IndividualsPlayerMembership,
     PlayerMatchAssignment,
     PlayerMatchDirectoryEntry,
 )
-from project.models.db.court import Court
 from project.models.db.player import Player, PlayerInDivision
-from project.models.db.bracket import Bracket, BracketWithPlayers, BracketWithTeams
-from project.models.db.bracket_cell import BracketCell, TeamBracketCell
-from project.models.db.bracket_edit_lock import BracketEditLock
+from project.models.db.schedule_timetable import TournamentScheduleBody
 from project.models.db.team import FullTeamWithPlayers, Team, TeamInDivision
 from project.models.db.team_category import TeamCategory
-from project.models.db.tournament import Tournament, TournamentPublic, ScorekeeperRedeemResult
+from project.models.db.tournament import ScorekeeperRedeemResult, Tournament, TournamentPublic
 from project.models.db.user import UserPublic
-from project.models.db.schedule_timetable import TournamentScheduleBody
 
 DataT = TypeVar("DataT")
 

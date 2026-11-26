@@ -6,9 +6,9 @@ from fastapi import HTTPException
 from heliclockter import datetime_utc
 from pydantic import BaseModel
 
+from project.logic.dashboard_access import new_dashboard_preview_token
 from project.models.db.account import UserAccountType
 from project.models.db.tournament import TournamentBody
-from project.logic.dashboard_access import new_dashboard_preview_token
 from project.sql.tournaments import sql_create_tournament
 from project.utils.id_types import UserId
 
@@ -53,8 +53,8 @@ def check_requirement(array: list[Any], user: UserBase, attribute: str, addition
     if len(array) + additions > constraint:
         raise HTTPException(
             400,
-            f'Your `{user.account_type.value}` subscription allows a maximum of '
-            f'{constraint} {attribute.replace("max_", "")}.',
+            f"Your `{user.account_type.value}` subscription allows a maximum of "
+            f"{constraint} {attribute.replace('max_', '')}.",
         )
 
 

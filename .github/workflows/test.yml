@@ -22,6 +22,24 @@ jobs:
       - run: yarn install --frozen-lockfile --ignore-engines
       - run: yarn --ignore-engines test
 
+  server-lint:
+    name: Server lint (ruff)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pipenv
+        run: pip install pipenv
+      - name: Install dependencies
+        run: pipenv install --dev
+      - name: Ruff format + check
+        run: ./check.sh
+
   server-api:
     name: Server API (pytest)
     runs-on: ubuntu-latest

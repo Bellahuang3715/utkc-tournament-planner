@@ -90,9 +90,7 @@ async def sql_claim_edit_lock(
     return BracketEditLock.model_validate(row)
 
 
-async def sql_heartbeat_edit_lock(
-    bracket_id: BracketId, *, session_id: str
-) -> BracketEditLock:
+async def sql_heartbeat_edit_lock(bracket_id: BracketId, *, session_id: str) -> BracketEditLock:
     session_id = session_id.strip()
     row = await database.fetch_one(
         """

@@ -79,8 +79,7 @@ async def get_tournaments(
     if endpoint_name is not None:
         tournament = await sql_get_tournament_by_endpoint_name(endpoint_name)
         if tournament is None or not (
-            user.account_type == UserAccountType.ADMIN
-            or tournament.creator_id == user.id
+            user.account_type == UserAccountType.ADMIN or tournament.creator_id == user.id
         ):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

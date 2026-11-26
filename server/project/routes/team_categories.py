@@ -6,7 +6,11 @@ from project.models.db.team_category import TeamCategoryBody, TeamCategoryInsert
 from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated
 from project.routes.authorization import require_tournament_owner
-from project.routes.models import SingleTeamCategoryResponse, SuccessResponse, TeamCategoriesResponse
+from project.routes.models import (
+    SingleTeamCategoryResponse,
+    SuccessResponse,
+    TeamCategoriesResponse,
+)
 from project.sql.team_categories import (
     sql_count_teams_using_category,
     sql_delete_team_category,

@@ -38,8 +38,7 @@ def _five_player_bracket_body(player_ids: list[int]) -> dict:
                 "num_players": 5,
                 "title": "Group 1",
                 "players": [
-                    {"player_id": pid, "bracket_idx": i}
-                    for i, pid in enumerate(player_ids)
+                    {"player_id": pid, "bracket_idx": i} for i, pid in enumerate(player_ids)
                 ],
             }
         ]
@@ -63,10 +62,7 @@ async def test_create_brackets_rejects_under_min_size(
                         {
                             "index": 1,
                             "num_players": 4,
-                            "players": [
-                                {"player_id": p1.id, "bracket_idx": i}
-                                for i in range(4)
-                            ],
+                            "players": [{"player_id": p1.id, "bracket_idx": i} for i in range(4)],
                         }
                     ]
                 },
@@ -143,9 +139,7 @@ async def test_division_locks_after_score_and_blocks_attach(
                                 create_res = await send_request(
                                     HTTPMethod.POST,
                                     f"divisions/{division.id}/brackets",
-                                    json=_five_player_bracket_body(
-                                        [p.id for p in players]
-                                    ),
+                                    json=_five_player_bracket_body([p.id for p in players]),
                                     headers=auth_context.headers,
                                 )
                                 bracket_id = create_res["data"][0]["id"]
@@ -186,6 +180,7 @@ async def test_division_locks_after_score_and_blocks_attach(
                                     headers=auth_context.headers,
                                 )
                                 assert status == 409
-                                assert "scorekeeping has started" in str(
-                                    response.get("detail", "")
-                                ).lower()
+                                assert (
+                                    "scorekeeping has started"
+                                    in str(response.get("detail", "")).lower()
+                                )

@@ -3,7 +3,6 @@ from typing import NamedTuple
 from project.database import database
 from project.models.db.club import Club, ClubCreateBody, ClubUpdateBody
 from project.utils.id_types import ClubId, UserId
-from project.utils.types import assert_some
 
 
 class ClubTournamentUsage(NamedTuple):

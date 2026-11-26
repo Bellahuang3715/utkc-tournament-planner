@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 from enum import auto
 
 from project.models.db.shared import BaseModelORM
 from project.utils.types import EnumAutoStr
+
 
 class PlayerFieldTypes(EnumAutoStr):
     TEXT = auto()
@@ -11,14 +13,16 @@ class PlayerFieldTypes(EnumAutoStr):
     NUMBER = auto()
     DROPDOWN = auto()
 
+
 class FieldInsertable(BaseModelORM):
-    key:      str
-    label:    str
-    include:  bool
+    key: str
+    label: str
+    include: bool
     import_required: bool = True
-    type:     PlayerFieldTypes
-    options:  list[str] = []
+    type: PlayerFieldTypes
+    options: list[str] = []
     position: int
+
 
 class SaveFieldsInsertable(BaseModelORM):
     fields: list[FieldInsertable]

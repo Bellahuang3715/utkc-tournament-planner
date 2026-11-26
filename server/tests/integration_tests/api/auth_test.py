@@ -5,7 +5,6 @@ from unittest.mock import Mock, patch
 import jwt
 
 from project.config import config
-from project.models.db.account import UserAccountType
 from project.utils.dummy_records import DUMMY_CLUB, DUMMY_TOURNAMENT
 from project.utils.http import HTTPMethod
 from project.utils.types import JsonDict

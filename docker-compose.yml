@@ -1,0 +1,55 @@
+networks:
+  kenmanage_lan:
+    driver: bridge
+
+volumes:
+  kenmanage_pg_data:
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: kenmanage-postgres
+    environment:
+      POSTGRES_USER: bracket_dev
+      POSTGRES_PASSWORD: bracket_dev
+      POSTGRES_DB: bracket_dev
+    ports:
+      - "5432:5432"
+    networks:
+      - kenmanage_lan
+    restart: unless-stopped
+    volumes:
+      - kenmanage_pg_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bracket_dev -d bracket_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Optional: API only. Requires server/.env.local (Firebase) and matching secrets.
+  # Start with: docker compose --profile api up -d
+  server:
+    profiles: ["api"]
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: kenmanage-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: DEVELOPMENT
+      PG_DSN: postgresql://bracket_dev:bracket_dev@postgres:5432/bracket_dev
+      CORS_ORIGINS: "*"
+      JWT_SECRET: ${JWT_SECRET:-1e5a34fcb303c23879b09a3b01ab6b93bd6ebef26c48b7ed3ff184e6cb1ff074}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-AdminPass123}
+    env_file:
+      - path: ./server/.env.local
+        required: false
+    networks:
+      - kenmanage_lan
+    ports:
+      - "8400:8400"
+    restart: unless-stopped

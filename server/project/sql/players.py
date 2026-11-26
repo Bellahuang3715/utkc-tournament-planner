@@ -1,12 +1,10 @@
 import json
-from decimal import Decimal
 from typing import cast
 
 from heliclockter import datetime_utc
 
 from project.database import database
 from project.models.db.player import Player, PlayerBody, PlayerToInsert
-from project.schema import players
 from project.utils.id_types import PlayerId, TournamentId
 from project.utils.types import dict_without_none
 
@@ -45,10 +43,7 @@ async def get_all_players_in_tournament(
         ),
     )
 
-    return [
-        Player.model_validate({**dict(row), "data": json.loads(row["data"])})
-        for row in result
-    ]
+    return [Player.model_validate({**dict(row), "data": json.loads(row["data"])}) for row in result]
 
 
 async def get_player_by_id(player_id: PlayerId, tournament_id: TournamentId) -> Player | None:

@@ -1,5 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
+from project.models.db.bracket import (
+    BracketTitleUpdateBody,
+    DivisionBracketsCreateBody,
+    DivisionTeamBracketsCreateBody,
+)
+from project.models.db.bracket_cell import (
+    BracketCellsReplaceBody,
+    DivisionBracketCellsReplaceBody,
+    DivisionTeamBracketCellsReplaceBody,
+    TeamBracketCellsReplaceBody,
+)
 from project.models.db.bracket_edit_lock import (
     BracketEditLockClaimBody,
     BracketEditLockReleaseBody,
@@ -11,43 +22,17 @@ from project.routes.authorization import (
     require_division_owner,
     require_division_score_access,
 )
-from project.models.db.bracket import DivisionBracketsCreateBody, DivisionTeamBracketsCreateBody
-from project.models.db.bracket_cell import (
-    BracketCellsReplaceBody,
-    DivisionBracketCellsReplaceBody,
-    DivisionTeamBracketCellsReplaceBody,
-    TeamBracketCellsReplaceBody,
-)
 from project.routes.models import (
+    BracketCellsResponse,
     BracketEditLockResponse,
     BracketEditLocksResponse,
+    BracketResponse,
     BracketsResponse,
     BracketsWithPlayersResponse,
     BracketsWithTeamsResponse,
-    BracketCellsResponse,
-    TeamBracketCellsResponse,
-    BracketResponse,
     SuccessResponse,
+    TeamBracketCellsResponse,
 )
-from project.sql.bracket_edit_locks import (
-    assert_session_can_write_bracket,
-    assert_session_can_write_brackets,
-    sql_claim_edit_lock,
-    sql_heartbeat_edit_lock,
-    sql_list_active_edit_locks,
-    sql_release_edit_lock,
-)
-from project.sql.brackets import (
-    sql_list_division_brackets,
-    sql_list_division_brackets_with_players,
-    sql_list_division_brackets_with_teams,
-    sql_create_division_brackets,
-    sql_create_division_brackets_teams,
-    sql_get_or_create_finals_bracket,
-    sql_update_bracket_title,
-)
-from project.utils.id_types import BracketId, DivisionId, TournamentId
-from project.models.db.bracket import BracketTitleUpdateBody
 from project.sql.bracket_cells import (
     sql_clear_division_bracket_cells,
     sql_ensure_division_unlocked,
@@ -60,6 +45,24 @@ from project.sql.bracket_cells import (
     sql_replace_division_team_bracket_cells,
     sql_replace_team_bracket_cells,
 )
+from project.sql.bracket_edit_locks import (
+    assert_session_can_write_bracket,
+    assert_session_can_write_brackets,
+    sql_claim_edit_lock,
+    sql_heartbeat_edit_lock,
+    sql_list_active_edit_locks,
+    sql_release_edit_lock,
+)
+from project.sql.brackets import (
+    sql_create_division_brackets,
+    sql_create_division_brackets_teams,
+    sql_get_or_create_finals_bracket,
+    sql_list_division_brackets,
+    sql_list_division_brackets_with_players,
+    sql_list_division_brackets_with_teams,
+    sql_update_bracket_title,
+)
+from project.utils.id_types import BracketId, DivisionId, TournamentId
 
 router = APIRouter()
 
@@ -89,28 +92,21 @@ def _validate_bracket_sizes(
     if total < MIN_BRACKET_SIZE:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                f"A division needs at least {MIN_BRACKET_SIZE} {kind}s "
-                f"(got {total})"
-            ),
+            detail=(f"A division needs at least {MIN_BRACKET_SIZE} {kind}s (got {total})"),
         )
     for bracket in brackets:
         size = int(bracket.num_players)
         if size < MIN_BRACKET_SIZE:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"Each bracket must have at least {MIN_BRACKET_SIZE} "
-                    f"{kind}s (got {size})"
-                ),
+                detail=(f"Each bracket must have at least {MIN_BRACKET_SIZE} {kind}s (got {size})"),
             )
         slots = getattr(bracket, slots_attr, None) or []
         if len(slots) != size:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=(
-                    f"Bracket size {size} does not match number of "
-                    f"{kind} slots ({len(slots)})"
+                    f"Bracket size {size} does not match number of {kind} slots ({len(slots)})"
                 ),
             )
 
@@ -123,15 +119,21 @@ async def list_division_brackets(
     return BracketsResponse(data=await sql_list_division_brackets(division_id))
 
 
-@router.get("/divisions/{division_id}/brackets/with-players", response_model=BracketsWithPlayersResponse)
+@router.get(
+    "/divisions/{division_id}/brackets/with-players", response_model=BracketsWithPlayersResponse
+)
 async def list_division_brackets_with_players(
     division_id: DivisionId,
     _: Division = Depends(require_division_score_access),
 ) -> BracketsWithPlayersResponse:
-    return BracketsWithPlayersResponse(data=await sql_list_division_brackets_with_players(division_id))
+    return BracketsWithPlayersResponse(
+        data=await sql_list_division_brackets_with_players(division_id)
+    )
 
 
-@router.get("/divisions/{division_id}/brackets/with-teams", response_model=BracketsWithTeamsResponse)
+@router.get(
+    "/divisions/{division_id}/brackets/with-teams", response_model=BracketsWithTeamsResponse
+)
 async def list_division_brackets_with_teams(
     division_id: DivisionId,
     _: Division = Depends(require_division_score_access),
@@ -182,9 +184,7 @@ async def list_division_team_bracket_cells(
     _: Division = Depends(require_division_score_access),
 ) -> TeamBracketCellsResponse:
     """Team bracket cells (advances only)."""
-    return TeamBracketCellsResponse(
-        data=await sql_list_division_team_bracket_cells(division_id)
-    )
+    return TeamBracketCellsResponse(data=await sql_list_division_team_bracket_cells(division_id))
 
 
 @router.put("/divisions/{division_id}/team-bracket-cells", response_model=SuccessResponse)
@@ -230,9 +230,7 @@ async def replace_bracket_cells(
     request: Request,
     _: TournamentId = Depends(require_bracket_score_access),
 ) -> SuccessResponse:
-    await assert_session_can_write_bracket(
-        bracket_id, session_id=_edit_session_id(request)
-    )
+    await assert_session_can_write_bracket(bracket_id, session_id=_edit_session_id(request))
     await sql_replace_bracket_cells(bracket_id, body.cells)
     return SuccessResponse()
 
@@ -252,9 +250,7 @@ async def replace_team_bracket_cells(
     request: Request,
     _: TournamentId = Depends(require_bracket_score_access),
 ) -> SuccessResponse:
-    await assert_session_can_write_bracket(
-        bracket_id, session_id=_edit_session_id(request)
-    )
+    await assert_session_can_write_bracket(bracket_id, session_id=_edit_session_id(request))
     await sql_replace_team_bracket_cells(bracket_id, body.cells)
     return SuccessResponse()
 
@@ -267,9 +263,7 @@ async def list_division_edit_locks(
     division_id: DivisionId,
     _: Division = Depends(require_division_score_access),
 ) -> BracketEditLocksResponse:
-    return BracketEditLocksResponse(
-        data=await sql_list_active_edit_locks(division_id)
-    )
+    return BracketEditLocksResponse(data=await sql_list_active_edit_locks(division_id))
 
 
 @router.post(
@@ -314,11 +308,14 @@ async def release_bracket_edit_lock(
     await sql_release_edit_lock(bracket_id, session_id=session_id)
     return SuccessResponse()
 
+
 @router.post("/divisions/{division_id}/brackets", response_model=BracketsResponse)
 async def create_division_brackets(
     division_id: DivisionId,
     body: DivisionBracketsCreateBody,
-    replace: bool = Query(False, description="Delete existing brackets for this division before inserting"),
+    replace: bool = Query(
+        False, description="Delete existing brackets for this division before inserting"
+    ),
     _: Division = Depends(require_division_owner),
 ) -> BracketsResponse:
     await sql_ensure_division_unlocked(division_id)
@@ -331,7 +328,9 @@ async def create_division_brackets(
 async def create_division_brackets_teams(
     division_id: DivisionId,
     body: DivisionTeamBracketsCreateBody,
-    replace: bool = Query(False, description="Delete existing brackets for this division before inserting"),
+    replace: bool = Query(
+        False, description="Delete existing brackets for this division before inserting"
+    ),
     _: Division = Depends(require_division_owner),
 ) -> BracketsResponse:
     await sql_ensure_division_unlocked(division_id)
@@ -343,7 +342,9 @@ async def create_division_brackets_teams(
 @router.post("/divisions/{division_id}/brackets/finals", response_model=BracketResponse)
 async def get_or_create_finals_bracket(
     division_id: DivisionId,
-    num_players: int = Query(..., ge=2, description="Opening slot count for finals (= number of groups)"),
+    num_players: int = Query(
+        ..., ge=2, description="Opening slot count for finals (= number of groups)"
+    ),
     _: Division = Depends(require_division_score_access),
 ) -> BracketResponse:
     return BracketResponse(

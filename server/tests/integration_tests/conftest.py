@@ -28,7 +28,7 @@ def assert_safe_to_reinit_database() -> None:
     """Refuse to wipe DBs that are not clearly dedicated to tests."""
     db_name = _database_name_from_dsn(str(config.pg_dsn))
     allow_override = os.getenv("ALLOW_DROP_NON_TEST_DB") == "1"
-    is_test_named = db_name.endswith("_test") or db_name.endswith("_ci") or db_name == "test"
+    is_test_named = db_name.endswith(("_test", "_ci")) or db_name == "test"
 
     if allow_override:
         return

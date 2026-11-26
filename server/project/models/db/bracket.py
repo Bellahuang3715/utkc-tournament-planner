@@ -1,9 +1,12 @@
 # project/models/db/bracket.py
 import json
+from typing import List, Optional
+
 from pydantic import field_validator
-from typing import Optional, List
+
 from project.models.db.shared import BaseModelORM
 from project.utils.id_types import BracketId, DivisionId, PlayerId, TeamId
+
 
 class BracketInsertable(BaseModelORM):
     index: int
@@ -11,13 +14,16 @@ class BracketInsertable(BaseModelORM):
     num_players: int
     title: Optional[str] = None
 
+
 class Bracket(BracketInsertable):
     id: BracketId
+
 
 # --- Payloads for create ---
 class PlayerSlotCreate(BaseModelORM):
     player_id: PlayerId
     bracket_idx: int
+
 
 class BracketWithPlayersCreate(BaseModelORM):
     index: int
@@ -51,6 +57,7 @@ class BracketWithPlayersCreate(BaseModelORM):
             return out
         return v
 
+
 class DivisionBracketsCreateBody(BaseModelORM):
     brackets: List[BracketWithPlayersCreate]
 
@@ -79,9 +86,10 @@ class PlayerSlot(BaseModelORM):
     code: str | None = None
     participant_number: str | None = None  # from players.data.participant_number
 
+
 class BracketWithPlayers(Bracket):
     players: List[PlayerSlot]
-    
+
     @field_validator("players", mode="before")
     @classmethod
     def parse_players(cls, v):
@@ -91,6 +99,7 @@ class BracketWithPlayers(Bracket):
             # Filter out null/invalid slots (e.g. from JSONB_AGG when player was deleted)
             v = [x for x in v if isinstance(x, dict)]
         return v
+
 
 class TeamSlot(BaseModelORM):
     team_id: TeamId

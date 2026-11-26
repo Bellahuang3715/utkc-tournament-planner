@@ -13,8 +13,15 @@ Integration tests call `metadata.drop_all()` on whatever `PG_DSN` is loaded from
 
 ### One-time local setup
 
+**Docker Compose** (creates `bracket_dev` + `bracket_test` on first boot):
+
 ```bash
-# as a Postgres superuser (e.g. your macOS user via Postgres.app)
+docker compose up -d postgres
+```
+
+**Local Postgres** (as a superuser, e.g. via Postgres.app):
+
+```bash
 psql postgres://localhost:5432/postgres -c "CREATE DATABASE bracket_test OWNER bracket_dev;"
 ```
 
@@ -36,6 +43,15 @@ Focused suites:
 pipenv run pytest tests/integration_tests/api/divisions_test.py \
   tests/integration_tests/api/brackets_test.py \
   tests/integration_tests/api/public_dashboard_test.py
+```
+
+### Server lint (ruff)
+
+```bash
+cd server
+./check.sh          # format --check + lint (same as CI)
+./precommit.sh      # autofix format/lint locally
+STRICT=1 ./precommit.sh  # also mypy + vulture + pylint
 ```
 
 ### Client (Vitest)

@@ -78,4 +78,3 @@ class ScorekeeperRedeemResult(BaseModelORM):
     tournament_id: TournamentId
     name: str
     role: Literal["scorekeeper"] = "scorekeeper"
-

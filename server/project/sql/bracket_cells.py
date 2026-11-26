@@ -5,12 +5,12 @@ from starlette import status
 
 from project.database import database
 from project.models.db.bracket_cell import (
+    DivisionPlayerBracketCellsItem,
+    DivisionTeamBracketCellsItem,
     PlayerBracketCell,
     PlayerBracketCellUpsert,
-    DivisionPlayerBracketCellsItem,
     TeamBracketCell,
     TeamBracketCellUpsert,
-    DivisionTeamBracketCellsItem,
 )
 from project.utils.id_types import BracketId, DivisionId
 

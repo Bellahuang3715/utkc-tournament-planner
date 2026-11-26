@@ -15,7 +15,9 @@ from project.utils.id_types import TournamentId
 router = APIRouter(dependencies=[Depends(require_tournament_owner)])
 
 
-@router.get("/tournaments/{tournament_id}/schedule_timetable", response_model=TournamentScheduleResponse)
+@router.get(
+    "/tournaments/{tournament_id}/schedule_timetable", response_model=TournamentScheduleResponse
+)
 async def get_schedule_timetable(
     tournament_id: TournamentId,
     _: UserPublic = Depends(firebase_user_authenticated),
@@ -50,7 +52,9 @@ async def get_schedule_timetable(
     )
 
 
-@router.put("/tournaments/{tournament_id}/schedule_timetable", response_model=TournamentScheduleResponse)
+@router.put(
+    "/tournaments/{tournament_id}/schedule_timetable", response_model=TournamentScheduleResponse
+)
 async def put_schedule_timetable(
     tournament_id: TournamentId,
     body: TournamentScheduleBody,

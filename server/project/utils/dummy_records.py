@@ -13,11 +13,11 @@ from project.models.db.tournament import TournamentInsertable
 from project.models.db.user import UserInsertable
 from project.utils.id_types import (
     ClubId,
-    UserId,
     PlayerId,
     TeamCategoryId,
     TeamId,
     TournamentId,
+    UserId,
 )
 from project.utils.security import hash_password
 
@@ -48,7 +48,7 @@ DUMMY_CLUB = ClubInsertable(
     contact_email="john@gmail.com",
     created=DUMMY_MOCK_TIME,
     updated=DUMMY_MOCK_TIME,
-    creator_id=UserId(DB_PLACEHOLDER_ID)
+    creator_id=UserId(DB_PLACEHOLDER_ID),
 )
 
 DUMMY_USER = UserInsertable(
@@ -116,12 +116,12 @@ DUMMY_PLAYER1 = PlayerInsertable(
     name="John Doe",
     club_id=ClubId(2),
     data={
-       "name":     "John Doe",
-       "rank":     "1D",
-       "division": "A",
-       "lunch":    "Regular",
-       "active":   True,
-       "paid":     True,
+        "name": "John Doe",
+        "rank": "1D",
+        "division": "A",
+        "lunch": "Regular",
+        "active": True,
+        "paid": True,
     },
 )
 
@@ -131,12 +131,12 @@ DUMMY_PLAYER2 = PlayerInsertable(
     name="Thomas Kim",
     club_id=ClubId(2),
     data={
-       "name":     "Thomas Kim",
-       "rank":     "1D",
-       "division": "A",
-       "lunch":    "Regular",
-       "active":   True,
-       "paid":     True,
+        "name": "Thomas Kim",
+        "rank": "1D",
+        "division": "A",
+        "lunch": "Regular",
+        "active": True,
+        "paid": True,
     },
 )
 
@@ -146,12 +146,12 @@ DUMMY_PLAYER3 = PlayerInsertable(
     name="Wryan Jeong",
     club_id=ClubId(2),
     data={
-       "name":     "Wryan Jeong",
-       "rank":     "4D",
-       "division": "C",
-       "lunch":    "Regular",
-       "active":   True,
-       "paid":     True,
+        "name": "Wryan Jeong",
+        "rank": "4D",
+        "division": "C",
+        "lunch": "Regular",
+        "active": True,
+        "paid": True,
     },
 )
 
@@ -161,12 +161,12 @@ DUMMY_PLAYER4 = PlayerInsertable(
     name="Taeyoon You",
     club_id=ClubId(2),
     data={
-       "name":     "Taeyoon You",
-       "rank":     "3D",
-       "division": "B",
-       "lunch":    "Regular",
-       "active":   True,
-       "paid":     True,
+        "name": "Taeyoon You",
+        "rank": "3D",
+        "division": "B",
+        "lunch": "Regular",
+        "active": True,
+        "paid": True,
     },
 )
 
@@ -176,12 +176,12 @@ DUMMY_PLAYER5 = PlayerInsertable(
     name="Jin Kim",
     club_id=ClubId(2),
     data={
-       "name":     "Jin Kim",
-       "rank":     "Kyu",
-       "division": "A",
-       "lunch":    "Vegan",
-       "active":   True,
-       "paid":     True,
+        "name": "Jin Kim",
+        "rank": "Kyu",
+        "division": "A",
+        "lunch": "Vegan",
+        "active": True,
+        "paid": True,
     },
 )
 
@@ -191,12 +191,12 @@ DUMMY_PLAYER6 = PlayerInsertable(
     name="Kisoo Choe",
     club_id=ClubId(2),
     data={
-       "name":     "Kisoo Choe",
-       "rank":     "2D",
-       "division": "B",
-       "lunch":    "Regular",
-       "active":   True,
-       "paid":     True,
+        "name": "Kisoo Choe",
+        "rank": "2D",
+        "division": "B",
+        "lunch": "Regular",
+        "active": True,
+        "paid": True,
     },
 )
 
@@ -206,12 +206,12 @@ DUMMY_PLAYER7 = PlayerInsertable(
     name="Sang Hoon Lee",
     club_id=ClubId(2),
     data={
-       "name":     "Sang Hoon Lee",
-       "rank":     "6D",
-       "division": "C",
-       "lunch":    "Regular",
-       "active":   True,
-       "paid":     True,
+        "name": "Sang Hoon Lee",
+        "rank": "6D",
+        "division": "C",
+        "lunch": "Regular",
+        "active": True,
+        "paid": True,
     },
 )
 
@@ -221,12 +221,12 @@ DUMMY_PLAYER8 = PlayerInsertable(
     name="Alex Jeong",
     club_id=ClubId(2),
     data={
-       "name":     "Alex Jeong",
-       "rank":     "Kyu",
-       "division": "A",
-       "lunch":    "Regular",
-       "active":   True,
-       "paid":     True,
+        "name": "Alex Jeong",
+        "rank": "Kyu",
+        "division": "A",
+        "lunch": "Regular",
+        "active": True,
+        "paid": True,
     },
 )
 

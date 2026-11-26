@@ -1,7 +1,7 @@
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-from heliclockter import datetime_utc, timedelta
+from heliclockter import datetime_utc
 
 from project.models.db.account import UserAccountType
 from project.models.db.user import UserInsertable

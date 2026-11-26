@@ -1,5 +1,9 @@
 from project.database import database
-from project.defaults import DEFAULT_TEAM_CATEGORIES, default_clubs_for_country, resolve_country_name
+from project.defaults import (
+    DEFAULT_TEAM_CATEGORIES,
+    default_clubs_for_country,
+    resolve_country_name,
+)
 from project.models.db.team_category import TeamCategoryInsertable
 from project.sql.team_categories import sql_insert_team_category
 from project.utils.id_types import TournamentId, UserId

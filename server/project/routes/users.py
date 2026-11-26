@@ -12,10 +12,10 @@ from project.logic.subscriptions import setup_demo_account
 from project.models.db.account import UserAccountType
 from project.models.db.user import (
     DemoUserToRegister,
+    GoogleUserToRegister,
     UserInsertable,
     UserPasswordToUpdate,
     UserPublic,
-    GoogleUserToRegister,
     UserToRegister,
     UserToUpdate,
 )

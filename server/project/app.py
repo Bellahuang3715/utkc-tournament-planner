@@ -15,13 +15,13 @@ from project.database import database
 from project.models.metrics import RequestDefinition, get_request_metrics
 from project.routes import (
     auth,
+    brackets,
     clubs,
     courts,
+    divisions,
     internals,
     players,
     players_fields,
-    divisions,
-    brackets,
     public_dashboard,
     schedule_timetable,
     scorekeeping,
@@ -133,7 +133,7 @@ print("CORS ORIGIN REGEX:", config.cors_origin_regex)
 app.add_middleware(
     CORSMiddleware,
     # allow_origins=config.cors_origins,
-    allow_origins=["*"],        # for dev only
+    allow_origins=["*"],  # for dev only
     allow_origin_regex=config.cors_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],

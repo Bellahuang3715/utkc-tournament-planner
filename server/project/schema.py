@@ -1,7 +1,17 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Table, UniqueConstraint, func, Index, text
+from sqlalchemy import (
+    Column,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Table,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import declarative_base  # type: ignore[attr-defined]
-from sqlalchemy.sql.sqltypes import BigInteger, Boolean, DateTime, Enum, Float, Text
+from sqlalchemy.sql.sqltypes import BigInteger, Boolean, DateTime, Enum, Text
 
 Base = declarative_base()
 metadata = Base.metadata
@@ -71,7 +81,13 @@ players = Table(
     "players",
     metadata,
     Column("id", BigInteger, primary_key=True, index=True),
-    Column("tournament_id", BigInteger, ForeignKey("tournaments.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column(
+        "tournament_id",
+        BigInteger,
+        ForeignKey("tournaments.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    ),
     Column("name", String, nullable=False, index=True),
     Column(
         "club_id",
@@ -94,33 +110,46 @@ players_field = Table(
     "players_field",
     metadata,
     Column("id", BigInteger, primary_key=True, index=True),
-    Column("tournament_id", BigInteger, ForeignKey("tournaments.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column(
+        "tournament_id",
+        BigInteger,
+        ForeignKey("tournaments.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    ),
     Column("key", String, nullable=False),
     Column("label", String, nullable=False),
-    Column("include", Boolean, nullable=False, server_default="t"), # checkbox state to include in table
+    Column(
+        "include", Boolean, nullable=False, server_default="t"
+    ),  # checkbox state to include in table
     Column(
         "import_required",
         Boolean,
         nullable=False,
         server_default="t",
     ),  # must appear in Excel imports
-    Column("type", 
-           Enum(
-               "TEXT",
-               "CHECKBOX",
-               "NUMBER",
-               "DROPDOWN",
-               name="player_field_type"), 
-           nullable=False),
-    Column("position", Integer, nullable=False),    # to preserve column order
-    Column("options", JSONB, nullable=False, server_default=text("'[]'::jsonb")),    # only used for dropdowns
+    Column(
+        "type",
+        Enum("TEXT", "CHECKBOX", "NUMBER", "DROPDOWN", name="player_field_type"),
+        nullable=False,
+    ),
+    Column("position", Integer, nullable=False),  # to preserve column order
+    Column(
+        "options", JSONB, nullable=False, server_default=text("'[]'::jsonb")
+    ),  # only used for dropdowns
 )
 
 teams_category = Table(
     "teams_category",
     metadata,
     Column("id", BigInteger, primary_key=True, index=True),
-    Column("tournament_id", BigInteger, ForeignKey("tournaments.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column(
+        "tournament_id",
+        BigInteger,
+        ForeignKey("tournaments.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    ),
     Column("name", String, nullable=False),
     Column("color", String, nullable=False),
     Column("position", Integer, nullable=False, server_default="0"),
@@ -148,7 +177,13 @@ teams = Table(
     Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
     Column("updated", DateTimeTZ, nullable=False, server_default=func.now()),
     # try this later: Column("updated", DateTimeTZ, nullable=False, server_default=func.now(), onupdate=func.now()),
-    Column("tournament_id", BigInteger, ForeignKey("tournaments.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column(
+        "tournament_id",
+        BigInteger,
+        ForeignKey("tournaments.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    ),
     Column("wins", Integer, nullable=False, server_default="0"),
     Index("ix_teams_team_category_id", "category_id"),
     # Same team name allowed across categories; not within one category.
@@ -177,16 +212,16 @@ players_x_teams = Table(
     Column("player_id", BigInteger, ForeignKey("players.id", ondelete="CASCADE"), nullable=False),
     Column("team_id", BigInteger, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False),
     Column(
-      "position",
-      Enum(
-        "SENPO",
-        "JIHOU",
-        "CHUKEN",
-        "FUKUSHOU",
-        "TAISHO",
-        name="player_position_type",
-      ),
-      nullable=True,
+        "position",
+        Enum(
+            "SENPO",
+            "JIHOU",
+            "CHUKEN",
+            "FUKUSHOU",
+            "TAISHO",
+            name="player_position_type",
+        ),
+        nullable=True,
     ),
 )
 
@@ -195,18 +230,24 @@ divisions = Table(
     metadata,
     Column("id", BigInteger, primary_key=True, index=True),
     Column("name", String, nullable=False, index=True),
-    Column("prefix", String, nullable=True, index=True), # optional, ex 'E'
-    Column("tournament_id", BigInteger, ForeignKey("tournaments.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column("prefix", String, nullable=True, index=True),  # optional, ex 'E'
+    Column(
+        "tournament_id",
+        BigInteger,
+        ForeignKey("tournaments.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    ),
     Column("duration_mins", Integer, nullable=False),
     Column("margin_mins", Integer, nullable=False),
     Column(
-      "division_type",
-      Enum(
-        "INDIVIDUALS",
-        "TEAMS",
-        name="division_type",
-      ),
-      nullable=False,
+        "division_type",
+        Enum(
+            "INDIVIDUALS",
+            "TEAMS",
+            name="division_type",
+        ),
+        nullable=False,
     ),
     Column("created", DateTimeTZ, nullable=False, server_default=func.now()),
     # Name unique within a tournament. Prefix unique when set (NULLs allowed many times).
@@ -219,19 +260,33 @@ players_x_divisions = Table(
     metadata,
     Column("id", BigInteger, primary_key=True, index=True),
     Column("player_id", BigInteger, ForeignKey("players.id", ondelete="CASCADE"), nullable=False),
-    Column("division_id", BigInteger, ForeignKey("divisions.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column(
+        "division_id",
+        BigInteger,
+        ForeignKey("divisions.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    ),
     Column("bias", Boolean, nullable=False, server_default="f"),
-    UniqueConstraint("player_id", "division_id", name="unique_player_division"), # ensures player does not get inserted multiple times into same division
+    UniqueConstraint(
+        "player_id", "division_id", name="unique_player_division"
+    ),  # ensures player does not get inserted multiple times into same division
 )
 
 brackets = Table(
     "brackets",
     metadata,
     Column("id", BigInteger, primary_key=True, index=True),
-    Column("index", Integer, nullable=False), # order of brackets w/n division
-    Column("division_id", BigInteger, ForeignKey("divisions.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column("index", Integer, nullable=False),  # order of brackets w/n division
+    Column(
+        "division_id",
+        BigInteger,
+        ForeignKey("divisions.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    ),
     Column("num_players", Integer, nullable=False),
-    Column("title", String, nullable=True), # title of the bracket, optional
+    Column("title", String, nullable=True),  # title of the bracket, optional
 )
 
 bracket_edit_locks = Table(
@@ -254,7 +309,13 @@ players_x_brackets = Table(
     metadata,
     Column("id", BigInteger, primary_key=True, index=True),
     Column("player_id", BigInteger, ForeignKey("players.id", ondelete="CASCADE"), nullable=False),
-    Column("bracket_id", BigInteger, ForeignKey("brackets.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column(
+        "bracket_id",
+        BigInteger,
+        ForeignKey("brackets.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    ),
     Column("bracket_idx", Integer, nullable=False),
 )
 
@@ -263,7 +324,13 @@ teams_x_divisions = Table(
     metadata,
     Column("id", BigInteger, primary_key=True, index=True, autoincrement=True),
     Column("team_id", BigInteger, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False),
-    Column("division_id", BigInteger, ForeignKey("divisions.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column(
+        "division_id",
+        BigInteger,
+        ForeignKey("divisions.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    ),
     Column("bias", Boolean, nullable=False, server_default="f"),
     UniqueConstraint("team_id", "division_id", name="unique_team_division"),
 )
@@ -273,7 +340,13 @@ teams_x_brackets = Table(
     metadata,
     Column("id", BigInteger, primary_key=True, index=True, autoincrement=True),
     Column("team_id", BigInteger, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False),
-    Column("bracket_id", BigInteger, ForeignKey("brackets.id", ondelete="CASCADE"), index=True, nullable=False),
+    Column(
+        "bracket_id",
+        BigInteger,
+        ForeignKey("brackets.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    ),
     Column("bracket_idx", Integer, nullable=False),
 )
 
@@ -282,9 +355,20 @@ player_bracket_cells = Table(
     "player_bracket_cells",
     metadata,
     Column("id", BigInteger, primary_key=True, index=True, autoincrement=True),
-    Column("bracket_id", BigInteger, ForeignKey("brackets.id", ondelete="CASCADE"), nullable=False, index=True,),
+    Column(
+        "bracket_id",
+        BigInteger,
+        ForeignKey("brackets.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    ),
     Column("slot_idx", Integer, nullable=False),
-    Column("player_id", BigInteger, ForeignKey("players.id", ondelete="SET NULL"), nullable=True,),
+    Column(
+        "player_id",
+        BigInteger,
+        ForeignKey("players.id", ondelete="SET NULL"),
+        nullable=True,
+    ),
     Column("score", String, nullable=False, server_default=""),
     UniqueConstraint("bracket_id", "slot_idx", name="uq_player_bracket_cells_bracket_slot"),
 )
@@ -294,9 +378,21 @@ team_bracket_cells = Table(
     "team_bracket_cells",
     metadata,
     Column("id", BigInteger, primary_key=True, index=True, autoincrement=True),
-    Column("bracket_id", BigInteger, ForeignKey("brackets.id", ondelete="CASCADE"), nullable=False, index=True,),
+    Column(
+        "bracket_id",
+        BigInteger,
+        ForeignKey("brackets.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    ),
     Column("slot_idx", Integer, nullable=False),
-    Column("team_id", BigInteger, ForeignKey("teams.id", ondelete="SET NULL"), nullable=True, index=True,),
+    Column(
+        "team_id",
+        BigInteger,
+        ForeignKey("teams.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    ),
     UniqueConstraint("bracket_id", "slot_idx", name="uq_team_bracket_cells_bracket_slot"),
 )
 
@@ -334,7 +430,9 @@ schedule_timeblocks = Table(
     Column("duration_mins", Integer, nullable=False),
     Column("kind", String, nullable=False),
     Column("label", Text, nullable=False),
-    Column("division_id", BigInteger, ForeignKey("divisions.id", ondelete="SET NULL"), nullable=True),
+    Column(
+        "division_id", BigInteger, ForeignKey("divisions.id", ondelete="SET NULL"), nullable=True
+    ),
     Column("bracket_id", BigInteger, ForeignKey("brackets.id", ondelete="SET NULL"), nullable=True),
     Column("color", String, nullable=True),
 )
@@ -353,4 +451,3 @@ schedule_custom_blocks = Table(
     Column("label", Text, nullable=False),
     Column("duration_mins", Integer, nullable=False),
 )
-

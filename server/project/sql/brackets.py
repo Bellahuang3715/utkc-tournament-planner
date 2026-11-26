@@ -1,4 +1,5 @@
-from typing import Iterable, List, Optional
+from typing import List, Optional
+
 from project.database import database
 from project.models.db.bracket import (
     Bracket,
@@ -6,10 +7,8 @@ from project.models.db.bracket import (
     BracketWithTeams,
     DivisionBracketsCreateBody,
     DivisionTeamBracketsCreateBody,
-    BracketWithPlayersCreate,
-    BracketWithTeamsCreate,
 )
-from project.utils.id_types import DivisionId, BracketId
+from project.utils.id_types import BracketId, DivisionId
 
 
 # --- Read: list brackets for a division (no players) ---
@@ -24,7 +23,9 @@ async def sql_list_division_brackets(division_id: DivisionId) -> List[Bracket]:
     return [Bracket.model_validate(dict(r._mapping)) for r in rows]
 
 
-async def sql_list_division_brackets_with_players(division_id: DivisionId) -> List[BracketWithPlayers]:
+async def sql_list_division_brackets_with_players(
+    division_id: DivisionId,
+) -> List[BracketWithPlayers]:
     query = """
         SELECT
           b.id, b."index", b.division_id, b.num_players, b.title,

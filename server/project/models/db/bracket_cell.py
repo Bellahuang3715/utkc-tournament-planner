@@ -1,10 +1,9 @@
-from typing import Optional, List
+from typing import List, Optional
 
 from pydantic import Field
 
 from project.models.db.shared import BaseModelORM
 from project.utils.id_types import BracketId, PlayerId, TeamId
-
 
 # ---- Player cells (scores + advances) ----
 

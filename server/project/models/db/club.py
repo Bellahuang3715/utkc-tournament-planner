@@ -1,8 +1,9 @@
-from heliclockter import datetime_utc
 from typing import Optional
 
+from heliclockter import datetime_utc
+
 from project.models.db.shared import BaseModelORM
-from project.utils.id_types import UserId, ClubId
+from project.utils.id_types import ClubId, UserId
 
 
 class ClubInsertable(BaseModelORM):

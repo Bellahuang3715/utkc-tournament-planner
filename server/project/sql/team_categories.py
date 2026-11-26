@@ -84,7 +84,9 @@ async def sql_update_team_category(
     )
 
 
-async def sql_delete_team_category(tournament_id: TournamentId, category_id: TeamCategoryId) -> None:
+async def sql_delete_team_category(
+    tournament_id: TournamentId, category_id: TeamCategoryId
+) -> None:
     query = """
         DELETE FROM teams_category
         WHERE id = :id AND tournament_id = :tournament_id

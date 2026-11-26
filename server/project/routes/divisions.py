@@ -4,11 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from project.models.db.division import (
     Division,
     DivisionCreateBody,
-    DivisionUpdateBody,
     DivisionPlayersAttachBody,
-    DivisionTeamsAttachBody,
     DivisionPlayersDetachBody,
+    DivisionTeamsAttachBody,
     DivisionTeamsDetachBody,
+    DivisionUpdateBody,
     IndividualsPlayerMembership,
 )
 from project.models.db.tournament import Tournament
@@ -21,12 +21,12 @@ from project.routes.authorization import (
     require_tournament_score_access,
 )
 from project.routes.models import (
-    DivisionResponse,
-    DivisionsResponse,
-    DivisionPlayersResponse,
-    DivisionTeamsResponse,
     DivisionLockResponse,
     DivisionLockStatus,
+    DivisionPlayersResponse,
+    DivisionResponse,
+    DivisionsResponse,
+    DivisionTeamsResponse,
     IndividualsMembershipsResponse,
     SuccessResponse,
 )
@@ -37,30 +37,28 @@ from project.sql.bracket_cells import (
 from project.sql.divisions import (
     create_division,
     get_divisions_for_tournament,
-    sql_delete_division,
-    sql_division_name_exists,
-    sql_division_prefix_exists,
-    sql_update_division,
     sql_attach_players_to_division,
-    sql_find_individuals_attach_conflicts,
-    sql_get_players_for_division,
-    sql_list_individuals_memberships,
     sql_attach_teams_to_division,
-    sql_get_teams_for_division,
+    sql_delete_division,
     sql_detach_players_from_division,
     sql_detach_teams_from_division,
+    sql_division_name_exists,
+    sql_division_prefix_exists,
+    sql_find_individuals_attach_conflicts,
+    sql_get_players_for_division,
+    sql_get_teams_for_division,
+    sql_list_individuals_memberships,
+    sql_update_division,
 )
 from project.utils.id_types import DivisionId, TournamentId
 
 router = APIRouter()
 
 DUPLICATE_DIVISION_NAME_DETAIL = (
-    "A division with this name already exists in this tournament. "
-    "Division names must be unique."
+    "A division with this name already exists in this tournament. Division names must be unique."
 )
 DUPLICATE_DIVISION_PREFIX_DETAIL = (
-    "A division with this prefix already exists in this tournament. "
-    "Prefixes must be unique."
+    "A division with this prefix already exists in this tournament. Prefixes must be unique."
 )
 
 
@@ -222,9 +220,7 @@ async def attach_players_to_division(
     _: Division = Depends(require_division_owner),
 ) -> SuccessResponse:
     await sql_ensure_division_unlocked(division_id)
-    conflicts = await sql_find_individuals_attach_conflicts(
-        division_id, body.player_ids
-    )
+    conflicts = await sql_find_individuals_attach_conflicts(division_id, body.player_ids)
     if conflicts:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -261,9 +257,7 @@ async def attach_teams_to_division(
     _: Division = Depends(require_division_owner),
 ) -> SuccessResponse:
     await sql_ensure_division_unlocked(division_id)
-    await sql_attach_teams_to_division(
-        division_id, body.team_ids, body.bias_team_ids or []
-    )
+    await sql_attach_teams_to_division(division_id, body.team_ids, body.bias_team_ids or [])
     return SuccessResponse()
 
 

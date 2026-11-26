@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from starlette import status
 from firebase_admin import auth
-from firebase_config import *
+from starlette import status
 
+import firebase_config  # noqa: F401  # side-effect: initialize Firebase Admin
 from project.models.db.user import UserPublic
 from project.sql.users import get_user
 

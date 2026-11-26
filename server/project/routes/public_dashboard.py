@@ -13,8 +13,8 @@ from project.routes.models import (
     BracketsWithTeamsResponse,
     CourtsResponse,
     DivisionPlayersResponse,
-    DivisionTeamsResponse,
     DivisionsResponse,
+    DivisionTeamsResponse,
     PaginatedPlayers,
     PlayerMatchAssignmentsResponse,
     PlayerMatchDirectoryResponse,
@@ -275,6 +275,4 @@ async def public_division_team_bracket_cells(
     preview: str | None = None,
 ) -> TeamBracketCellsResponse:
     await _resolve_division_in_tournament(endpoint_name, division_id, preview)
-    return TeamBracketCellsResponse(
-        data=await sql_list_division_team_bracket_cells(division_id)
-    )
+    return TeamBracketCellsResponse(data=await sql_list_division_team_bracket_cells(division_id))

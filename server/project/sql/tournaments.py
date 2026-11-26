@@ -92,9 +92,7 @@ async def sql_get_tournament_id_for_bracket(bracket_id: BracketId) -> Tournament
     return TournamentId(result["tournament_id"]) if result is not None else None
 
 
-async def sql_set_tournament_status(
-    tournament_id: TournamentId, status: TournamentStatus
-) -> None:
+async def sql_set_tournament_status(tournament_id: TournamentId, status: TournamentStatus) -> None:
     query = """
         UPDATE tournaments
         SET status = :status
@@ -133,9 +131,7 @@ async def sql_update_tournament(
     )
 
 
-async def sql_set_dashboard_preview_token(
-    tournament_id: TournamentId, preview_token: str
-) -> None:
+async def sql_set_dashboard_preview_token(tournament_id: TournamentId, preview_token: str) -> None:
     query = """
         UPDATE tournaments
         SET dashboard_preview_token = :preview_token
@@ -147,9 +143,7 @@ async def sql_set_dashboard_preview_token(
     )
 
 
-async def sql_set_scorekeeper_token(
-    tournament_id: TournamentId, token: str | None
-) -> None:
+async def sql_set_scorekeeper_token(tournament_id: TournamentId, token: str | None) -> None:
     query = """
         UPDATE tournaments
         SET scorekeeper_token = :token
@@ -169,7 +163,6 @@ async def sql_get_tournament_by_scorekeeper_token(token: str) -> Tournament | No
         """
     result = await database.fetch_one(query=query, values={"token": token})
     return Tournament.model_validate(result) if result is not None else None
-
 
 
 async def sql_create_tournament(

@@ -1,8 +1,6 @@
-from decimal import Decimal
-from typing import Optional, Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from heliclockter import datetime_utc
-from pydantic import Field
 
 from project.models.db.shared import BaseModelORM
 from project.utils.id_types import ClubId, PlayerId, TournamentId

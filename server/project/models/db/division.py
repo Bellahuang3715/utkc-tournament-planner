@@ -66,6 +66,7 @@ class DivisionUpdateBody(BaseModelORM):
     def validate_prefix(cls, value: str | None) -> str | None:
         return _normalize_single_char_prefix(value)
 
+
 class DivisionPlayersAttachBody(BaseModelORM):
     player_ids: list[int]
     bias_player_ids: list[int] | None = None

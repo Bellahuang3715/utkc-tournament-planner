@@ -1,0 +1,14 @@
+*.env
+.env*
+!.env.local.example
+.*
+!Dockerfile
+!.dockerignore
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+logfile
+node_modules
+Pipfile.lock.bak

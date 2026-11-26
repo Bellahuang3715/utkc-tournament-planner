@@ -13,11 +13,16 @@ async def test_players_endpoint(
     startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
 ) -> None:
     async with inserted_team(
-        DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})
+        DUMMY_TEAM1.model_copy(
+            update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id}
+        )
     ):
         async with inserted_player(
             DUMMY_PLAYER1.model_copy(
-                update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id}
+                update={
+                    "tournament_id": auth_context.tournament.id,
+                    "club_id": auth_context.club.id,
+                }
             )
         ) as player_inserted:
             assert await send_tournament_request(HTTPMethod.GET, "players", auth_context, {}) == {
@@ -61,11 +66,16 @@ async def test_delete_player(
     startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
 ) -> None:
     async with inserted_team(
-        DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})
+        DUMMY_TEAM1.model_copy(
+            update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id}
+        )
     ):
         async with inserted_player(
             DUMMY_PLAYER1.model_copy(
-                update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id}
+                update={
+                    "tournament_id": auth_context.tournament.id,
+                    "club_id": auth_context.club.id,
+                }
             )
         ) as player_inserted:
             assert (
@@ -82,11 +92,16 @@ async def test_update_player(
 ) -> None:
     body = {"name": "Some new name", "active": True}
     async with inserted_team(
-        DUMMY_TEAM1.model_copy(update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id})
+        DUMMY_TEAM1.model_copy(
+            update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id}
+        )
     ):
         async with inserted_player(
             DUMMY_PLAYER1.model_copy(
-                update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id}
+                update={
+                    "tournament_id": auth_context.tournament.id,
+                    "club_id": auth_context.club.id,
+                }
             )
         ) as player_inserted:
             response = await send_tournament_request(

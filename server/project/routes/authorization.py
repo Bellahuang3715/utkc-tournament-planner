@@ -65,9 +65,7 @@ def resolve_tournament_role(
     return None
 
 
-async def assert_user_owns_tournament(
-    user: UserPublic, tournament_id: TournamentId
-) -> Tournament:
+async def assert_user_owns_tournament(user: UserPublic, tournament_id: TournamentId) -> Tournament:
     tournament = await sql_get_tournament(tournament_id)
     if not user_owns_tournament(user, tournament):
         raise forbidden_exception
@@ -80,9 +78,7 @@ def assert_tournament_score_access(
     user: UserPublic | None,
     scorekeeper_token: str | None,
 ) -> TournamentRole:
-    role = resolve_tournament_role(
-        tournament, user=user, scorekeeper_token=scorekeeper_token
-    )
+    role = resolve_tournament_role(tournament, user=user, scorekeeper_token=scorekeeper_token)
     if role is None:
         raise forbidden_exception
     return role
@@ -104,9 +100,7 @@ async def require_tournament_score_access(
     """Owner or valid scorekeeper token."""
     tournament = await sql_get_tournament(tournament_id)
     token = request.headers.get(SCOREKEEPER_TOKEN_HEADER)
-    role = assert_tournament_score_access(
-        tournament, user=user, scorekeeper_token=token
-    )
+    role = assert_tournament_score_access(tournament, user=user, scorekeeper_token=token)
     if role != "organizer":
         strip_tournament_secrets(tournament)
     tournament.my_role = role
@@ -134,9 +128,7 @@ async def require_division_score_access(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Division not found")
     tournament = await sql_get_tournament(division.tournament_id)
     token = request.headers.get(SCOREKEEPER_TOKEN_HEADER)
-    assert_tournament_score_access(
-        tournament, user=user, scorekeeper_token=token
-    )
+    assert_tournament_score_access(tournament, user=user, scorekeeper_token=token)
     return division
 
 
@@ -161,9 +153,7 @@ async def require_bracket_score_access(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bracket not found")
     tournament = await sql_get_tournament(tournament_id)
     token = request.headers.get(SCOREKEEPER_TOKEN_HEADER)
-    assert_tournament_score_access(
-        tournament, user=user, scorekeeper_token=token
-    )
+    assert_tournament_score_access(tournament, user=user, scorekeeper_token=token)
     return tournament_id
 
 

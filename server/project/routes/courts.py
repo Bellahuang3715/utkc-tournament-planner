@@ -74,6 +74,7 @@ async def update_court_by_id(
         )
     )
 
+
 @router.delete("/tournaments/{tournament_id}/courts/{court_id}", response_model=SuccessResponse)
 async def delete_court(
     tournament_id: TournamentId,

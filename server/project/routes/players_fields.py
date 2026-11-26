@@ -1,15 +1,16 @@
 from fastapi import APIRouter, Depends
 
 from project.database import database
-from project.schema import players_field
+from project.models.db.player_fields import FieldInsertable, SaveFieldsInsertable
+from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated
 from project.routes.authorization import require_tournament_owner
-from project.models.db.user import UserPublic
-from project.utils.id_types import TournamentId
-from project.models.db.player_fields import FieldInsertable, SaveFieldsInsertable
 from project.routes.models import SuccessResponse
+from project.schema import players_field
+from project.utils.id_types import TournamentId
 
 router = APIRouter(dependencies=[Depends(require_tournament_owner)])
+
 
 @router.put("/tournaments/{tournament_id}/player_fields")
 async def update_player_fields(
@@ -25,24 +26,25 @@ async def update_player_fields(
 
     # 2) bulk insert all new in one go
     rows = [
-      {
-        "tournament_id": tournament_id,
-        "key":           f.key,
-        "label":         f.label,
-        "include":       f.include,
-        "import_required": f.import_required,
-        "type":          f.type.value,  # serialize enum to string value
-        "options":       f.options,
-        "position":      f.position,
-      }
-      for f in payload.fields
+        {
+            "tournament_id": tournament_id,
+            "key": f.key,
+            "label": f.label,
+            "include": f.include,
+            "import_required": f.import_required,
+            "type": f.type.value,  # serialize enum to string value
+            "options": f.options,
+            "position": f.position,
+        }
+        for f in payload.fields
     ]
     if rows:
-      await database.execute_many(query=players_field.insert(), values=rows)
+        await database.execute_many(query=players_field.insert(), values=rows)
     return SuccessResponse()
 
 
-@router.get("/tournaments/{tournament_id}/player_fields",
+@router.get(
+    "/tournaments/{tournament_id}/player_fields",
     response_model=SaveFieldsInsertable,
     dependencies=[Depends(firebase_user_authenticated)],
 )
@@ -59,8 +61,5 @@ async def get_player_fields(
     rows = await database.fetch_all(query=query)
 
     # Convert each row into your Pydantic model
-    fields = [
-        FieldInsertable.model_validate(dict(row))
-        for row in rows
-    ]
+    fields = [FieldInsertable.model_validate(dict(row)) for row in rows]
     return SaveFieldsInsertable(fields=fields)

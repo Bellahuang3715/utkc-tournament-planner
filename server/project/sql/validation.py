@@ -38,9 +38,7 @@ async def check_players_belong_to_tournament(
     )
 
 
-async def check_court_belongs_to_tournament(
-    court_id: CourtId, tournament_id: TournamentId
-) -> bool:
+async def check_court_belongs_to_tournament(court_id: CourtId, tournament_id: TournamentId) -> bool:
     return any(court_id == court.id for court in await get_all_courts_in_tournament(tournament_id))
 
 

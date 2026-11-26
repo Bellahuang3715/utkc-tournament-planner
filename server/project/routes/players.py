@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from starlette import status
 
 from project.database import database
-from project.logic.subscriptions import check_requirement
 from project.models.db.player import PlayerBody, PlayerCodesBody
 from project.models.db.user import UserPublic
 from project.routes.auth import firebase_user_authenticated
@@ -39,9 +38,7 @@ async def get_players(
 ) -> PlayersResponse:
     return PlayersResponse(
         data=PaginatedPlayers(
-            players=await get_all_players_in_tournament(
-                tournament_id, not_in_team=not_in_team
-            ),
+            players=await get_all_players_in_tournament(tournament_id, not_in_team=not_in_team),
             count=await get_player_count(tournament_id, not_in_team=not_in_team),
         )
     )

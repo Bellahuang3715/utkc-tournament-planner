@@ -1,4 +1,5 @@
 import json
+
 from databases import Database
 from sqlalchemy import Table
 from sqlalchemy.sql import Select
@@ -30,15 +31,12 @@ async def fetch_all_parsed(
 
 
 async def insert_generic(
-    database: Database,
-    data_model: BaseModelT,
-    table: Table,
-    return_type: type[BaseModelT]
+    database: Database, data_model: BaseModelT, table: Table, return_type: type[BaseModelT]
 ) -> tuple[int, BaseModelT]:
     assert environment is not Environment.PRODUCTION, "Below code can allow SQL injection"
     try:
         mapping = to_string_mapping(data_model)
-        
+
         # NOTE: minimal patch, this should be refactored later
         # if this model has a `data` field, re-serialize it as valid JSON
         if "data" in mapping:
@@ -50,14 +48,13 @@ async def insert_generic(
                 # escape any single quotes in the JSON body
                 mapping["data"] = json_str.replace("'", "''")
 
-
         values = ", ".join([f"'{x}'" for x in mapping.values()])
         query = (
             f"INSERT INTO {table.name} ({', '.join(mapping.keys())}) VALUES ({values}) RETURNING *"
         )
         print(f"Executing query: {query}")  # Debugging output
         last_record_id: int = await database.execute(query)
-        
+
         raw = await database.fetch_one(table.select().where(table.c.id == last_record_id))
         if raw is None:
             raise RuntimeError("Insert succeeded but read-back failed")

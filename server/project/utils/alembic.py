@@ -1,5 +1,6 @@
-from alembic import command
 from alembic.config import Config
+
+from alembic import command
 from project.utils.logging import logger
 
 

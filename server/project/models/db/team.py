@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-# ruff: noqa: TCH001,TCH002
 import json
 from typing import Annotated
 

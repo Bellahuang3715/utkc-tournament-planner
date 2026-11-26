@@ -150,9 +150,7 @@ async def update_team_by_id(
         positions=positions_by_id,
     )
 
-    return SingleTeamResponse(
-        data=assert_some(await get_team_by_id(team.id, tournament_id))
-    )
+    return SingleTeamResponse(data=assert_some(await get_team_by_id(team.id, tournament_id)))
 
 
 @router.delete("/tournaments/{tournament_id}/teams/{team_id}", response_model=SuccessResponse)
@@ -223,6 +221,4 @@ async def create_team(
             team_result.id, tournament_id, player_ids_set, positions=positions_by_id
         )
 
-    return SingleTeamResponse(
-        data=assert_some(await get_team_by_id(team_result.id, tournament_id))
-    )
+    return SingleTeamResponse(data=assert_some(await get_team_by_id(team_result.id, tournament_id)))

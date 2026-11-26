@@ -22,12 +22,33 @@ cd utkc-tournament-planner
 - [Git](https://git-scm.com/downloads)
 - [Node.js](https://nodejs.org/) 22+ and [Yarn](https://yarnpkg.com/)
 - [Python](https://www.python.org/) 3.12 and [Pipenv](https://pipenv.pypa.io/)
-- [PostgreSQL](https://www.postgresql.org/) (e.g. [Postgres.app](https://postgresapp.com/) on macOS)
+- [PostgreSQL](https://www.postgresql.org/) **or** [Docker](https://docs.docker.com/get-docker/) / Docker Compose
 - A Firebase project (for auth) — ask a maintainer for shared credentials if you are joining the team
 
 ## Local setup
 
 ### 1. PostgreSQL
+
+`server/dev.env` points the app at `bracket_dev`.  
+`server/ci.env` points pytest at `bracket_test`. **Do not point `ci.env` at `bracket_dev`** — tests call `drop_all` on their DSN.
+
+**Option A — Docker Compose (recommended)**
+
+From the repo root:
+
+```bash
+docker compose up -d postgres
+```
+
+Credentials match `dev.env` / `ci.env` (`bracket_dev` / `bracket_dev` on `:5432`). On first start, an init script also creates `bracket_test`.
+
+Optional: run the API in Docker as well (needs `server/.env.local` for Firebase):
+
+```bash
+docker compose --profile api up -d --build
+```
+
+**Option B — Local Postgres**
 
 Create the app user/databases (as a Postgres superuser):
 
@@ -37,9 +58,6 @@ CREATE DATABASE bracket_dev OWNER bracket_dev;
 -- pytest only — never use this for the running app
 CREATE DATABASE bracket_test OWNER bracket_dev;
 ```
-
-`server/dev.env` points the app at `bracket_dev`.  
-`server/ci.env` points pytest at `bracket_test`. **Do not point `ci.env` at `bracket_dev`** — tests call `drop_all` on their DSN.
 
 ### 2. Backend
 
@@ -117,6 +135,7 @@ Starts Next.js on `:3000` and the FastAPI app on `:8400`.
 | `server/project/` | FastAPI app, routes, SQL, models |
 | `server/alembic/` | DB migrations |
 | `server/tests/` | pytest (API integration tests) |
+| `docker-compose.yml` | Local Postgres (+ optional API profile) |
 | `run.sh` | Local frontend + backend |
 | `TESTING.md` | How to run tests safely |
 
@@ -129,6 +148,11 @@ Quick reminders:
 ```bash
 # Server (uses bracket_test via ci.env)
 cd server && pipenv run pytest
+
+# Server lint (same as CI)
+cd server && ./check.sh
+# Autofix + optional STRICT=1 mypy/vulture/pylint:
+# cd server && ./precommit.sh
 
 # Client unit
 cd client && yarn --ignore-engines test

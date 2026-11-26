@@ -8,9 +8,10 @@ from project.models.db.division import (
     PlayerMatchAssignment,
     PlayerMatchDirectoryEntry,
 )
-from project.utils.id_types import DivisionId, TeamId, TournamentId
 from project.models.db.player import PlayerInDivision
 from project.models.db.team import TeamInDivision
+from project.utils.id_types import DivisionId, TournamentId
+
 
 def _normalize_division_prefix(prefix: str | None) -> str | None:
     if prefix is None:
@@ -99,7 +100,9 @@ async def create_division(body: DivisionCreateBody) -> Division:
         "tournament_id": body.tournament_id,
         "duration_mins": body.duration_mins,
         "margin_mins": body.margin_mins,
-        "division_type": body.division_type.value if hasattr(body.division_type, "value") else body.division_type,
+        "division_type": body.division_type.value
+        if hasattr(body.division_type, "value")
+        else body.division_type,
     }
     result = await database.fetch_one(query=query, values=values)
     if result is None:
@@ -125,7 +128,9 @@ async def sql_update_division(division_id: DivisionId, body: DivisionUpdateBody)
         "prefix": _normalize_division_prefix(body.prefix),
         "duration_mins": body.duration_mins,
         "margin_mins": body.margin_mins,
-        "division_type": body.division_type.value if hasattr(body.division_type, "value") else body.division_type,
+        "division_type": body.division_type.value
+        if hasattr(body.division_type, "value")
+        else body.division_type,
     }
     result = await database.fetch_one(query=query, values=values)
     return Division.model_validate(dict(result._mapping)) if result is not None else None
@@ -365,21 +370,17 @@ async def sql_find_individuals_attach_conflicts(
             "player_ids": player_ids,
         },
     )
-    memberships = [
-        IndividualsPlayerMembership.model_validate(dict(r._mapping)) for r in rows
-    ]
+    memberships = [IndividualsPlayerMembership.model_validate(dict(r._mapping)) for r in rows]
 
     if target_has_prefix:
         return memberships
 
-    return [
-        m
-        for m in memberships
-        if _normalize_division_prefix(m.prefix) is not None
-    ]
+    return [m for m in memberships if _normalize_division_prefix(m.prefix) is not None]
 
 
-async def sql_attach_players_to_division(division_id: DivisionId, player_ids: list[int], bias_player_ids: list[int] | None = None) -> None:
+async def sql_attach_players_to_division(
+    division_id: DivisionId, player_ids: list[int], bias_player_ids: list[int] | None = None
+) -> None:
     if not player_ids:
         return
     insert_q = """
@@ -388,8 +389,10 @@ async def sql_attach_players_to_division(division_id: DivisionId, player_ids: li
         FROM UNNEST(CAST(:player_ids AS BIGINT[])) AS t(pid)
         ON CONFLICT (player_id, division_id) DO NOTHING
     """
-    await database.execute(query=insert_q, values={"division_id": division_id, "player_ids": player_ids})
-    
+    await database.execute(
+        query=insert_q, values={"division_id": division_id, "player_ids": player_ids}
+    )
+
     if bias_player_ids:
         update_q = """
             UPDATE players_x_divisions
@@ -462,7 +465,9 @@ async def sql_attach_teams_to_division(
         FROM UNNEST(CAST(:team_ids AS BIGINT[])) AS t(tid)
         ON CONFLICT (team_id, division_id) DO NOTHING
     """
-    await database.execute(query=insert_q, values={"division_id": division_id, "team_ids": team_ids})
+    await database.execute(
+        query=insert_q, values={"division_id": division_id, "team_ids": team_ids}
+    )
 
     if bias_team_ids:
         update_q = """

@@ -205,7 +205,9 @@ async def inserted_auth_context() -> AsyncIterator[AuthContext]:
     headers = {"Authorization": f"Bearer test:{mock_user.email}"}
     async with (
         inserted_user(mock_user) as user_inserted,
-        inserted_club(DUMMY_CLUB.model_copy(update={"creator_id": user_inserted.id})) as club_inserted,
+        inserted_club(
+            DUMMY_CLUB.model_copy(update={"creator_id": user_inserted.id})
+        ) as club_inserted,
         inserted_tournament(
             DUMMY_TOURNAMENT.model_copy(update={"creator_id": user_inserted.id})
         ) as tournament_inserted,
