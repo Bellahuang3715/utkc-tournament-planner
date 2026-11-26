@@ -167,7 +167,7 @@ pipenv install --dev
 
 Uses `ci.env` → `bracket_test` when `pytest` is loaded.
 
-`ci_pytest.sh` ignores legacy suites that still assume pre-Firebase JWT auth or outdated schemas (`auth_test`, `users_test`, `players_test`, `courts_test`, `tournaments_test`, cronjobs, plus two deselected cases). Re-enable them as they are fixed.
+`ci_pytest.sh` still ignores JWT-era `auth_test` / `users_test`, cronjobs, and one index-lookup drift case. Players, courts, tournaments, and Firebase auth smoke are in the green suite.
 
 Focused suites:
 
@@ -232,7 +232,7 @@ A separate **Dependabot auto-merge** workflow merges Dependabot PRs; you do not 
 
 ## Common confusions
 
-- **`pipenv run pytest`** (full tree) ≠ **`./ci_pytest.sh`**. The full tree still has failing legacy tests; CI uses the green subset.
+- **`pipenv run pytest`** (full tree) ≠ **`./ci_pytest.sh`**. The full tree still includes JWT-era `auth_test` / `users_test` and cronjobs that are ignored by CI.
 - **`./check.sh`** = verify only. **`./precommit.sh`** = autofix then verify.
 - **Vitest** ≠ **Playwright**. Vitest = fast Node unit tests. Playwright = browser against a running Next app.
 - **OpenAPI commands** are codegen, not tests.
@@ -241,7 +241,7 @@ A separate **Dependabot auto-merge** workflow merges Dependabot PRs; you do not 
 
 ---
 
-## What Phase 1 automation covers
+## What automation covers (Phases 1–2)
 
 Automated in Vitest / green pytest (see suites under `client/src/**/*.test.ts` and `server/tests/integration_tests/api/`):
 
@@ -250,6 +250,7 @@ Automated in Vitest / green pytest (see suites under `client/src/**/*.test.ts` a
 | Duplicate team name/code in a category | Yes (`teams_test`) |
 | Same player listed twice on one team request | Yes (deduped roster) |
 | Two players sharing a team position | Yes (409 + unique index) |
+| Invalid team player IDs rejected | Yes |
 | Same player twice in one division | Yes (idempotent attach; unique constraint) |
 | Duplicate division prefix | Yes |
 | Prefix must be a single letter A–Z | Yes (422 on `1`/`#`/`AB`; `b` → `B`) |
@@ -257,6 +258,11 @@ Automated in Vitest / green pytest (see suites under `client/src/**/*.test.ts` a
 | Team bracket create (+ under-min reject) | Yes |
 | Prefixed division brackets expose player codes | Yes |
 | Public brackets/cells readable; mutate denied | Yes |
+| Players / courts / tournaments CRUD | Yes (revived Firebase-era suites) |
+| Player codes unique per tournament | Yes |
+| Court reorder | Yes |
+| Invalid / missing Firebase token; `/users/me` | Yes (`auth_smoke_test`) |
+| Outsider denied on another owner's tournament | Yes |
 | Concurrent scorekeeper soft locks (409, not crash) | Not yet (Phase 3) |
 
 Client unit coverage: `score_status`, `score_notation`, `scorekeeper_access`, seeding assign (individuals + teams).

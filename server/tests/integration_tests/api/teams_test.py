@@ -172,10 +172,14 @@ async def test_update_team_invalid_players(
                 }
             )
         ) as team_inserted:
-            response = await send_tournament_request(
-                HTTPMethod.PUT, f"teams/{team_inserted.id}", auth_context, None, body
+            status, response = await send_request_with_status(
+                HTTPMethod.PUT,
+                f"tournaments/{auth_context.tournament.id}/teams/{team_inserted.id}",
+                json=body,
+                headers=auth_context.headers,
             )
-            assert response == {"detail": "Could not find Player(s) with ID {-1}"}
+            assert status == 400
+            assert response == {"detail": "Could not find Player(s) with ID [-1]"}
 
 
 def _player_body(auth_context: AuthContext, dummy: object) -> object:
