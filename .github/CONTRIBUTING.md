@@ -1,105 +1,202 @@
 # Contributor's Guide
-This web application is built using Flask and Next.js, orchestrated with Docker, and will be deployed on AWS Elastic Beanstalk.
 
-The project is open-sourced and designed to foster collaboration and learning amongst junior developers. Beginner programmers and first time open-source contributors are welcome!
+KenManage is a Next.js + FastAPI app for kendo tournament planning. The project is open source and welcomes beginners and first-time contributors.
 
-## Licensing and Usage
+## Licensing
 
-By contributing to this project, you agree to abide by its [LICENSE](LICENSE):
+By contributing, you agree that your contributions are licensed under the project's [LICENSE](../LICENSE) (AGPL-3.0).
 
-## Getting Started
+## Getting started
 
-Please join the project Discord [channel](https://discord.gg/TDSBsXj6Ck) and reach out me (Bella Huang, Lead Developer & Project Manager) to indicate your interest.
+1. Join the project Discord [channel](https://discord.gg/TDSBsXj6Ck) and reach out to Bella Huang (Lead Developer & Project Manager) to introduce yourself.
+2. Find a GitHub issue to work on (or ask for one).
+3. Fork the repo, then clone your fork:
 
-## Setup Instructions
-
-1. Ensure you have [git](https://git-scm.com/downloads) and [docker](https://www.docker.com/) installed
-2. Create a fork of this repository
-3. Clone your forked version of the repository
 ```bash
 git clone https://github.com/<your-github-username>/utkc-tournament-planner.git
 cd utkc-tournament-planner
 ```
-4. (Optional, but recommended) Create a virtual environment
+
+## Prerequisites
+
+- [Git](https://git-scm.com/downloads)
+- [Node.js](https://nodejs.org/) 22+ and [Yarn](https://yarnpkg.com/)
+- [Python](https://www.python.org/) 3.12 and [Pipenv](https://pipenv.pypa.io/)
+- [PostgreSQL](https://www.postgresql.org/) (e.g. [Postgres.app](https://postgresapp.com/) on macOS)
+- A Firebase project (for auth) — ask a maintainer for shared credentials if you are joining the team
+
+## Local setup
+
+### 1. PostgreSQL
+
+Create the app user/databases (as a Postgres superuser):
+
 ```bash
-python3 -m venv <env_name>
-source <env_name>/bin/activate
-```
-5. Install dependencies
-* Frontend
-```bash
-cd client
-npm install
+CREATE USER bracket_dev WITH PASSWORD 'bracket_dev';
+CREATE DATABASE bracket_dev OWNER bracket_dev;
+-- pytest only — never use this for the running app
+CREATE DATABASE bracket_test OWNER bracket_dev;
 ```
 
-6. Start the app by running `npm run dev`
-7. Navigate to `http://localhost:3000/` to view the app in action!
+`server/dev.env` points the app at `bracket_dev`.  
+`server/ci.env` points pytest at `bracket_test`. **Do not point `ci.env` at `bracket_dev`** — tests call `drop_all` on their DSN.
+
+### 2. Backend
+
+```bash
+cd server
+pipenv install --dev
+```
+
+Copy and fill Firebase credentials:
+
+```bash
+cp .env.local.example .env.local
+# Set FIREBASE_CREDENTIALS to a base64-encoded Firebase service-account JSON
+```
+
+`dev.env` already has a local `PG_DSN`, JWT secret, and admin bootstrap email/password. Adjust if needed.
+
+Optional: seed dummy clubs/players/tournaments (this **wipes** `bracket_dev`):
+
+```bash
+export ENVIRONMENT=DEVELOPMENT
+pipenv run python cli.py create-dev-db
+```
+
+Or start with an empty DB: on first API boot, if the DB is empty and admin credentials are set, the app creates tables and an admin user.
+
+Run the API alone:
+
+```bash
+cd server
+ENVIRONMENT=DEVELOPMENT pipenv run gunicorn \
+  -k project.uvicorn.RestartableUvicornWorker \
+  project.app:app \
+  --bind localhost:8400 \
+  --workers 1 \
+  --reload
+```
+
+API docs: http://localhost:8400/docs
+
+### 3. Frontend
+
+```bash
+cd client
+cp .env.local.example .env.local
+# Fill NEXT_PUBLIC_FIREBASE_* values
+# NEXT_PUBLIC_API_BASE_URL=http://localhost:8400
+yarn install --ignore-engines
+```
+
+Run the frontend alone:
+
+```bash
+cd client
+yarn run dev
+```
+
+App: http://localhost:3000
+
+### 4. Run both together
+
+From the repo root:
+
+```bash
+./run.sh
+```
+
+Starts Next.js on `:3000` and the FastAPI app on `:8400`.
+
+## Project layout
+
+| Path | Role |
+|------|------|
+| `client/` | Next.js UI |
+| `server/project/` | FastAPI app, routes, SQL, models |
+| `server/alembic/` | DB migrations |
+| `server/tests/` | pytest (API integration tests) |
+| `run.sh` | Local frontend + backend |
+| `TESTING.md` | How to run tests safely |
 
 ## Testing
 
 See [TESTING.md](../TESTING.md) for pytest, Vitest, Playwright, and the manual release checklist.
 
-## Before Development
+Quick reminders:
 
-1. Find your github issue
-2. Make sure you are on the `main` branch (change branches using `git checkout`)
-3. Create your branch accordingly, using the issue number (see [Branch Naming Conventions](#branch-naming-conventions))
+```bash
+# Server (uses bracket_test via ci.env)
+cd server && pipenv run pytest
 
-## Branch Naming Conventions
+# Client unit
+cd client && yarn --ignore-engines test
+```
 
-To maintain a clear and organized Git history, please follow these naming conventions when creating branches:
+## Before development
 
-### General Guidelines
-1. Use lowercase letters only.
-2. Separate words with hyphens (`-`) for readability.
-3. Keep names descriptive but concise.
-4. Include a prefix to indicate the type of work being done, as well as the issue number
+1. Start from an up-to-date `main`
+2. Create a branch using the issue number (see below)
 
+```bash
+git checkout main
+git pull
+git checkout -b feature/<issue-number>-short-description
+```
 
-### Branch Prefixes
+## Branch naming
 
-| Prefix      | Purpose                              | Example                              |
-|-------------|--------------------------------------|--------------------------------------|
-| `feature/`  | New features or enhancements         | `feature/1-add-user-authentication`    |
-| `bug/`      | Fixes for bugs or issues             | `bug/2-fix-login-redirect`          |
-| `refactor/` | Refactoring or code improvements     | `refactor/3-clean-dashboard-component` |
-| `docs/`     | Documentation updates or changes     | `docs/4-update-readme-contributing`    |
-| `test/`     | Adding or updating tests             | `test/5-add-api-test-coverage`         |
-| `build/`    | Build components (e.g., CI/CD)   | `build/6-update-dependencies`          |
-| `chore/`    | Miscellaneous tasks   | `chore/7-modify-gitignore`          |
+Use lowercase letters and hyphens. Include a prefix and the issue number.
 
+| Prefix | Purpose | Example |
+|--------|---------|---------|
+| `feature/` | New features or enhancements | `feature/1-add-user-authentication` |
+| `bug/` | Bug fixes | `bug/2-fix-login-redirect` |
+| `refactor/` | Refactors | `refactor/3-clean-dashboard-component` |
+| `docs/` | Documentation | `docs/4-update-readme-contributing` |
+| `test/` | Tests | `test/5-add-api-test-coverage` |
+| `build/` | CI / build tooling | `build/6-update-dependencies` |
+| `chore/` | Misc maintenance | `chore/7-modify-gitignore` |
 
+## During development
 
-## During Development
-- Don't forget to sync your fork often!
-- **tip:** use `git status` to see what files you have edited and what branch you are on
-- **TALK TO EACH OTHER!** Your components wil interact with other components through state and callbacks. Contact other teams to agree on how you plan to implement/control the state of your/other team's components
+- Sync your fork with upstream `main` often
+- Use `git status` to see your branch and changed files
+- Coordinate with others when your UI/API changes touch shared state or contracts
 
-## Pushing Working Changes
-1. Make sure your changes are working
-2. Make sure you are on an appropriate branch
-    * To view existing branches: `git branch`
-    * To switch to an existing branch: `git checkout <branch_name>`
-    * To create a new branch and switch to it: `git checkout -b <branch_name>`
-3. Add the appropriate files to commit: `git add <file_name>` (or `git add .` to commit all changes)
-4. Create a new commit: `git commit -m "<quality message>"`
-5. Push the commit to GitHub: `git push`
+## Pushing changes
 
-## Learning Resources
+1. Confirm the app works locally for your change
+2. Commit on your feature branch with a clear message
+3. Push and open a pull request against `main`
 
-[Flask Routing Tutorial](https://www.youtube.com/watch?v=27Fjrlx4s-o)
+```bash
+git add <files>
+git commit -m "Short summary of why"
+git push -u origin HEAD
+```
 
+Follow the [pull request template](PULL_REQUEST_TEMPLATE.md).
 
-[CSS Tutorial](https://www.youtube.com/watch?v=yfoY53QXEnI)
+## Database migrations
 
+When you change SQLAlchemy schema under `server/project/`:
 
-[CSS Flexbox Tutorial](https://www.youtube.com/watch?v=u044iM9xsWU)
+```bash
+cd server
+pipenv shell
+alembic revision --autogenerate -m "describe the change"
+alembic upgrade head
+```
 
+In development, the API can also auto-run migrations on startup (`AUTO_RUN_MIGRATIONS`, default on).
 
-[CSS Flexbox Cheatsheet](https://css-tricks.com/snippets/css/a-guide-to-flexbox/)
+## Learning resources
 
-
-[Refactoring UI](https://www.refactoringui.com/)
-
-
-[MDN Docs](https://developer.mozilla.org/en-US/)
+- [FastAPI docs](https://fastapi.tiangolo.com/)
+- [Next.js docs](https://nextjs.org/docs)
+- [Mantine docs](https://mantine.dev/)
+- [MDN](https://developer.mozilla.org/en-US/)
+- [CSS Flexbox guide](https://css-tricks.com/snippets/css/a-guide-to-flexbox/)
+- [Refactoring UI](https://www.refactoringui.com/)
