@@ -1,5 +1,23 @@
 # Testing KenManage
 
+## Important: do not wipe your app database
+
+Integration tests call `metadata.drop_all()` on whatever `PG_DSN` is loaded from **`server/ci.env`**.
+
+| Env file | Database | Used by |
+|----------|----------|---------|
+| `server/dev.env` | `bracket_dev` | Local app (`run.sh` / uvicorn) |
+| `server/ci.env` | `bracket_test` | pytest only |
+
+**Never point `ci.env` at `bracket_dev`.** Pytest also refuses to reinit databases whose name is not clearly a test DB (`*_test`, `*_ci`, or `test`).
+
+### One-time local setup
+
+```bash
+# as a Postgres superuser (e.g. your macOS user via Postgres.app)
+psql postgres://localhost:5432/postgres -c "CREATE DATABASE bracket_test OWNER bracket_dev;"
+```
+
 ## Automated
 
 ### Server (pytest)
@@ -10,7 +28,7 @@ pipenv install --dev
 pipenv run pytest
 ```
 
-Uses `ci.env` (Postgres DSN) when `pytest` is loaded. Requires a running Postgres matching `PG_DSN`.
+Uses `ci.env` → `bracket_test` when `pytest` is loaded.
 
 Focused suites:
 

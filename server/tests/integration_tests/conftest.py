@@ -5,14 +5,41 @@ from asyncio import AbstractEventLoop
 from collections.abc import AsyncIterator, Iterator
 from time import sleep
 from unittest.mock import patch
+from urllib.parse import urlparse
 
 import pytest
 from databases import Database
 
+from project.config import config
 from project.database import database, engine
 from project.schema import metadata
 from tests.integration_tests.models import AuthContext
 from tests.integration_tests.sql import inserted_auth_context
+
+# Never allow drop_all against the local app DB (or any non-test database name).
+_FORBIDDEN_TEST_DB_NAMES = frozenset({"bracket_dev", "postgres", "template0", "template1"})
+
+
+def _database_name_from_dsn(dsn: str) -> str:
+    return urlparse(dsn).path.lstrip("/").split("?")[0]
+
+
+def assert_safe_to_reinit_database() -> None:
+    """Refuse to wipe DBs that are not clearly dedicated to tests."""
+    db_name = _database_name_from_dsn(str(config.pg_dsn))
+    allow_override = os.getenv("ALLOW_DROP_NON_TEST_DB") == "1"
+    is_test_named = db_name.endswith("_test") or db_name.endswith("_ci") or db_name == "test"
+
+    if allow_override:
+        return
+
+    if db_name in _FORBIDDEN_TEST_DB_NAMES or not is_test_named:
+        raise RuntimeError(
+            f"Refusing to drop/reinit database {db_name!r}. "
+            "Integration tests must use a dedicated test DB "
+            "(ci.env → bracket_test). See TESTING.md. "
+            "Set ALLOW_DROP_NON_TEST_DB=1 only if you really mean it."
+        )
 
 
 @pytest.fixture(scope="session")
@@ -49,6 +76,7 @@ async def reinit_database(event_loop: AbstractEventLoop, worker_id: str) -> Asyn
     database. The other runners poll this file and wait until it has been removed by gw0.
     When running tests sequentially, the master worker just creates the test database and that's it.
     """
+    assert_safe_to_reinit_database()
     await database.connect()
 
     if worker_id == "master":
