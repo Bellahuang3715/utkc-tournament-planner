@@ -61,9 +61,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(userDetails);
 
       return userDetails; // Return user details
-    } catch (error: any) {
-      console.error("Error registering user:", error.message);
-      throw error; // Rethrow error for caller to handle
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Registration failed";
+      throw new Error(message);
     }
   };
 
@@ -86,9 +87,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userDetails = userCredential.user;
       setUser(userDetails);
       return userDetails;
-    } catch (error: any) {
-      console.error("Login error:", error.message);
-      throw error;
+    } catch (error: unknown) {
+      // Re-throw as a plain Error so Next.js does not surface FirebaseError as a runtime overlay.
+      const message =
+        error instanceof Error ? error.message : "Login failed";
+      throw new Error(message);
     }
   };
 
@@ -100,9 +103,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userDetails = result.user;
       setUser(userDetails);
       return userDetails;
-    } catch (error: any) {
-      console.error("Google login error:", error.message);
-      throw error;
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Google login failed";
+      throw new Error(message);
     }
   };
 

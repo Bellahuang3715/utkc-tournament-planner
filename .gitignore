@@ -6,6 +6,17 @@
 
 # testing
 /coverage
+.coverage
+coverage.xml
+coverage.json
+.junit_report.xml
+.mypy_cache
+.dmypy.json
+.pytest_cache
+.ruff_cache
+
+# process-compose local override (copy from process-compose-example.yml)
+/process-compose.yml
 
 # sensitive
 /env

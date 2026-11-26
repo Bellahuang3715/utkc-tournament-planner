@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 import asyncio
 import functools
+import json
+from pathlib import Path
 from typing import Any
 
 import click
 from heliclockter import datetime_utc
 
+from openapi import openapi  # noqa: F401  # patches pydantic OpenAPI field requiredness
+from project.app import app
 from project.config import config
 from project.database import database
 from project.logger import get_logger
@@ -17,6 +21,8 @@ from project.sql.users import (
 )
 from project.utils.db_init import sql_create_dev_db
 from project.utils.security import hash_password
+
+OPENAPI_JSON_PATH = "openapi/openapi.json"
 
 logger = get_logger("cli")
 
@@ -47,6 +53,13 @@ def run_async(f: Any) -> Any:
 @click.group()
 def cli() -> None:
     pass
+
+
+@cli.command()
+def generate_openapi() -> None:
+    schema = app.openapi()
+    Path(OPENAPI_JSON_PATH).write_text(json.dumps(schema, indent=2, sort_keys=True))
+    logger.info(f"OpenAPI schema saved to {OPENAPI_JSON_PATH}")
 
 
 @click.command()

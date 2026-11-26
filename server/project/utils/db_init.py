@@ -176,7 +176,7 @@ async def sql_create_dev_db() -> UserId:
         DUMMY_TEAM4,
         TeamId,
         {
-            "code": "UOT B",
+            "code": "UOT W",
             "category_id": team_cat_womens_id,
             "tournament_id": tournament_id_1,
             "club_id": club_id_1,
@@ -186,7 +186,7 @@ async def sql_create_dev_db() -> UserId:
         DUMMY_TEAM4,
         TeamId,
         {
-            "code": "UOT B",
+            "code": "NOR W",
             "category_id": team_cat_womens_id,
             "tournament_id": tournament_id_1,
             "club_id": club_id_1,
@@ -196,7 +196,7 @@ async def sql_create_dev_db() -> UserId:
         DUMMY_TEAM4,
         TeamId,
         {
-            "code": "UOT B",
+            "code": "YOR W",
             "category_id": team_cat_womens_id,
             "tournament_id": tournament_id_1,
             "club_id": club_id_1,
@@ -206,7 +206,7 @@ async def sql_create_dev_db() -> UserId:
         DUMMY_TEAM4,
         TeamId,
         {
-            "code": "UOT B",
+            "code": "MIX W",
             "category_id": team_cat_womens_id,
             "tournament_id": tournament_id_1,
             "club_id": club_id_1,

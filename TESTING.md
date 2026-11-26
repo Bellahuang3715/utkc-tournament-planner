@@ -32,10 +32,14 @@ psql postgres://localhost:5432/postgres -c "CREATE DATABASE bracket_test OWNER b
 ```bash
 cd server
 pipenv install --dev
-pipenv run pytest
+./ci_pytest.sh          # same green suite + coverage as CI
+# or full tree (includes known-failing legacy tests):
+# pipenv run pytest
 ```
 
 Uses `ci.env` → `bracket_test` when `pytest` is loaded.
+
+`ci_pytest.sh` ignores legacy suites that still assume pre-Firebase JWT auth or outdated schemas (`auth_test`, `users_test`, `players_test`, `courts_test`, `tournaments_test`, cronjobs, plus two deselected cases). Re-enable them as they are fixed.
 
 Focused suites:
 
@@ -44,6 +48,15 @@ pipenv run pytest tests/integration_tests/api/divisions_test.py \
   tests/integration_tests/api/brackets_test.py \
   tests/integration_tests/api/public_dashboard_test.py
 ```
+
+### OpenAPI client regen
+
+```bash
+cd server && ENVIRONMENT=CI pipenv run python cli.py generate-openapi
+cd ../client && yarn --ignore-engines openapi-ts
+```
+
+Requires Firebase Admin credentials available to the server import path (e.g. `server/.env.local`).
 
 ### Server lint (ruff)
 

@@ -154,11 +154,27 @@ KenManage includes automated tests and a manual release checklist.
 
 | Test suite | Command | Description |
 | --- | --- | --- |
-| Backend | `cd server && pipenv run pytest` | pytest integration tests (`bracket_test`) |
+| Backend | `cd server && ./ci_pytest.sh` | Green pytest suite + coverage (`bracket_test`) |
 | Backend lint | `cd server && ./check.sh` | ruff format + lint (CI); `./precommit.sh` for local autofix |
+| OpenAPI | see below | Export schema + generate typed client |
 | Frontend | `cd client && yarn --ignore-engines test` | Vitest unit tests |
 | End-to-end | `yarn test:e2e` | Playwright smoke tests; requires the application to be running |
 | CI | [GitHub Actions](.github/workflows/test.yml) | Automated test + lint workflow |
+
+### OpenAPI typed client
+
+After changing FastAPI routes/models:
+
+```bash
+cd server && ENVIRONMENT=CI pipenv run python cli.py generate-openapi
+cd ../client && yarn --ignore-engines openapi-ts
+```
+
+Import types/SDK helpers from `client/src/openapi` (see `client/src/services/ping.ts` for a minimal example). Hand-written services can migrate gradually.
+
+### Process Compose (optional)
+
+Copy [`process-compose-example.yml`](process-compose-example.yml) to `process-compose.yml`, start Postgres (`docker compose up -d postgres`), then `process-compose up` as an alternative to `./run.sh`.
 
 A manual release checklist is also available in [TESTING.md](TESTING.md).
 

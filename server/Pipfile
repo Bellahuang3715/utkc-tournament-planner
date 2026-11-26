@@ -47,7 +47,8 @@ ruff = ">=0.17.6"
 vulture = ">=2.16"
 
 [scripts]
-test = "pytest"
+test = "pytest --cov=project --cov-report=term-missing:skip-covered"
+test-ci = "bash ./ci_pytest.sh"
 test-api = "pytest tests/integration_tests/api/ping_test.py tests/integration_tests/api/divisions_test.py tests/integration_tests/api/brackets_test.py tests/integration_tests/api/public_dashboard_test.py"
 
 [requires]

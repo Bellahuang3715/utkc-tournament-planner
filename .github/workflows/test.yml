@@ -70,14 +70,18 @@ jobs:
         run: pip install pipenv
       - name: Install dependencies
         run: pipenv install --dev
-      - name: Run focused API tests
-        run: >
-          pipenv run pytest
-          tests/integration_tests/api/ping_test.py
-          tests/integration_tests/api/divisions_test.py
-          tests/integration_tests/api/brackets_test.py
-          tests/integration_tests/api/public_dashboard_test.py
-          -q
+      - name: Run pytest with coverage
+        run: ./ci_pytest.sh -q
+        env:
+          ENVIRONMENT: CI
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: server/coverage.xml
+          flags: server
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   client-e2e-smoke:
     name: Client e2e smoke (Playwright)

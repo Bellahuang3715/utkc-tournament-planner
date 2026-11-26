@@ -56,7 +56,7 @@ export default function Login() {
 
   const attemptLogin = async (email: string, password: string) => {
     try {
-      const user = await loginWithEmailAndPassword(email, password);
+      await loginWithEmailAndPassword(email, password);
       showNotification({
         color: "green",
         title: t("login_success_title"),
@@ -64,19 +64,21 @@ export default function Login() {
         message: "",
       });
       await router.push("/tournaments");
-    } catch (error) {
-      console.error("Login error:", error);
+    } catch {
       showNotification({
         color: "red",
-        title: t("login_error_title"),
-        message: t("login_error_message"),
+        title: t("login_error_title", "Login failed"),
+        message: t(
+          "login_error_message",
+          "Invalid email or password. Please try again."
+        ),
       });
     }
   };
 
   const handleGoogleLogin = async () => {
     try {
-      const user = await loginWithGoogle();
+      await loginWithGoogle();
       showNotification({
         color: "green",
         title: t("login_success_title"),
@@ -84,12 +86,14 @@ export default function Login() {
         message: "",
       });
       await router.push("/tournaments");
-    } catch (error) {
-      console.error("Google login error:", error);
+    } catch {
       showNotification({
         color: "red",
-        title: t("login_error_title"),
-        message: t("google_login_error_message"),
+        title: t("login_error_title", "Login failed"),
+        message: t(
+          "google_login_error_message",
+          "Google sign-in failed. Please try again."
+        ),
       });
     }
   };

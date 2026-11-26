@@ -146,17 +146,23 @@ See [TESTING.md](../TESTING.md) for pytest, Vitest, Playwright, and the manual r
 Quick reminders:
 
 ```bash
-# Server (uses bracket_test via ci.env)
-cd server && pipenv run pytest
+# Server (uses bracket_test via ci.env) — same green suite as CI
+cd server && ./ci_pytest.sh
 
 # Server lint (same as CI)
 cd server && ./check.sh
 # Autofix + optional STRICT=1 mypy/vulture/pylint:
 # cd server && ./precommit.sh
 
+# After API shape changes: refresh OpenAPI + typed client
+# cd server && ENVIRONMENT=CI pipenv run python cli.py generate-openapi
+# cd ../client && yarn --ignore-engines openapi-ts
+
 # Client unit
 cd client && yarn --ignore-engines test
 ```
+
+Optional DX: copy `process-compose-example.yml` → `process-compose.yml` and run `process-compose up` (with `docker compose up -d postgres` first).
 
 ## Before development
 

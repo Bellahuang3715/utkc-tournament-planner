@@ -17,7 +17,11 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
-    "incremental": true
+    "incremental": true,
+    "paths": {
+      "@openapi": ["./src/openapi/index.ts"],
+      "@openapi/*": ["./src/openapi/*"]
+    }
   },
   "include": [
     "next-env.d.ts",
