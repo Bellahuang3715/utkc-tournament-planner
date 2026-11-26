@@ -323,8 +323,13 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
     },
     validate: {
       name: (v) => (v.trim().length < 1 ? "Division name is required" : null),
-      prefix: (v) =>
-        v.trim().length > 1 ? "Prefix must be a single character" : null,
+      prefix: (v) => {
+        const trimmed = v.trim();
+        if (!trimmed) return null;
+        if (trimmed.length > 1) return "Prefix must be a single character";
+        if (!/^[A-Za-z]$/.test(trimmed)) return "Prefix must be a letter (A–Z)";
+        return null;
+      },
       durationMinutes: (v) => (v <= 0 ? "Must be > 0" : null),
       marginMinutes: (v) => (v < 0 ? "Cannot be negative" : null),
     },
@@ -348,7 +353,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
       return;
     }
 
-    const prefix = values.prefix.trim().slice(0, 1);
+    const prefix = values.prefix.trim().replace(/[^A-Za-z]/g, "").slice(0, 1).toUpperCase();
     const name = values.name.trim();
     const conflict = findDivisionIdentityConflict(
       existingDivisions,
@@ -627,11 +632,14 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
                   maxLength={1}
                   description={t(
                     "prefix_optional_hint",
-                    "Optional. One character only (e.g. A). Leave blank if you do not need player codes.",
+                    "Optional. One letter only (A–Z). Leave blank if you do not need player codes.",
                   )}
                   {...form.getInputProps("prefix")}
                   onChange={(e) => {
-                    const next = e.currentTarget.value.slice(0, 1);
+                    const next = e.currentTarget.value
+                      .replace(/[^A-Za-z]/g, "")
+                      .slice(0, 1)
+                      .toUpperCase();
                     form.setFieldValue("prefix", next);
                     setFormWarning(null);
                   }}
@@ -643,7 +651,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
                 >
                   {t(
                     "prefix_note",
-                    "Prefix will be used to generate player code/ID (ex. A01, A02, ...). Specify a single-character prefix if you want player codes.",
+                    "Prefix will be used to generate player code/ID (ex. A01, A02, ...). Specify a single letter (A–Z) if you want player codes.",
                   )}
                 </Alert>
 

@@ -58,6 +58,31 @@ def _position_to_enum(value: str) -> str | None:
     return value.upper()  # "Senpo" -> "SENPO"
 
 
+DUPLICATE_TEAM_POSITION_DETAIL = "Each position can only be assigned to one player on a team."
+
+
+def _assert_unique_team_positions(
+    player_ids: set[PlayerId],
+    positions: dict[PlayerId, str] | None,
+) -> dict[PlayerId, str | None]:
+    """Resolve positions and reject duplicates before any DB write."""
+    resolved: dict[PlayerId, str | None] = {}
+    seen_positions: set[str] = set()
+    for player_id in player_ids:
+        pos = None
+        if positions and player_id in positions:
+            pos = _position_to_enum(positions[player_id])
+        if pos is not None:
+            if pos in seen_positions:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=DUPLICATE_TEAM_POSITION_DETAIL,
+                )
+            seen_positions.add(pos)
+        resolved[player_id] = pos
+    return resolved
+
+
 async def update_team_members(
     team_id: TeamId,
     tournament_id: TournamentId,
@@ -66,16 +91,14 @@ async def update_team_members(
 ) -> None:
     # Confirm the team belongs to this tournament before rewriting membership.
     await get_teams_with_members(tournament_id, team_id=team_id)
+    resolved = _assert_unique_team_positions(player_ids, positions)
 
     # Replace membership in full so re-saves do not insert duplicate rows.
     await database.execute(
         query=players_x_teams.delete().where(players_x_teams.c.team_id == team_id),
     )
 
-    for player_id in player_ids:
-        pos = None
-        if positions and player_id in positions:
-            pos = _position_to_enum(positions[player_id])
+    for player_id, pos in resolved.items():
         await database.execute(
             query=players_x_teams.insert(),
             values={"team_id": team_id, "player_id": player_id, "position": pos},
@@ -185,6 +208,15 @@ async def create_team(
             detail=DUPLICATE_TEAM_NAME_DETAIL,
         )
 
+    player_ids_set = set(team_to_insert.player_ids)
+    positions_by_id = (
+        {PlayerId(int(k)): v for k, v in (team_to_insert.positions or {}).items()}
+        if team_to_insert.positions
+        else None
+    )
+    # Validate before insert so a position conflict does not leave an orphan team.
+    _assert_unique_team_positions(player_ids_set, positions_by_id)
+
     now = datetime_utc.now()
     insert_values = team_to_insert.model_dump(exclude={"player_ids", "positions", "club_ids"})
     insert_values["code"] = code
@@ -210,13 +242,7 @@ async def create_team(
 
     await replace_team_clubs(team_result.id, team_to_insert.resolved_club_ids())
 
-    player_ids_set = set(team_to_insert.player_ids)
     if player_ids_set:
-        positions_by_id = (
-            {PlayerId(int(k)): v for k, v in (team_to_insert.positions or {}).items()}
-            if team_to_insert.positions
-            else None
-        )
         await update_team_members(
             team_result.id, tournament_id, player_ids_set, positions=positions_by_id
         )

@@ -17,7 +17,11 @@ def _normalize_division_prefix(prefix: str | None) -> str | None:
     if prefix is None:
         return None
     trimmed = prefix.strip()
-    return trimmed or None
+    if not trimmed:
+        return None
+    # API bodies already validate via DivisionCreate/UpdateBody; keep storage
+    # comparisons case-insensitive by uppercasing letters.
+    return trimmed.upper() if trimmed.isalpha() and len(trimmed) == 1 else trimmed
 
 
 async def sql_division_name_exists(

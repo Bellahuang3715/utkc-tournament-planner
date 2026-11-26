@@ -142,3 +142,109 @@ async def test_attach_mix_coded_and_uncoded_blocked(
         )
         assert status_b == 409
         assert "already in another individuals division" in str(response_b.get("detail", ""))
+
+
+async def test_create_division_rejects_duplicate_prefix(
+    startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
+) -> None:
+    async with inserted_division(
+        tournament_id=auth_context.tournament.id,
+        name="Coded A",
+        prefix="A",
+    ):
+        status, response = await send_request_with_status(
+            HTTPMethod.POST,
+            "divisions",
+            json={
+                "name": "Coded A2",
+                "prefix": "A",
+                "tournament_id": auth_context.tournament.id,
+                "duration_mins": 5,
+                "margin_mins": 1,
+                "division_type": "INDIVIDUALS",
+            },
+            headers=auth_context.headers,
+        )
+        assert status == 409
+        assert "prefix already exists" in str(response.get("detail", "")).lower()
+
+
+async def test_create_division_rejects_non_letter_prefix(
+    startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
+) -> None:
+    for bad in ("1", "#", "AB"):
+        status, response = await send_request_with_status(
+            HTTPMethod.POST,
+            "divisions",
+            json={
+                "name": f"Bad {bad}",
+                "prefix": bad,
+                "tournament_id": auth_context.tournament.id,
+                "duration_mins": 5,
+                "margin_mins": 1,
+                "division_type": "INDIVIDUALS",
+            },
+            headers=auth_context.headers,
+        )
+        assert status == 422, bad
+        detail = str(response.get("detail", "")).lower()
+        assert "prefix" in detail or "letter" in detail or "character" in detail, response
+
+
+async def test_create_division_normalizes_prefix_to_uppercase(
+    startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
+) -> None:
+    response = await send_request(
+        HTTPMethod.POST,
+        "divisions",
+        json={
+            "name": "Lower Prefix",
+            "prefix": "b",
+            "tournament_id": auth_context.tournament.id,
+            "duration_mins": 5,
+            "margin_mins": 1,
+            "division_type": "INDIVIDUALS",
+        },
+        headers=auth_context.headers,
+    )
+    assert response["data"]["prefix"] == "B"
+
+
+async def test_attach_same_player_twice_is_idempotent(
+    startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
+) -> None:
+    async with (
+        inserted_division(
+            tournament_id=auth_context.tournament.id,
+            name="Open",
+            prefix=None,
+        ) as division,
+        inserted_player(_player_body(auth_context, DUMMY_PLAYER1)) as player,
+    ):
+        first = await send_request(
+            HTTPMethod.POST,
+            f"divisions/{division.id}/players",
+            json={"player_ids": [player.id]},
+            headers=auth_context.headers,
+        )
+        assert first == SUCCESS_RESPONSE
+
+        second = await send_request(
+            HTTPMethod.POST,
+            f"divisions/{division.id}/players",
+            json={"player_ids": [player.id, player.id]},
+            headers=auth_context.headers,
+        )
+        assert second == SUCCESS_RESPONSE
+
+        memberships = await send_auth_request(
+            HTTPMethod.GET,
+            f"tournaments/{auth_context.tournament.id}/individuals-memberships",
+            auth_context,
+        )
+        rows = [
+            r
+            for r in memberships["data"]
+            if r["player_id"] == player.id and r["division_id"] == division.id
+        ]
+        assert len(rows) == 1

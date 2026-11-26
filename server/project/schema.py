@@ -223,6 +223,15 @@ players_x_teams = Table(
         ),
         nullable=True,
     ),
+    UniqueConstraint("player_id", "team_id", name="uq_players_x_teams_player_team"),
+    # Multiple unset positions are allowed; filled positions must be unique per team.
+    Index(
+        "uq_players_x_teams_team_position",
+        "team_id",
+        "position",
+        unique=True,
+        postgresql_where=text("position IS NOT NULL"),
+    ),
 )
 
 divisions = Table(

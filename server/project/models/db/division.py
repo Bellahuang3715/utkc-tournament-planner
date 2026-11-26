@@ -21,7 +21,9 @@ def _normalize_single_char_prefix(value: str | None) -> str | None:
         return None
     if len(trimmed) > 1:
         raise ValueError("Prefix must be a single character")
-    return trimmed
+    if not trimmed.isalpha():
+        raise ValueError("Prefix must be a letter (A–Z)")
+    return trimmed.upper()
 
 
 # Row shape as stored (includes server-managed timestamps)

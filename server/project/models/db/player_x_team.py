@@ -16,4 +16,4 @@ class PlayerPositionTypes(EnumAutoStr):
 class PlayerXTeamInsertable(BaseModelORM):
     player_id: PlayerId
     team_id: TeamId
-    position: PlayerPositionTypes
+    position: PlayerPositionTypes | None = None

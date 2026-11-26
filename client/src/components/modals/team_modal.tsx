@@ -287,6 +287,21 @@ export default function TeamModal({
 
   const pos = ["Senpo", "Jihou", "Chuken", "Fukushou", "Taisho"];
 
+  /** Options for one player: keep their current value, hide positions taken by teammates. */
+  const positionOptionsFor = (
+    playerId: string,
+    positions: Record<string, string>,
+  ) => {
+    const taken = new Set(
+      Object.entries(positions)
+        .filter(([pid, value]) => pid !== playerId && Boolean(value))
+        .map(([, value]) => value),
+    );
+    return pos
+      .filter((p) => !taken.has(p) || positions[playerId] === p)
+      .map((p) => ({ value: p, label: p }));
+  };
+
   const playerLabel = (player: Player) =>
     player.club ? `${player.name} (${player.club})` : player.name;
   const playerById = new Map(players.map((player) => [String(player.id), player]));
@@ -629,7 +644,7 @@ export default function TeamModal({
                 key={pid}
                 label={selected ? playerLabel(selected) : pid}
                 placeholder={t("select_position", "Select a position")}
-                data={pos.map((p) => ({ value: p, label: p }))}
+                data={positionOptionsFor(pid, form.values.positions)}
                 {...form.getInputProps(`positions.${pid}` as any)}
               />
             );
@@ -788,7 +803,7 @@ export default function TeamModal({
                         key={pid}
                         label={selected ? playerLabel(selected) : pid}
                         placeholder={t("select_position", "Select a position")}
-                        data={pos.map((p) => ({ value: p, label: p }))}
+                        data={positionOptionsFor(pid, draft.positions)}
                         value={draft.positions[pid] || null}
                         onChange={(val) => {
                           const positions = { ...draft.positions };

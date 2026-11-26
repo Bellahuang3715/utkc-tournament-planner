@@ -2,12 +2,17 @@ from project.database import database
 from project.models.db.team import Team
 from project.schema import teams
 from project.utils.db import fetch_one_parsed_certain
-from project.utils.dummy_records import DUMMY_MOCK_TIME, DUMMY_TEAM1
+from project.utils.dummy_records import DUMMY_MOCK_TIME, DUMMY_PLAYER1, DUMMY_PLAYER2, DUMMY_TEAM1
 from project.utils.http import HTTPMethod
-from tests.integration_tests.api.shared import SUCCESS_RESPONSE, send_tournament_request
+from tests.integration_tests.api.shared import (
+    SUCCESS_RESPONSE,
+    send_request_with_status,
+    send_tournament_request,
+)
 from tests.integration_tests.models import AuthContext
 from tests.integration_tests.sql import (
     assert_row_count_and_clear,
+    inserted_player,
     inserted_team,
     inserted_team_category,
 )
@@ -171,3 +176,65 @@ async def test_update_team_invalid_players(
                 HTTPMethod.PUT, f"teams/{team_inserted.id}", auth_context, None, body
             )
             assert response == {"detail": "Could not find Player(s) with ID {-1}"}
+
+
+def _player_body(auth_context: AuthContext, dummy: object) -> object:
+    return dummy.model_copy(  # type: ignore[attr-defined]
+        update={
+            "tournament_id": auth_context.tournament.id,
+            "club_id": auth_context.club.id,
+        }
+    )
+
+
+async def test_create_team_dedupes_duplicate_player_ids(
+    startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
+) -> None:
+    async with (
+        inserted_team_category(auth_context.tournament.id) as cat_mix,
+        inserted_player(_player_body(auth_context, DUMMY_PLAYER1)) as player,
+    ):
+        body = {
+            "code": "DEDUP",
+            "club_id": auth_context.club.id,
+            "category_id": cat_mix.id,
+            "player_ids": [player.id, player.id],
+        }
+        status, response = await send_request_with_status(
+            HTTPMethod.POST,
+            f"tournaments/{auth_context.tournament.id}/teams",
+            json=body,
+            headers=auth_context.headers,
+        )
+        assert status == 200, response
+        assert response["data"]["code"] == "DEDUP"
+
+        listed = await send_tournament_request(HTTPMethod.GET, "teams", auth_context, {})
+        created = next(t for t in listed["data"]["teams"] if t["code"] == "DEDUP")
+        assert [p["id"] for p in created["players"]] == [player.id]
+        await assert_row_count_and_clear(teams, 1)
+
+
+async def test_create_team_rejects_duplicate_positions(
+    startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
+) -> None:
+    async with (
+        inserted_team_category(auth_context.tournament.id) as cat_mix,
+        inserted_player(_player_body(auth_context, DUMMY_PLAYER1)) as p1,
+        inserted_player(_player_body(auth_context, DUMMY_PLAYER2)) as p2,
+    ):
+        body = {
+            "code": "POS",
+            "club_id": auth_context.club.id,
+            "category_id": cat_mix.id,
+            "player_ids": [p1.id, p2.id],
+            "positions": {str(p1.id): "Senpo", str(p2.id): "Senpo"},
+        }
+        status, response = await send_request_with_status(
+            HTTPMethod.POST,
+            f"tournaments/{auth_context.tournament.id}/teams",
+            json=body,
+            headers=auth_context.headers,
+        )
+        assert status == 409, response
+        assert "position" in str(response.get("detail", "")).lower()

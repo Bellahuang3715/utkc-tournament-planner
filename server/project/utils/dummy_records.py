@@ -233,7 +233,7 @@ DUMMY_PLAYER8 = PlayerInsertable(
 DUMMY_PLAYER_X_TEAM = PlayerXTeamInsertable(
     player_id=PlayerId(DB_PLACEHOLDER_ID),
     team_id=TeamId(DB_PLACEHOLDER_ID),
-    position="SENPO",
+    position=None,  # Seed rows leave positions unset (unique when filled).
 )
 
 DUMMY_COURT1 = CourtInsertable(

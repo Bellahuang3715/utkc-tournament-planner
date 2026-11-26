@@ -241,12 +241,35 @@ A separate **Dependabot auto-merge** workflow merges Dependabot PRs; you do not 
 
 ---
 
+## What Phase 1 automation covers
+
+Automated in Vitest / green pytest (see suites under `client/src/**/*.test.ts` and `server/tests/integration_tests/api/`):
+
+| Invariant / flow | Automated? |
+| --- | --- |
+| Duplicate team name/code in a category | Yes (`teams_test`) |
+| Same player listed twice on one team request | Yes (deduped roster) |
+| Two players sharing a team position | Yes (409 + unique index) |
+| Same player twice in one division | Yes (idempotent attach; unique constraint) |
+| Duplicate division prefix | Yes |
+| Prefix must be a single letter A–Z | Yes (422 on `1`/`#`/`AB`; `b` → `B`) |
+| Scorekeeping locks roster/seeding; clear unlocks | Yes (`brackets_test`) |
+| Team bracket create (+ under-min reject) | Yes |
+| Prefixed division brackets expose player codes | Yes |
+| Public brackets/cells readable; mutate denied | Yes |
+| Concurrent scorekeeper soft locks (409, not crash) | Not yet (Phase 3) |
+
+Client unit coverage: `score_status`, `score_notation`, `scorekeeper_access`, seeding assign (individuals + teams).
+
+---
+
 ## Manual QA checklist (each release)
 
 Run against local `create-dev-db` + app:
 
-1. **Coded individuals:** Import/select players → Generate brackets **with** a 1-char prefix → player codes appear on brackets → creating another individuals division with the same players is blocked.
+1. **Coded individuals:** Import/select players → Generate brackets **with** a 1-letter prefix (A–Z) → player codes appear on brackets → creating another individuals division with the same players is blocked.
 2. **Uncoded individuals:** Generate brackets **without** prefix → code/ID slot blank on brackets → same player can be added to another no-prefix individuals division.
-3. **Teams:** Generate team brackets (no player-code prefix) succeeds.
+3. **Teams:** Generate team brackets (no player-code prefix) succeeds; positions stay unique when specified.
 4. **Lock:** Enter a score in Scores → division locks → roster/seeding changes blocked → Unlock (clear scores) with confirm, then edits work again.
 5. **Public:** Open `/t/[slug]` brackets, scores, and participants without logging in.
+6. **Concurrent scorekeepers (manual until Phase 3):** Second editor on the same group should see a controlled “someone else is editing” state (HTTP 409), not an app crash.
