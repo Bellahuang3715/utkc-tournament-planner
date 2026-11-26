@@ -25,7 +25,135 @@ docker compose up -d postgres
 psql postgres://localhost:5432/postgres -c "CREATE DATABASE bracket_test OWNER bracket_dev;"
 ```
 
-## Automated
+---
+
+## When to run what
+
+### Mental model
+
+| Layer | What it checks | Needs running app? | Needs Postgres? |
+| --- | --- | --- | --- |
+| **Server lint** (`./check.sh`) | Code style / imports (ruff) | No | No |
+| **Server pytest** (`./ci_pytest.sh`) | API + DB behavior | No (spins its own test server) | Yes → `bracket_test` only |
+| **Client Vitest** | Pure TS/JS unit logic | No | No |
+| **Playwright e2e** | Real browser against the UI | Yes (`:3000`) | Usually yes for full flows |
+| **OpenAPI regen** | Not a test — refreshes typed client | No | No |
+| **Manual QA** | Product flows humans care about | Yes | Yes → `bracket_dev` |
+| **GitHub Actions** | Lint + Vitest + pytest (+ soft e2e) on every PR/push | — | CI Postgres service |
+
+### Cheat sheet: “I just changed X → run Y”
+
+| You changed… | Run locally |
+| --- | --- |
+| `client/src/**` helper / unit-tested logic | `cd client && yarn --ignore-engines test` (or `test:watch`) |
+| `client` pages / UX | Vitest if covered + Playwright smoke + manual click-through |
+| `server/project/**` API/DB | `cd server && ./ci_pytest.sh` (+ `./check.sh`) |
+| Python formatting only | `cd server && ./precommit.sh` then `./check.sh` |
+| API request/response shapes | `generate-openapi` + `yarn openapi-ts` (see below) |
+| About to open/update a PR | Vitest + `./check.sh` + `./ci_pytest.sh` |
+| Shipping a release | All of the above + [manual QA checklist](#manual-qa-checklist-each-release) |
+
+### Day-to-day (while coding)
+
+**Frontend logic** (seeding, display helpers, etc.):
+
+```bash
+cd client
+yarn --ignore-engines test:watch   # while iterating
+# or once:
+yarn --ignore-engines test
+```
+
+Fast; no database. Use whenever you touch pure client code under `client/src/**/*.test.ts`.
+
+**Backend API / SQL / models:**
+
+```bash
+docker compose up -d postgres   # if not already running
+
+cd server
+./ci_pytest.sh                  # same green suite CI runs
+```
+
+Or one file while debugging:
+
+```bash
+pipenv run pytest tests/integration_tests/api/divisions_test.py -q
+```
+
+**Python style before commit:**
+
+```bash
+cd server
+./precommit.sh          # autofix format + lint
+./check.sh              # verify (same as CI server-lint job)
+```
+
+`STRICT=1 ./precommit.sh` also runs mypy / vulture / pylint — optional; not required by CI yet.
+
+**FastAPI routes or Pydantic shapes** (not a test — regenerates the typed client):
+
+```bash
+cd server && ENVIRONMENT=CI pipenv run python cli.py generate-openapi
+cd ../client && yarn --ignore-engines openapi-ts
+```
+
+Commit both `server/openapi/openapi.json` and `client/src/openapi/` when they change. Requires Firebase Admin credentials available to the server import path (e.g. `server/.env.local`).
+
+### Before opening or updating a PR
+
+Run what CI requires:
+
+```bash
+# 1) Client unit
+cd client && yarn --ignore-engines test
+
+# 2) Server lint
+cd ../server && ./check.sh
+
+# 3) Server API (needs Postgres + bracket_test)
+./ci_pytest.sh
+```
+
+If those three are green, the required CI jobs should pass.
+
+Optional if you changed UI flows:
+
+```bash
+# from repo root — app running in another terminal
+./run.sh
+
+cd client
+yarn --ignore-engines test:e2e
+```
+
+### Playwright e2e — when it’s worth it
+
+```bash
+cd client
+yarn --ignore-engines test:e2e:install   # once per machine
+# app must be up on :3000 (./run.sh)
+yarn --ignore-engines test:e2e
+```
+
+Run when you change login / home / public tournament pages, or before a release. Optional env: `E2E_PUBLIC_SLUG=<dashboard_endpoint>` to exercise `/t/[slug]`. Skip for tiny backend-only changes.
+
+### Release / large product change
+
+Use the [manual QA checklist](#manual-qa-checklist-each-release) against **`bracket_dev`** with a seeded DB:
+
+```bash
+cd server
+export ENVIRONMENT=DEVELOPMENT
+pipenv run python cli.py create-dev-db   # wipes bracket_dev
+# then ./run.sh and click through the checklist
+```
+
+Automated tests do not cover full kendo tournament UX.
+
+---
+
+## Command reference
 
 ### Server (pytest)
 
@@ -48,15 +176,6 @@ pipenv run pytest tests/integration_tests/api/divisions_test.py \
   tests/integration_tests/api/brackets_test.py \
   tests/integration_tests/api/public_dashboard_test.py
 ```
-
-### OpenAPI client regen
-
-```bash
-cd server && ENVIRONMENT=CI pipenv run python cli.py generate-openapi
-cd ../client && yarn --ignore-engines openapi-ts
-```
-
-Requires Firebase Admin credentials available to the server import path (e.g. `server/.env.local`).
 
 ### Server lint (ruff)
 
@@ -84,6 +203,43 @@ yarn --ignore-engines test:e2e
 ```
 
 Requires the app reachable at `E2E_BASE_URL` (default `http://localhost:3000`). Start backend + frontend first (`./run.sh` or equivalent).
+
+### OpenAPI client regen
+
+```bash
+cd server && ENVIRONMENT=CI pipenv run python cli.py generate-openapi
+cd ../client && yarn --ignore-engines openapi-ts
+```
+
+See `client/src/services/ping.ts` for a minimal example of calling the generated client.
+
+---
+
+## What GitHub Actions runs
+
+Workflow: [`.github/workflows/test.yml`](.github/workflows/test.yml) on push/PR to `main` / `master`.
+
+| Job | Local equivalent | Blocks merge? |
+| --- | --- | --- |
+| **Client unit (Vitest)** | `cd client && yarn test` | Yes |
+| **Server lint (ruff)** | `cd server && ./check.sh` | Yes |
+| **Server API (pytest)** | `cd server && ./ci_pytest.sh` | Yes |
+| **Client e2e smoke (Playwright)** | build Next + `yarn test:e2e` | **No** (`continue-on-error`) until Firebase/env is wired in CI |
+
+A separate **Dependabot auto-merge** workflow merges Dependabot PRs; you do not run it yourself. Push a PR and watch the Checks tab for the Test workflow.
+
+---
+
+## Common confusions
+
+- **`pipenv run pytest`** (full tree) ≠ **`./ci_pytest.sh`**. The full tree still has failing legacy tests; CI uses the green subset.
+- **`./check.sh`** = verify only. **`./precommit.sh`** = autofix then verify.
+- **Vitest** ≠ **Playwright**. Vitest = fast Node unit tests. Playwright = browser against a running Next app.
+- **OpenAPI commands** are codegen, not tests.
+- **`./run.sh` / process-compose** start the app; they do not run tests.
+- **`bracket_dev`** is for the running app and manual QA. **`bracket_test`** is for pytest only.
+
+---
 
 ## Manual QA checklist (each release)
 
