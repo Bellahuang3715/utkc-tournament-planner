@@ -182,3 +182,47 @@ async def test_public_brackets_and_cells_readable_without_auth(
                                 },
                             )
                             assert status in (401, 403)
+
+
+async def test_public_match_directory_readable_without_auth(
+    startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
+) -> None:
+    endpoint = auth_context.tournament.dashboard_endpoint
+    assert endpoint
+
+    async with (
+        inserted_division(
+            tournament_id=auth_context.tournament.id,
+            name="Directory Div",
+            prefix=None,
+        ) as division,
+        inserted_player(_player(auth_context, DUMMY_PLAYER1)) as player,
+    ):
+        await attach_player_to_division(player.id, division.id)
+
+        response = await send_request(
+            HTTPMethod.GET,
+            f"public/tournaments/{endpoint}/match-directory",
+        )
+        assert "data" in response
+        assert any(
+            row["player_id"] == player.id and row["division_id"] == division.id
+            for row in response["data"]
+        )
+
+
+async def test_public_schedule_timetable_readable_without_auth(
+    startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
+) -> None:
+    endpoint = auth_context.tournament.dashboard_endpoint
+    assert endpoint
+
+    response = await send_request(
+        HTTPMethod.GET,
+        f"public/tournaments/{endpoint}/schedule_timetable",
+    )
+    assert "data" in response
+    assert "placements" in response["data"]
+    assert "custom_blocks" in response["data"]
+    assert isinstance(response["data"]["placements"], list)
+    assert isinstance(response["data"]["custom_blocks"], list)

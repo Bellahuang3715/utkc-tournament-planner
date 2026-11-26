@@ -241,7 +241,7 @@ A separate **Dependabot auto-merge** workflow merges Dependabot PRs; you do not 
 
 ---
 
-## What automation covers (Phases 1–2)
+## What automation covers (Phases 1–3)
 
 Automated in Vitest / green pytest (see suites under `client/src/**/*.test.ts` and `server/tests/integration_tests/api/`):
 
@@ -257,15 +257,18 @@ Automated in Vitest / green pytest (see suites under `client/src/**/*.test.ts` a
 | Scorekeeping locks roster/seeding; clear unlocks | Yes (`brackets_test`) |
 | Team bracket create (+ under-min reject) | Yes |
 | Prefixed division brackets expose player codes | Yes |
-| Public brackets/cells readable; mutate denied | Yes |
+| Public brackets/cells/match-directory/schedule readable; mutate denied | Yes |
 | Players / courts / tournaments CRUD | Yes (revived Firebase-era suites) |
 | Player codes unique per tournament | Yes |
 | Court reorder | Yes |
 | Invalid / missing Firebase token; `/users/me` | Yes (`auth_smoke_test`) |
 | Outsider denied on another owner's tournament | Yes |
-| Concurrent scorekeeper soft locks (409, not crash) | Not yet (Phase 3) |
+| Concurrent edit locks (claim 409, write block, release, TTL) | Yes (`edit_locks_test`) |
+| Scorekeeper redeem + score via `X-Scorekeeper-Token` | Yes (`scorekeeping_test`) |
 
 Client unit coverage: `score_status`, `score_notation`, `scorekeeper_access`, seeding assign (individuals + teams).
+
+Concurrent editors should get a controlled **HTTP 409** (“someone else is editing”), not an app crash.
 
 ---
 
@@ -278,4 +281,4 @@ Run against local `create-dev-db` + app:
 3. **Teams:** Generate team brackets (no player-code prefix) succeeds; positions stay unique when specified.
 4. **Lock:** Enter a score in Scores → division locks → roster/seeding changes blocked → Unlock (clear scores) with confirm, then edits work again.
 5. **Public:** Open `/t/[slug]` brackets, scores, and participants without logging in.
-6. **Concurrent scorekeepers (manual until Phase 3):** Second editor on the same group should see a controlled “someone else is editing” state (HTTP 409), not an app crash.
+6. **Concurrent scorekeepers:** Second editor on the same group should see “someone else is editing” (HTTP 409). Covered by `edit_locks_test` / `scorekeeping_test`; still worth a quick manual check on the Scores UI.
