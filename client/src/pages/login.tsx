@@ -49,7 +49,7 @@ export default function Login() {
 
   useEffect(() => {
     // Check if user is already logged in, redirect to homepage
-    if (auth.currentUser) {
+    if (auth?.currentUser) {
       router.replace("/tournaments");
     }
   }, [router]);

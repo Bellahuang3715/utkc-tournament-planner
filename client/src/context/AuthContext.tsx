@@ -18,6 +18,13 @@ import { auth } from "../services/firebase";
 import { UserInterface } from "../interfaces/user";
 import { Translator } from '../components/utils/types';
 
+function requireAuth() {
+  if (!auth) {
+    throw new Error("Firebase Auth is not configured");
+  }
+  return auth;
+}
+
 // AuthContext type
 interface AuthContextType {
   user: User | null;
@@ -39,19 +46,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listen for auth state changes
+    if (!auth) {
+      // CI / builds without NEXT_PUBLIC_FIREBASE_* — still render the app shell.
+      setLoading(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      setLoading(false); // Done loading
+      setLoading(false);
     });
 
-    return () => unsubscribe(); // Cleanup on unmount
+    return () => unsubscribe();
   }, []);
 
   // Register user
   const registerUser = async (email: string, password: string, name: string) => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(requireAuth(), email, password);
       const userDetails = userCredential.user;
 
       // Update display name
@@ -83,7 +94,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Login user with email and password
   const loginWithEmailAndPassword = async (email: string, password: string) => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        requireAuth(),
+        email,
+        password,
+      );
       const userDetails = userCredential.user;
       setUser(userDetails);
       return userDetails;
@@ -99,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithGoogle = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(requireAuth(), provider);
       const userDetails = result.user;
       setUser(userDetails);
       return userDetails;
@@ -128,7 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Logout user with notification and redirect
   const logout = async (t: Translator, router: NextRouter) => {
     try {
-      await signOut(auth);
+      await signOut(requireAuth());
       setUser(null); // Clear user state on logout
 
       // Show success notification

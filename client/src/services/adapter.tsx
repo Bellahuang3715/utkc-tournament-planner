@@ -3,11 +3,11 @@ import type Axios from 'axios';
 import { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
 import useSWR, { SWRResponse } from 'swr';
 
-import { getAuth } from 'firebase/auth';
 import {
   getEditSessionIdForRequests,
   getScorekeeperTokenForCurrentPath,
 } from '../utils/scorekeeper_access';
+import { auth as firebaseAuth } from './firebase';
 
 // TODO: This is a workaround for the fact that axios is not properly typed.
 const axios: typeof Axios = require('axios').default;
@@ -63,8 +63,7 @@ export function getBaseApiUrl() {
 }
 
 export function createAxios() {
-  const auth = getAuth();
-  const user = auth.currentUser;
+  const user = firebaseAuth?.currentUser ?? null;
   const scorekeeperToken = getScorekeeperTokenForCurrentPath();
   const editSessionId = getEditSessionIdForRequests();
 

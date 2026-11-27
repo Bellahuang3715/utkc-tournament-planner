@@ -224,7 +224,7 @@ Workflow: [`.github/workflows/test.yml`](.github/workflows/test.yml) on push/PR 
 | **Client unit (Vitest)** | `cd client && yarn test` | Yes |
 | **Server lint (ruff)** | `cd server && ./check.sh` | Yes |
 | **Server API (pytest)** | `cd server && ./ci_pytest.sh` | Yes |
-| **Client e2e smoke (Playwright)** | build Next + `yarn test:e2e` | **No** (`continue-on-error`) until Firebase/env is wired in CI |
+| **Client e2e smoke (Playwright)** | build Next + `yarn test:e2e` | **No** (`continue-on-error`); build skips Firebase init when `NEXT_PUBLIC_FIREBASE_*` unset |
 
 A separate **Dependabot auto-merge** workflow merges Dependabot PRs; you do not run it yourself. Push a PR and watch the Checks tab for the Test workflow.
 
