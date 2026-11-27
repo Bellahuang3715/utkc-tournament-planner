@@ -1,7 +1,6 @@
-// pages/tournaments/[id]/_tournament_layout.tsx
-import React from "react";
+import React, { useEffect } from "react";
 import { useRouter } from "next/router";
-import { Stack, Tabs, useMantineTheme } from "@mantine/core";
+import { Badge, Group, Stack, Tabs, useMantineTheme } from "@mantine/core";
 import { IconUser, IconUsers } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next/pages";
 
@@ -9,6 +8,7 @@ import { PageHeader } from "../../components/layout/page_header";
 import { TournamentLinks } from "../../components/navbar/_main_links";
 import { capitalize, responseIsValid } from "../../components/utils/util";
 import { getTournamentById } from "../../services/adapter";
+import { getScorekeeperToken } from "../../utils/scorekeeper_access";
 
 import Layout from "../_layout";
 
@@ -24,19 +24,48 @@ export default function TournamentLayout({
   const path = router.asPath.replace(/\/+$/, "");
   const base = `/tournaments/${tournament_id}`;
   const isParticipants = path.startsWith(`${base}/participants`);
+  const isScores = path.startsWith(`${base}/scores`);
   const theme = useMantineTheme();
 
   const tournamentResponse = getTournamentById(tournament_id);
-  const breadcrumbs = responseIsValid(tournamentResponse) ? (
-    <h2>/ {tournamentResponse.data.data.name}</h2>
+  const tournament = responseIsValid(tournamentResponse)
+    ? tournamentResponse.data.data
+    : null;
+
+  const roleFromApi = tournament?.my_role as
+    | "organizer"
+    | "scorekeeper"
+    | null
+    | undefined;
+  const role: "organizer" | "scorekeeper" | null =
+    roleFromApi ??
+    (getScorekeeperToken(tournament_id) ? "scorekeeper" : null);
+
+  useEffect(() => {
+    if (role === "scorekeeper" && !isScores) {
+      void router.replace(`${base}/scores`);
+    }
+  }, [role, isScores, base, router]);
+
+  const breadcrumbs = tournament ? (
+    <Group gap="sm">
+      <h2>/ {tournament.name}</h2>
+      {tournament.status === "archived" ? (
+        <Badge color="gray" variant="light">
+          {t("archived", "Archived")}
+        </Badge>
+      ) : null}
+    </Group>
   ) : null;
 
   return (
     <Layout
-      additionalNavbarLinks={<TournamentLinks tournament_id={tournament_id} />}
+      additionalNavbarLinks={
+        <TournamentLinks tournament_id={tournament_id} role={role} />
+      }
       breadcrumbs={breadcrumbs}
     >
-      {isParticipants && (
+      {isParticipants && role !== "scorekeeper" && (
         <Stack gap="lg" mb="lg">
           <PageHeader
             title={capitalize(t("participants_title", "Participants"))}
@@ -51,15 +80,12 @@ export default function TournamentLayout({
             variant="outline"
             radius="md"
             styles={{
-              /* border under the row of tabs */
               list: {
                 borderBottom: `2px solid ${theme.colors.gray[2]}`,
               },
-              /* style every tab, including its active state */
               tab: {
                 fontSize: theme.fontSizes.md,
                 padding: "8px 16px",
-                /* target active tab */
                 "&[data-active]": {
                   backgroundColor: theme.colors.blue[0],
                   color: theme.colors.blue[7],
@@ -86,7 +112,7 @@ export default function TournamentLayout({
         </Stack>
       )}
 
-      {children}
+      {role === "scorekeeper" && !isScores ? null : children}
     </Layout>
   );
 }

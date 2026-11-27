@@ -644,7 +644,7 @@ export default function TeamModal({
                 key={pid}
                 label={selected ? playerLabel(selected) : pid}
                 placeholder={t("select_position", "Select a position")}
-                data={positionOptionsFor(pid, form.values.positions)}
+                data={positionOptionsFor(pid, form.values.positions ?? {})}
                 {...form.getInputProps(`positions.${pid}` as any)}
               />
             );

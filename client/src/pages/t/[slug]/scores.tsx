@@ -49,7 +49,7 @@ export default function ParticipantScoresPage() {
       return;
     }
 
-    const parts = divisionIdsKey.split(',').map((part) => {
+    const parts = divisionIdsKey.split(',').map((part: string) => {
       const [id, type] = part.split(':');
       return { id: Number(id), isTeams: type === 'TEAMS' };
     });
@@ -59,7 +59,7 @@ export default function ParticipantScoresPage() {
 
     const run = async () => {
       const entries = await Promise.all(
-        parts.map(async ({ id, isTeams: teams }) => {
+        parts.map(async ({ id, isTeams: teams }: { id: number; isTeams: boolean }) => {
           try {
             const overview = await fetchDivisionOverview(slug, preview, id, teams);
             return [id, overview] as const;

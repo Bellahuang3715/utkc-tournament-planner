@@ -28,10 +28,14 @@ export function DropzoneButton({
   const openRef = useRef<() => void>(null);
   const { t } = useTranslation();
 
-  const useUploadLogo = useMemo(() => {
+  const uploadLogo = useMemo(() => {
     if (variant === "tournament") {
-      return uploadTournamentLogo.bind(null, tournamentId);
+      return (file: File) => uploadTournamentLogo(tournamentId, file);
     }
+    // Team logo upload is not wired yet; keep the dropzone callable for typing.
+    return async (_file: File) => {
+      throw new Error("Team logo upload is not implemented");
+    };
   }, [tournamentId, teamId, variant]);
 
   return (
@@ -40,7 +44,7 @@ export function DropzoneButton({
         mt="lg"
         openRef={openRef}
         onDrop={async (files) => {
-          const response = await useUploadLogo(files[0]);
+          const response = await uploadLogo(files[0]);
           await swrResponse.mutate();
           handleRequestError(response as unknown as AxiosError); // TODO: Check with Erik if this is correct
         }}

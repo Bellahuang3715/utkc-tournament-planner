@@ -1,3 +1,4 @@
+import os
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -162,6 +163,8 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
     return JSONResponse({"detail": "Internal server error"}, status_code=500)
 
 
+# Fresh clones / CI don't ship uploaded logos; StaticFiles requires the dir to exist.
+os.makedirs("static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 for tag, router in routers.items():

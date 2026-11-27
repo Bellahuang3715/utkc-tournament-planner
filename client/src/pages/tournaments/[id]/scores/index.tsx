@@ -48,6 +48,14 @@ type DivisionScoreOverview = {
   groups: GroupStatus[];
 };
 
+type DivisionOption = {
+  id: number;
+  name: string;
+  prefix: string | null | undefined;
+  division_type: string;
+  totalPlayers: number | undefined;
+};
+
 export default function ScoresPage() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -57,21 +65,21 @@ export default function ScoresPage() {
   const swrDivisions = getDivisions(tournamentIdValid ? tournamentData.id : null);
   const divisions = swrDivisions.data?.data ?? [];
 
-  const divisionOptions = useMemo(
-    () =>
-      divisions
-        .map((d: any) => ({
+  const divisionOptions = useMemo((): DivisionOption[] => {
+    return (divisions as any[])
+      .map(
+        (d: any): DivisionOption => ({
           id: d.id as number,
           name: d.name as string,
           prefix: (d as any).prefix as string | null | undefined,
           division_type: d.division_type as string,
           totalPlayers: (d as any).totalPlayers as number | undefined,
-        }))
-        .sort((a, b) =>
-          a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
-        ),
-    [divisions],
-  );
+        }),
+      )
+      .sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+      );
+  }, [divisions]);
 
   const divisionIdsKey = useMemo(
     () => divisionOptions.map((d) => d.id).join(","),
@@ -142,10 +150,11 @@ export default function ScoresPage() {
             };
             return [divisionId, overview] as const;
           } catch {
-            return [
-              divisionId,
-              { status: "not_started" as ScoreStatus, groups: [] },
-            ] as const;
+            const fallback: DivisionScoreOverview = {
+              status: "not_started",
+              groups: [],
+            };
+            return [divisionId, fallback] as const;
           }
         }),
       );
@@ -201,13 +210,7 @@ export default function ScoresPage() {
           />
         ) : (
           <>
-            <SimpleGrid
-              cols={{ base: 1, sm: 2, md: 3 }}
-              spacing="md"
-              breakpoints={[
-                { maxWidth: 36, cols: 1, spacing: "sm" },
-              ]}
-            >
+            <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
               {divisionOptions.map((d) => {
                 const subtitle =
                   typeof d.totalPlayers === "number"

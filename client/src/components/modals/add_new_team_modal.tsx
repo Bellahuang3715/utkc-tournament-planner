@@ -125,14 +125,17 @@ export default function AddNewTeamModal({
         );
         return;
       }
-      const data = res?.data ?? res;
-      const newTeamId = typeof data?.data?.id === "number" ? data.data.id : data?.id;
+      const responseData = "data" in res ? res.data : res;
+      const newTeamId =
+        typeof responseData?.data?.id === "number"
+          ? responseData.data.id
+          : responseData?.id;
       if (typeof newTeamId !== "number") {
         setError(t("create_team_failed", "Team was created but could not get ID."));
         return;
       }
       const clubLabel = clubs.find((c) => c.id === clubIdNum)?.name ?? "";
-      const created = data?.data;
+      const created = responseData?.data;
       onSuccess(newTeamId, {
         code: trimmedName,
         category: created?.category ?? "",
