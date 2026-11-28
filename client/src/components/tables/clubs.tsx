@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "next-i18next/pages";
 import { SWRResponse } from "swr";
 import {
@@ -12,11 +12,10 @@ import {
   Anchor,
   Button,
   Group,
-  Stack,
   Text,
   Tooltip,
 } from "@mantine/core";
-import { IconMail, IconPencil, IconPlus, IconTrash } from "@tabler/icons-react";
+import { IconMail, IconPencil, IconTrash } from "@tabler/icons-react";
 import { CircleFlag } from "react-circle-flags";
 
 import { Club } from "../../interfaces/club";
@@ -26,21 +25,19 @@ import {
   countryCodeFromName,
   DEFAULT_COUNTRY,
 } from "../../utils/countries";
-import ClubModal from "../modals/club_modal";
 import { EmptyTableInfo } from "../no_content/empty_table_info";
 import RequestErrorAlert from "../utils/error_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
 export default function ClubsTable({
   swrClubsResponse,
+  onEditClub,
 }: {
   swrClubsResponse: SWRResponse;
+  onEditClub: (club: Club) => void;
 }) {
   const clubs: Club[] =
     swrClubsResponse.data != null ? swrClubsResponse.data.data : [];
   const { t } = useTranslation();
-
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingClub, setEditingClub] = useState<Club | null>(null);
 
   const handleDeleteRows = async (rows: MRT_Row<Club>[]) => {
     if (!rows.length) return;
@@ -139,10 +136,7 @@ export default function ClubsTable({
                 variant="subtle"
                 color="green"
                 aria-label={t("edit_button", "Edit")}
-                onClick={() => {
-                  setEditingClub(row.original);
-                  setModalOpen(true);
-                }}
+                onClick={() => onEditClub(row.original)}
               >
                 <IconPencil size={18} />
               </ActionIcon>
@@ -161,13 +155,8 @@ export default function ClubsTable({
         ),
       },
     ],
-    [t],
+    [onEditClub, t],
   );
-
-  const openCreate = () => {
-    setEditingClub(null);
-    setModalOpen(true);
-  };
 
   const table = useMantineReactTable({
     columns,
@@ -187,24 +176,15 @@ export default function ClubsTable({
     renderTopToolbarCustomActions: ({ table: tableInstance }) => {
       const selected = tableInstance.getSelectedRowModel().rows;
       return (
-        <Group gap="xs">
-          <Button
-            leftSection={<IconPlus size={16} />}
-            variant="filled"
-            onClick={openCreate}
-          >
-            {t("create_club_button", "Add club")}
-          </Button>
-          <Button
-            leftSection={<IconTrash size={16} />}
-            variant="light"
-            color="red"
-            disabled={!selected.length}
-            onClick={() => void handleDeleteRows(selected)}
-          >
-            {t("delete_selected", "Delete selected")}
-          </Button>
-        </Group>
+        <Button
+          leftSection={<IconTrash size={16} />}
+          variant="light"
+          color="red"
+          disabled={!selected.length}
+          onClick={() => void handleDeleteRows(selected)}
+        >
+          {t("delete_selected", "Delete selected")}
+        </Button>
       );
     },
   });
@@ -216,24 +196,9 @@ export default function ClubsTable({
     return <TableSkeletonSingleColumn />;
   }
 
-  return (
-    <>
-      <ClubModal
-        club={editingClub}
-        swrClubsResponse={swrClubsResponse}
-        opened={modalOpen}
-        setOpened={setModalOpen}
-      />
-      {clubs.length === 0 ? (
-        <Stack gap="md" align="flex-start">
-          <EmptyTableInfo entity_name={t("clubs_title", "clubs")} />
-          <Button leftSection={<IconPlus size={16} />} onClick={openCreate}>
-            {t("create_club_button", "Add club")}
-          </Button>
-        </Stack>
-      ) : (
-        <MantineReactTable table={table} />
-      )}
-    </>
-  );
+  if (clubs.length === 0) {
+    return <EmptyTableInfo entity_name={t("clubs_title", "clubs")} />;
+  }
+
+  return <MantineReactTable table={table} />;
 }

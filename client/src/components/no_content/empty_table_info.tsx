@@ -21,6 +21,7 @@ export function EmptyTableInfo({
       color="blue"
       radius="lg"
       mt={8}
+      w="100%"
     >
       {t('could_not_find_any_alert')} {entity_name}
       {message}
