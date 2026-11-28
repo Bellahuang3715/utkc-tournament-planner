@@ -4,6 +4,7 @@ on:
   push:
     branches: [main, master]
   pull_request:
+  merge_group:
 
 jobs:
   client-unit:
@@ -94,7 +95,6 @@ jobs:
   client-e2e-smoke:
     name: Client smoke and scorekeeping (Playwright)
     runs-on: ubuntu-latest
-    needs: [client-unit]
     defaults:
       run:
         working-directory: client
@@ -134,6 +134,9 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: "1"
           NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8400
+          NEXT_PUBLIC_FIREBASE_API_KEY: playwright-test-key
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: playwright-test
+          NEXT_PUBLIC_FIREBASE_APP_ID: playwright-test
       - name: Start the seeded API and Next, then run Playwright
         run: |
           (cd ../server && exec pipenv run python -m tests.serve_scorekeeping_fixture) > "$RUNNER_TEMP/api.log" 2>&1 &
@@ -153,6 +156,7 @@ jobs:
           E2E_BASE_URL: http://127.0.0.1:3000
           E2E_PUBLIC_SLUG: playwright-scorekeeping
           E2E_SCOREKEEPING: "1"
+          E2E_SCHEDULE: "1"
       - name: Upload Playwright failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4

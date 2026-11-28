@@ -36,7 +36,7 @@ psql postgres://localhost:5432/postgres -c "CREATE DATABASE bracket_test OWNER b
 | **Server lint** (`./check.sh`) | Code style / imports (ruff) | No | No |
 | **Server pytest** (`./ci_pytest.sh`) | API + DB behavior | No (spins its own test server) | Yes → `bracket_test` only |
 | **Client Vitest** | Pure TS/JS unit logic | No | No |
-| **Playwright e2e** | Browser smoke and seeded scorekeeping | Yes (`:3000`) | Yes for seeded scorekeeping |
+| **Playwright e2e** | Browser smoke and seeded scorekeeping and scheduling | Yes (`:3000`) | Yes for seeded workflows |
 | **OpenAPI regen** | Not a test — refreshes typed client | No | No |
 | **Manual QA** | Product flows humans care about | Yes | Yes → `bracket_dev` |
 | **GitHub Actions** | Lint + Vitest + pytest + Playwright on every PR/push | — | CI Postgres service |
@@ -205,7 +205,7 @@ yarn --ignore-engines test:e2e
 
 Requires the app reachable at `E2E_BASE_URL` (default `http://localhost:3000`). For a local smoke run, start the app with `./run.sh` or equivalent.
 
-For the CI scorekeeping flow, start PostgreSQL with `bracket_test` available. Run these in separate terminals from the repository root:
+For the seeded scorekeeping and scheduling flows, start PostgreSQL with `bracket_test` available. Run these in separate terminals from the repository root:
 
 ```bash
 cd server
@@ -214,17 +214,22 @@ ENVIRONMENT=CI pipenv run python -m tests.serve_scorekeeping_fixture
 
 ```bash
 cd client
-NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8400 yarn --ignore-engines build
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8400 \
+  NEXT_PUBLIC_FIREBASE_API_KEY=playwright-test-key \
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID=playwright-test \
+  NEXT_PUBLIC_FIREBASE_APP_ID=playwright-test \
+  yarn --ignore-engines build
 yarn --ignore-engines start
 ```
 
 Run the browser suite from the client directory:
 
 ```bash
-E2E_SCOREKEEPING=1 E2E_PUBLIC_SLUG=playwright-scorekeeping yarn --ignore-engines test:e2e
+E2E_SCOREKEEPING=1 E2E_SCHEDULE=1 E2E_PUBLIC_SLUG=playwright-scorekeeping \
+  yarn --ignore-engines test:e2e
 ```
 
-The fixture runs on port 8400 by default. Stop the local API first or set `E2E_API_PORT` and use the same port in `NEXT_PUBLIC_API_BASE_URL`. Restart the fixture API for each scorekeeping run so the seeded bracket starts empty.
+The fixture runs on port 8400 by default. Stop the local API first or set `E2E_API_PORT` and use the same port in `NEXT_PUBLIC_API_BASE_URL`. Restart the fixture API before each seeded run to reset the bracket and timetable. The scheduling test substitutes Firebase sign-in and uses the real API and database for the timetable.
 
 ### OpenAPI client regen
 
@@ -247,6 +252,8 @@ Workflow: [`.github/workflows/test.yml`](.github/workflows/test.yml) on push/PR 
 | **Server lint (ruff)** | `cd server && ./check.sh` | Yes |
 | **Server API (pytest)** | `cd server && ./ci_pytest.sh` | Yes |
 | **Client smoke and scorekeeping (Playwright)** | Seeded API + production Next build + `yarn test:e2e` | Yes |
+
+Use **Client smoke and scorekeeping (Playwright)** as a required GitHub status check on `main`. It runs independently of the unit tests on PRs and merge queue commits.
 
 Both coverage jobs upload line and branch data to Codecov with separate client and server flags. Coverage status is informational.
 
@@ -292,6 +299,8 @@ Automated in Vitest / pytest (see suites under `client/src/**/*.test.ts` and `se
 | Save and replace a populated schedule, keep the previous schedule after a failed write | Yes (`schedule_timetable_test`) |
 | Team bracket seed order, persisted advances, clear and unlock | Yes (`brackets_test`) |
 | Scorekeeper enters a score and a public visitor sees it after reload | Yes (seeded Playwright `scorekeeping.spec.ts`) |
+| Court collisions, adjacent bookings, and groups that do not fit | Yes (Vitest `schedule_timetable.test.ts`) |
+| Organizer assigns a group to a court and a public visitor sees it after reload | Yes (seeded Playwright `schedule.spec.ts`) |
 
 Client unit coverage: `score_status`, `score_notation`, `scorekeeper_access`, seeding assign (individuals + teams).
 
