@@ -18,16 +18,24 @@ export function GuestEntryShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className={classes.page}>
-      <Paper className={classes.card} radius={16} withBorder>
+    <Stack className={classes.page} align="center" gap={0} mih="100dvh" px={24} py={48}>
+      <Paper
+        className={classes.card}
+        radius={16}
+        withBorder
+        w="100%"
+        maw={520}
+        my="auto"
+        p="36px 32px 32px"
+      >
         <Stack gap="xl">
           <Stack gap={8}>
             <Text className={classes.eyebrow}>KenManage</Text>
-            <Title order={1} className={classes.title}>
+            <Title order={1} fz="2.1rem" fw={700} lh={1.1}>
               {title}
             </Title>
             {description && (
-              <Text size="sm" className={classes.description}>
+              <Text size="sm" lh={1.55} maw="38em" c="var(--muted)">
                 {description}
               </Text>
             )}
@@ -35,7 +43,7 @@ export function GuestEntryShell({
           {children}
         </Stack>
       </Paper>
-    </div>
+    </Stack>
   );
 }
 

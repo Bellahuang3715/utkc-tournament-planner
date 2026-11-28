@@ -10,7 +10,6 @@ import {
 import {
   ActionIcon,
   Anchor,
-  Button,
   Group,
   Text,
   Tooltip,
@@ -18,7 +17,7 @@ import {
 import { IconMail, IconPencil, IconTrash } from "@tabler/icons-react";
 import { CircleFlag } from "react-circle-flags";
 
-import { editIconAction, removeAction, removeIconAction } from "../buttons/action_styles";
+import { editIconAction, removeIconAction } from "../buttons/action_styles";
 import { Club } from "../../interfaces/club";
 import { requestSucceeded } from "../../services/adapter";
 import { deleteClub } from "../../services/club";
@@ -29,6 +28,11 @@ import {
 import { EmptyTableInfo } from "../no_content/empty_table_info";
 import RequestErrorAlert from "../utils/error_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
+import {
+  RosterSelectionAction,
+  rosterTableInitialState,
+  rosterTablePresentation,
+} from "./roster_actions";
 export default function ClubsTable({
   swrClubsResponse,
   onEditClub,
@@ -158,6 +162,7 @@ export default function ClubsTable({
   );
 
   const table = useMantineReactTable({
+    ...rosterTablePresentation,
     columns,
     data: clubs,
     getRowId: (row) => String(row.id),
@@ -169,20 +174,19 @@ export default function ClubsTable({
     enableColumnOrdering: true,
     enableColumnPinning: true,
     initialState: {
-      density: "xs",
+      ...rosterTableInitialState,
       showColumnFilters: false,
     },
     renderTopToolbarCustomActions: ({ table: tableInstance }) => {
       const selected = tableInstance.getSelectedRowModel().rows;
       return (
-        <Button
-          leftSection={<IconTrash size={16} />}
-          {...removeAction}
+        <RosterSelectionAction
+          showIcon
           disabled={!selected.length}
           onClick={() => void handleDeleteRows(selected)}
         >
           {t("delete_selected", "Delete selected")}
-        </Button>
+        </RosterSelectionAction>
       );
     },
   });

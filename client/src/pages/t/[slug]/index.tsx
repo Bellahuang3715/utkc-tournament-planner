@@ -1,4 +1,4 @@
-import { Anchor, Group, SimpleGrid, Stack, Text, UnstyledButton } from '@mantine/core';
+import { Anchor, SimpleGrid, Stack, Text } from '@mantine/core';
 import {
   IconCalendar,
   IconInfoCircle,
@@ -8,15 +8,13 @@ import {
   IconTrophy,
   IconUsers,
 } from '@tabler/icons-react';
-import Link from 'next/link';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
 import React from 'react';
 
 import ParticipantTournamentLayout, {
   useParticipantTournamentSlug,
 } from '../../../components/participant/ParticipantTournamentLayout';
-import { ParticipantPageTitle } from '../../../components/participant/ParticipantUi';
-import uiClasses from '../../../components/participant/participant_ui.module.css';
+import { ParticipantLinkCard, ParticipantPageTitle } from '../../../components/participant/ParticipantUi';
 import { GITHUB_ISSUES_URL } from '../../../components/marketing/fixtures';
 
 const SHORTCUTS = [
@@ -44,20 +42,13 @@ export default function ParticipantTournamentHomePage() {
           {SHORTCUTS.map((item) => {
             const Icon = item.icon;
             return (
-              <UnstyledButton
+              <ParticipantLinkCard
                 key={item.href}
-                component={Link}
                 href={`/t/${slug}${item.href}${previewQs}`}
-                className={uiClasses.shortcut}
-              >
-                <Group wrap="nowrap" gap="sm" align="flex-start">
-                  <Icon className={uiClasses.shortcutIcon} stroke={1.5} />
-                  <div style={{ minWidth: 0 }}>
-                    <Text className={uiClasses.shortcutLabel}>{item.label}</Text>
-                    <Text className={uiClasses.shortcutDesc}>{item.desc}</Text>
-                  </div>
-                </Group>
-              </UnstyledButton>
+                title={item.label}
+                description={item.desc}
+                icon={<Icon stroke={1.5} />}
+              />
             );
           })}
         </SimpleGrid>

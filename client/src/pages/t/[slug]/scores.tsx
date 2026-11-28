@@ -1,5 +1,4 @@
-import { Group, Stack, Text, UnstyledButton } from '@mantine/core';
-import Link from 'next/link';
+import { Stack } from '@mantine/core';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
 import React, { useEffect, useMemo, useState } from 'react';
 
@@ -9,9 +8,9 @@ import ParticipantTournamentLayout, {
 import {
   ParticipantEmpty,
   ParticipantLoading,
+  ParticipantLinkCard,
   ParticipantPageTitle,
 } from '../../../components/participant/ParticipantUi';
-import uiClasses from '../../../components/participant/participant_ui.module.css';
 import {
   fetchDivisionOverview,
   type DivisionOverview,
@@ -113,27 +112,18 @@ export default function ParticipantScoresPage() {
                 const overview = overviewByDivision[d.id];
                 const status = overview?.status ?? 'not_started';
                 return (
-                  <UnstyledButton
+                  <ParticipantLinkCard
                     key={d.id}
-                    component={Link}
                     href={`/t/${slug}/scores/${d.id}${previewQs}`}
-                    className={`${uiClasses.sectionCard} ${uiClasses.sectionCardAccent}`}
-                    style={{ borderLeftColor: SCORE_STATUS_ACCENT[status] }}
-                  >
-                    <Group justify="space-between" wrap="nowrap" align="center" gap="sm">
-                      <div style={{ minWidth: 0 }}>
-                        <Text className={uiClasses.sectionCardLabel}>{d.name}</Text>
-                        <Text className={uiClasses.sectionCardDesc}>
-                          {overview
-                            ? `${overview.groups.length} group${
-                                overview.groups.length === 1 ? '' : 's'
-                              }`
-                            : 'View live scores'}
-                        </Text>
-                      </div>
-                      <ScoreStatusBadge status={status} size="xs" />
-                    </Group>
-                  </UnstyledButton>
+                    title={d.name}
+                    description={
+                      overview
+                        ? `${overview.groups.length} group${overview.groups.length === 1 ? '' : 's'}`
+                        : 'View live scores'
+                    }
+                    accent={SCORE_STATUS_ACCENT[status]}
+                    badge={<ScoreStatusBadge status={status} size="xs" />}
+                  />
                 );
               })}
             </Stack>

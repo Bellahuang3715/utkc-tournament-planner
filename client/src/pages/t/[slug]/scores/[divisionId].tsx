@@ -1,5 +1,4 @@
-import { Group, Stack, Text, UnstyledButton } from '@mantine/core';
-import Link from 'next/link';
+import { Stack } from '@mantine/core';
 import { useRouter } from 'next/router';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
 import React, { useMemo } from 'react';
@@ -10,9 +9,9 @@ import ParticipantTournamentLayout, {
 import {
   ParticipantEmpty,
   ParticipantLoading,
+  ParticipantLinkCard,
   ParticipantPageTitle,
 } from '../../../../components/participant/ParticipantUi';
-import uiClasses from '../../../../components/participant/participant_ui.module.css';
 import {
   groupLabel,
   parseRouteId,
@@ -151,24 +150,14 @@ export default function ParticipantScoresDivisionPage() {
 
             <Stack gap="xs">
               {groups.map((g) => (
-                <UnstyledButton
+                <ParticipantLinkCard
                   key={g.bracketId}
-                  component={Link}
                   href={`/t/${slug}/scores/${divisionId}/${g.bracketId}${previewQs}`}
-                  className={`${uiClasses.sectionCard} ${uiClasses.sectionCardAccent}`}
-                  style={{ borderLeftColor: SCORE_STATUS_ACCENT[g.status] }}
-                >
-                  <Group justify="space-between" wrap="nowrap" align="center" gap="sm">
-                    <div style={{ minWidth: 0 }}>
-                      <Text className={uiClasses.sectionCardLabel}>{groupLabel(g)}</Text>
-                      <Text className={uiClasses.sectionCardDesc}>
-                        {selected.name} · {g.numPlayers}{' '}
-                        {isTeams ? 'teams' : 'players'}
-                      </Text>
-                    </div>
-                    <ScoreStatusBadge status={g.status} size="xs" />
-                  </Group>
-                </UnstyledButton>
+                  title={groupLabel(g)}
+                  description={`${selected.name} · ${g.numPlayers} ${isTeams ? 'teams' : 'players'}`}
+                  accent={SCORE_STATUS_ACCENT[g.status]}
+                  badge={<ScoreStatusBadge status={g.status} size="xs" />}
+                />
               ))}
             </Stack>
           </>

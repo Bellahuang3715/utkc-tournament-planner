@@ -1,4 +1,4 @@
-import { Button, Group, Stack } from "@mantine/core";
+import { Button, Stack } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "next-i18next/pages";
@@ -12,7 +12,6 @@ import { capitalize } from "../components/utils/util";
 import { Club } from "../interfaces/club";
 import { checkForAuthError, getClubs } from "../services/adapter";
 import Layout from "./_layout";
-import classes from "./index.module.css";
 
 export default function Clubs() {
   const { t } = useTranslation();
@@ -37,15 +36,13 @@ export default function Clubs() {
             "Manage dojos and clubs used across tournaments.",
           )}
           actions={
-            <Group gap="sm" className={classes.fullWithMobile}>
-              <Button
-                {...saveAction}
-                leftSection={<IconPlus size={16} />}
-                onClick={() => openClub(null)}
-              >
-                {t("create_club_button", "Add club")}
-              </Button>
-            </Group>
+            <Button
+              {...saveAction}
+              leftSection={<IconPlus size={16} />}
+              onClick={() => openClub(null)}
+            >
+              {t("create_club_button", "Add club")}
+            </Button>
           }
         />
         <ClubsTable swrClubsResponse={swrClubsResponse} onEditClub={openClub} />

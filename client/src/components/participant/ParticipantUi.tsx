@@ -1,8 +1,10 @@
-import { Center, Group, Loader, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Alert, Box, Center, Group, Loader, Text, TextInput, UnstyledButton } from '@mantine/core';
+import Link from 'next/link';
 import { useMediaQuery } from '@mantine/hooks';
 import { IconInfoCircle, IconSearch } from '@tabler/icons-react';
 import React, { ReactNode, useEffect, useRef, useState } from 'react';
 
+import { PageHeader } from '../layout/page_header';
 import { DEFAULT_BOOKLET } from '../utils/brackets_editor/shared';
 import classes from './participant_ui.module.css';
 
@@ -34,23 +36,42 @@ export function ParticipantPageTitle({
   subtitle: string;
   actions?: ReactNode;
 }) {
+  return <PageHeader compact title={title} description={subtitle} actions={actions} />;
+}
+
+export function ParticipantLinkCard({
+  href,
+  title,
+  description,
+  icon,
+  accent,
+  badge,
+}: {
+  href: string;
+  title: ReactNode;
+  description: ReactNode;
+  icon?: ReactNode;
+  accent?: string;
+  badge?: ReactNode;
+}) {
   return (
-    <Group
-      className={classes.pageHeader}
-      justify="space-between"
-      align="flex-end"
-      wrap="wrap"
+    <UnstyledButton
+      component={Link}
+      href={href}
+      className={classes.linkCard}
+      style={accent ? { borderInlineStart: `3px solid ${accent}` } : undefined}
     >
-      <Stack gap={2} style={{ flex: '1 1 14rem', minWidth: 0 }}>
-        <Title order={2} className={classes.pageTitle}>
-          {title}
-        </Title>
-        <Text className={classes.pageSubtitle} c="dimmed">
-          {subtitle}
-        </Text>
-      </Stack>
-      {actions}
-    </Group>
+      <Group justify="space-between" wrap="nowrap" gap="sm">
+        <Group wrap="nowrap" gap="sm" align="flex-start" style={{ minWidth: 0 }}>
+          {icon && <span className={classes.shortcutIcon} aria-hidden>{icon}</span>}
+          <Box miw={0}>
+            <Text className={classes.sectionCardLabel}>{title}</Text>
+            <Text className={classes.sectionCardDesc}>{description}</Text>
+          </Box>
+        </Group>
+        {badge}
+      </Group>
+    </UnstyledButton>
   );
 }
 
@@ -101,13 +122,18 @@ export function ParticipantNotice({
   children: ReactNode;
 }) {
   return (
-    <div className={classes.notice} role="status">
-      <IconInfoCircle className={classes.noticeIcon} stroke={1.75} aria-hidden />
-      <div className={classes.noticeBody}>
-        {title ? <p className={classes.noticeTitle}>{title}</p> : null}
-        <p className={classes.noticeText}>{children}</p>
-      </div>
-    </div>
+    <Alert
+      role="status"
+      variant="light"
+      color="blue"
+      radius="sm"
+      p="xs"
+      icon={<IconInfoCircle size={16} stroke={1.75} aria-hidden />}
+      title={title}
+      classNames={{ title: classes.noticeTitle, message: classes.noticeText }}
+    >
+      {children}
+    </Alert>
   );
 }
 

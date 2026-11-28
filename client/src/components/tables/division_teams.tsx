@@ -8,10 +8,11 @@ import {
 } from "mantine-react-table-open";
 import { useTranslation } from "next-i18next/pages";
 
-import { removeAction, saveAction } from "../buttons/action_styles";
+import { saveAction } from "../buttons/action_styles";
 import { getDivisionTeams, getTeams, getDivisionLock } from "../../services/adapter";
 import AddNewTeamModal from "../modals/add_new_team_modal";
 import RequestErrorAlert from "../utils/error_alert";
+import { WarningAlert } from "../utils/warning_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
 import { EmptyRoster } from "../no_content/empty_table_info";
 import {
@@ -31,6 +32,12 @@ import {
   pickClosestSizesTeams,
 } from "../utils/seeding_teams";
 import { categoryChipBackground, chipTextColor } from "../../utils/chipStyle";
+import {
+  RosterActions,
+  RosterSelectionAction,
+  rosterTableInitialState,
+  rosterTablePresentation,
+} from "./roster_actions";
 
 export default function DivisionTeamsTable({
   tournamentId,
@@ -329,6 +336,7 @@ export default function DivisionTeamsTable({
   };
 
   const table = useMantineReactTable({
+    ...rosterTablePresentation,
     columns,
     data: teams,
     getRowId: (row) => String(row.id),
@@ -337,13 +345,13 @@ export default function DivisionTeamsTable({
     enableStickyHeader: true,
     enableColumnPinning: true,
     enableRowNumbers: true,
-    initialState: { showColumnFilters: false, density: "xs" },
+    initialState: { ...rosterTableInitialState, showColumnFilters: false },
     renderTopToolbarCustomActions: ({ table: tableInstance }) => {
       const selected = tableInstance
         .getSelectedRowModel()
         .rows.map((r) => r.original.id);
       return (
-        <Group gap="xs">
+        <RosterActions>
           <Button
             {...saveAction}
             size="xs"
@@ -360,15 +368,14 @@ export default function DivisionTeamsTable({
           >
             {t("add_teams_to_division", "Add teams to division")}
           </Button>
-          <Button
-            {...removeAction}
+          <RosterSelectionAction
             size="xs"
             onClick={() => void handleRemoveSelected(tableInstance, selected)}
             disabled={locked || !selected.length}
           >
             {t("remove_from_division", "Remove from division")}
-          </Button>
-        </Group>
+          </RosterSelectionAction>
+        </RosterActions>
       );
     },
   });
@@ -384,14 +391,14 @@ export default function DivisionTeamsTable({
     return (
       <>
         {locked && (
-          <Alert color="orange" mb="sm" title={t("division_locked", "Locked")}>
+          <WarningAlert mb="sm" title={t("division_locked", "Locked")}>
             {t(
               "division_locked_roster_alert",
               "Scorekeeping has started — roster and seeding are locked. Unlock from Scores by clearing all scores.",
             )}
-          </Alert>
+          </WarningAlert>
         )}
-        <Group mb="sm" justify="flex-start" gap="xs">
+        <RosterActions mb="sm" justify="flex-start">
           <Button
             {...saveAction}
             size="sm"
@@ -408,7 +415,7 @@ export default function DivisionTeamsTable({
           >
             {t("add_teams_to_division", "Add teams to division")}
           </Button>
-        </Group>
+        </RosterActions>
         <EmptyRoster
           icon={<IconUsersGroup size={22} stroke={1.5} />}
           title={t("no_teams_in_division_title", "No teams in this division")}
@@ -430,12 +437,12 @@ export default function DivisionTeamsTable({
   return (
     <>
       {locked && (
-        <Alert color="orange" mb="sm" title={t("division_locked", "Locked")}>
+        <WarningAlert mb="sm" title={t("division_locked", "Locked")}>
           {t(
             "division_locked_roster_alert",
             "Scorekeeping has started — roster and seeding are locked. Unlock from Scores by clearing all scores.",
           )}
-        </Alert>
+        </WarningAlert>
       )}
       <AddNewTeamModal
         tournamentId={tournamentId}

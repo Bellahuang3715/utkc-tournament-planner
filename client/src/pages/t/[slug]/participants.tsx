@@ -96,7 +96,13 @@ export default function ParticipantPlayersPage() {
 
         {clubs.length > 0 && (
           <Accordion
-            className={uiClasses.accordion}
+            classNames={{
+              control: uiClasses.accordionControl,
+              label: uiClasses.accordionLabel,
+              panel: uiClasses.accordionPanel,
+              content: uiClasses.accordionContent,
+              item: uiClasses.accordionItem,
+            }}
             variant="separated"
             radius="sm"
             multiple

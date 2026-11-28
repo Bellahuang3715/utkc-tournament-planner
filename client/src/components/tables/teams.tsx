@@ -28,7 +28,6 @@ import { mkConfig, generateCsv, download } from "export-to-csv";
 
 import {
   editIconAction,
-  removeAction,
   removeIconAction,
   saveAction,
 } from "../buttons/action_styles";
@@ -42,6 +41,12 @@ import TeamModal from "../modals/team_modal";
 import { EmptyRoster } from "../no_content/empty_table_info";
 import RequestErrorAlert from "../utils/error_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
+import {
+  RosterActions,
+  RosterSelectionAction,
+  rosterTableInitialState,
+  rosterTablePresentation,
+} from "./roster_actions";
 
 export default function TeamsTable({
   tournamentData,
@@ -239,6 +244,7 @@ export default function TeamsTable({
   }, [t, teams]);
 
   const table = useMantineReactTable({
+    ...rosterTablePresentation,
     columns,
     data: teams,
     getRowId: (row) => String(row.id),
@@ -250,13 +256,13 @@ export default function TeamsTable({
     enableColumnOrdering: false,
     enableColumnPinning: true,
     initialState: {
-      density: "xs",
+      ...rosterTableInitialState,
       showColumnFilters: false,
     },
     renderTopToolbarCustomActions: ({ table: tableInstance }) => {
       const selected = tableInstance.getSelectedRowModel().rows;
       return (
-        <Group gap="xs">
+        <RosterActions>
           <Button
             {...saveAction}
             leftSection={<IconPlus size={16} />}
@@ -271,9 +277,8 @@ export default function TeamsTable({
           >
             {t("manage_teams_categories", "Manage Teams Categories")}
           </Button>
-          <Button
-            leftSection={<IconTrash size={16} />}
-            {...removeAction}
+          <RosterSelectionAction
+            showIcon
             disabled={!selected.length}
             onClick={async () => {
               await handleDeleteRows(selected);
@@ -281,8 +286,8 @@ export default function TeamsTable({
             }}
           >
             {t("delete_selected", "Delete selected")}
-          </Button>
-        </Group>
+          </RosterSelectionAction>
+        </RosterActions>
       );
     },
     renderBottomToolbarCustomActions: ({ table: tableInstance }) => (
@@ -324,7 +329,7 @@ export default function TeamsTable({
       />
       {teams.length === 0 ? (
         <Stack gap="md">
-          <Group gap="xs">
+          <RosterActions>
             <Button {...saveAction} leftSection={<IconPlus size={16} />} onClick={openCreate}>
               {t("add_team_button", "Add team")}
             </Button>
@@ -335,7 +340,7 @@ export default function TeamsTable({
             >
               {t("manage_teams_categories", "Manage Teams Categories")}
             </Button>
-          </Group>
+          </RosterActions>
           <EmptyRoster
             icon={<IconUsersGroup size={22} stroke={1.5} />}
             title={t("no_teams_title", "No teams yet")}

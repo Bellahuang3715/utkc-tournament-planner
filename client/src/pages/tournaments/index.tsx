@@ -1,4 +1,4 @@
-import { Group, Stack } from "@mantine/core";
+import { Stack } from "@mantine/core";
 import { GetStaticProps } from "next";
 import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
@@ -9,7 +9,6 @@ import TournamentModal from "../../components/modals/tournament_modal";
 import { capitalize } from "../../components/utils/util";
 import { getTournaments } from "../../services/adapter";
 import Layout from "../_layout";
-import classes from "../index.module.css";
 
 export default function TournamentsPage() {
   const swrTournamentsResponse = getTournaments();
@@ -25,9 +24,7 @@ export default function TournamentsPage() {
             "Create a tournament or open one to manage players, brackets, and scores.",
           )}
           actions={
-            <Group gap="sm" className={classes.fullWithMobile}>
-              <TournamentModal swrTournamentsResponse={swrTournamentsResponse} />
-            </Group>
+            <TournamentModal swrTournamentsResponse={swrTournamentsResponse} />
           }
         />
         <TournamentsCardTable swrTournamentsResponse={swrTournamentsResponse} />

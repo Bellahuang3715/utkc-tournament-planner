@@ -14,7 +14,7 @@
   min-height: 100dvh;
   color: var(--ink);
   background: var(--paper);
-  font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+  font-family: var(--mantine-font-family);
   line-height: 1.5;
   overflow-x: clip;
 }
@@ -46,7 +46,7 @@
 }
 
 .display {
-  font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+  font-family: var(--mantine-font-family);
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.05;
@@ -117,7 +117,7 @@
 }
 
 .brandName {
-  font-family: "Syne", "Sora", sans-serif;
+  font-family: "Syne", var(--mantine-font-family);
   font-weight: 700;
   letter-spacing: -0.04em;
   font-size: clamp(1.65rem, 2.4vw, 1.9rem);
@@ -345,7 +345,7 @@
 
 .brandHero {
   margin: 0 0 18px;
-  font-family: "Syne", "Sora", sans-serif;
+  font-family: "Syne", var(--mantine-font-family);
   letter-spacing: -0.04em;
   font-size: clamp(3.4rem, 8vw, 5.6rem);
   line-height: 0.92;
@@ -1081,7 +1081,7 @@
 
 .featureTitle {
   margin: 0;
-  font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+  font-family: var(--mantine-font-family);
   font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -1905,7 +1905,7 @@
 
 .prose h3 {
   margin: 28px 0 0;
-  font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+  font-family: var(--mantine-font-family);
   font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: -0.02em;

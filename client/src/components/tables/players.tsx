@@ -27,7 +27,6 @@ import { mkConfig, generateCsv, download } from "export-to-csv";
 
 import {
   editIconAction,
-  removeAction,
   removeIconAction,
   saveAction,
 } from "../buttons/action_styles";
@@ -43,6 +42,12 @@ import { EmptyRoster } from "../no_content/empty_table_info";
 import RequestErrorAlert from "../utils/error_alert";
 import { TableSkeletonSingleColumn } from "../utils/skeletons";
 import { GenerateBracketsButton } from "../modals/bracket_create_modal";
+import {
+  RosterActions,
+  RosterSelectionAction,
+  rosterTableInitialState,
+  rosterTablePresentation,
+} from "./roster_actions";
 
 export default function PlayersTable({
   swrPlayersResponse,
@@ -227,6 +232,7 @@ export default function PlayersTable({
   }, [playerFields, t]);
 
   const table = useMantineReactTable({
+    ...rosterTablePresentation,
     columns,
     data: players,
     getRowId: (row) => String(row.id),
@@ -241,13 +247,13 @@ export default function PlayersTable({
     enableRowPinning: true,
     rowPinningDisplayMode: "select-sticky",
     initialState: {
-      density: "xs",
+      ...rosterTableInitialState,
       showColumnFilters: true,
     },
     renderTopToolbarCustomActions: ({ table: tableInstance }) => {
       const selected = tableInstance.getSelectedRowModel().rows;
       return (
-        <Group gap="xs">
+        <RosterActions>
           <Button
             {...saveAction}
             leftSection={<IconPlus size={16} />}
@@ -262,9 +268,8 @@ export default function PlayersTable({
           >
             {t("configure_template", "Manage Player Fields")}
           </Button>
-          <Button
-            leftSection={<IconTrash size={16} />}
-            {...removeAction}
+          <RosterSelectionAction
+            showIcon
             disabled={!selected.length}
             onClick={async () => {
               tableInstance.resetRowSelection();
@@ -273,8 +278,8 @@ export default function PlayersTable({
             }}
           >
             {t("delete_selected", "Delete selected")}
-          </Button>
-        </Group>
+          </RosterSelectionAction>
+        </RosterActions>
       );
     },
     renderBottomToolbarCustomActions: ({ table: tableInstance }) => (
@@ -348,7 +353,7 @@ export default function PlayersTable({
       />
       {players.length === 0 ? (
         <Stack gap="md">
-          <Group gap="xs">
+          <RosterActions>
             <Button
               {...saveAction}
               leftSection={<IconPlus size={16} />}
@@ -365,7 +370,7 @@ export default function PlayersTable({
                 {t("configure_template", "Manage Player Fields")}
               </Button>
             ) : null}
-          </Group>
+          </RosterActions>
           <EmptyRoster
             icon={<IconUsers size={22} stroke={1.5} />}
             title={t("no_players_title", "No players yet")}

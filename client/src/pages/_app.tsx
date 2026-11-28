@@ -17,14 +17,15 @@ import PrivateRoute from "../components/protector/private_route";
 
 // import "bootstrap/dist/css/bootstrap.min.css";
 import "tournament-brackets-ui/style.css";
-import "../styles/global.css";
+
+const appFontFamily = '"Sora", "Avenir Next", "Segoe UI", sans-serif';
 
 const theme = createTheme({
   // App UI: Sora throughout. Syne is reserved for the KenManage wordmark.
-  fontFamily: '"Sora", "Avenir Next", "Segoe UI", sans-serif',
+  fontFamily: appFontFamily,
   fontFamilyMonospace: 'ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace',
   headings: {
-    fontFamily: '"Sora", "Avenir Next", "Segoe UI", sans-serif',
+    fontFamily: appFontFamily,
     fontWeight: '700',
     sizes: {
       h1: { fontSize: '2.25rem', lineHeight: '1.15' },
@@ -55,41 +56,6 @@ const theme = createTheme({
       styles: {
         root: {
           letterSpacing: '-0.02em',
-        },
-      },
-    },
-    // MRT tables use Mantine Table / Paper; force Sora through those shells.
-    Table: {
-      styles: {
-        table: {
-          fontFamily: '"Sora", "Avenir Next", "Segoe UI", sans-serif',
-        },
-        th: {
-          fontFamily: '"Sora", "Avenir Next", "Segoe UI", sans-serif',
-        },
-        td: {
-          fontFamily: '"Sora", "Avenir Next", "Segoe UI", sans-serif',
-        },
-      },
-    },
-    Paper: {
-      styles: {
-        root: {
-          fontFamily: '"Sora", "Avenir Next", "Segoe UI", sans-serif',
-        },
-      },
-    },
-    TextInput: {
-      styles: {
-        input: {
-          fontFamily: '"Sora", "Avenir Next", "Segoe UI", sans-serif',
-        },
-      },
-    },
-    Button: {
-      styles: {
-        root: {
-          fontFamily: '"Sora", "Avenir Next", "Segoe UI", sans-serif',
         },
       },
     },

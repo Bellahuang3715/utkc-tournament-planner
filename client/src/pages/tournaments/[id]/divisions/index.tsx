@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   Accordion,
   ActionIcon,
-  Alert,
   Badge,
   Button,
   Center,
@@ -31,6 +30,7 @@ import DivisionPlayersTable from "../../../../components/tables/division_players
 import DivisionTeamsTable from "../../../../components/tables/division_teams";
 import { getDivisions, getClubs, getDivisionLock } from "../../../../services/adapter";
 import RequestErrorAlert from "../../../../components/utils/error_alert";
+import { WarningAlert } from "../../../../components/utils/warning_alert";
 import { deleteDivision } from "../../../../services/division";
 import {
   BracketPairsSection,
@@ -89,12 +89,12 @@ function EditTreesControls({
   return (
     <Stack gap="sm">
       {locked && (
-        <Alert color="orange" title={t("division_locked", "Locked")}>
+        <WarningAlert title={t("division_locked", "Locked")}>
           {t(
             "division_locked_roster_alert",
             "Scorekeeping has started — roster and seeding are locked. Unlock from Scores by clearing all scores.",
           )}
-        </Alert>
+        </WarningAlert>
       )}
       <Group justify="space-between" align="center" wrap="wrap">
         <Text c="dimmed" size="sm" maw={420}>
