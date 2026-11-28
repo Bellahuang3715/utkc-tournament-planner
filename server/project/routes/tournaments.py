@@ -57,6 +57,8 @@ from project.utils.id_types import TournamentId
 from project.utils.logging import logger
 
 router = APIRouter()
+MAX_LOGO_BYTES = 5 * 1024 * 1024
+LOGO_SIGNATURES = {".png": b"\x89PNG\r\n\x1a\n", ".jpg": b"\xff\xd8\xff", ".jpeg": b"\xff\xd8\xff"}
 forbidden_dashboard_exception = HTTPException(
     status_code=status.HTTP_403_FORBIDDEN,
     detail="This participant site is not published",
@@ -246,27 +248,43 @@ async def upload_logo(
     filename: str | None = None
     new_logo_path: str | None = None
 
-    if file:
-        assert file.filename is not None
-        extension = os.path.splitext(file.filename)[1]
-        assert extension in (".png", ".jpg", ".jpeg")
+    if file is not None:
+        extension = os.path.splitext(file.filename or "")[1].lower()
+        signature = LOGO_SIGNATURES.get(extension)
+        if signature is None:
+            raise HTTPException(415, "Tournament logos must be PNG or JPEG images")
+
+        if file.size is not None and file.size > MAX_LOGO_BYTES:
+            raise HTTPException(413, "Tournament logos must be 5 MiB or smaller")
+        content = await file.read(MAX_LOGO_BYTES + 1)
+        if len(content) > MAX_LOGO_BYTES:
+            raise HTTPException(413, "Tournament logos must be 5 MiB or smaller")
+        if not content.startswith(signature):
+            raise HTTPException(415, "Tournament logo contents do not match the image format")
 
         filename = f"{uuid4()}{extension}"
-        new_logo_path = f"static/tournament-logos/{filename}" if file is not None else None
+        new_logo_path = f"static/tournament-logos/{filename}"
+        await aiofiles.os.makedirs("static/tournament-logos", exist_ok=True)
+        async with aiofiles.open(new_logo_path, "wb") as uploaded_logo:
+            await uploaded_logo.write(content)
 
-        if new_logo_path:
-            await aiofiles.os.makedirs("static/tournament-logos", exist_ok=True)
-            async with aiofiles.open(new_logo_path, "wb") as f:
-                await f.write(await file.read())
+    try:
+        await database.execute(
+            tournaments.update().where(tournaments.c.id == tournament_id),
+            values={"logo_path": filename},
+        )
+    except Exception:
+        if new_logo_path is not None:
+            try:
+                await aiofiles.os.remove(new_logo_path)
+            except OSError:
+                logger.exception("Could not remove an unsaved tournament logo")
+        raise
 
     if old_logo_path is not None and old_logo_path != new_logo_path:
         try:
             await aiofiles.os.remove(old_logo_path)
-        except Exception as exc:
-            logger.error(f"Could not remove logo that should still exist: {old_logo_path}\n{exc}")
+        except OSError:
+            logger.exception("Could not remove the previous tournament logo")
 
-    await database.execute(
-        tournaments.update().where(tournaments.c.id == tournament_id),
-        values={"logo_path": filename},
-    )
     return TournamentResponse(data=await sql_get_tournament(tournament_id))

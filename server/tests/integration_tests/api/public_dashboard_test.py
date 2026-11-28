@@ -50,12 +50,31 @@ async def test_public_players_readable_without_auth(
     startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
 ) -> None:
     endpoint = auth_context.tournament.dashboard_endpoint
-    response = await send_request(
-        HTTPMethod.GET,
-        f"public/tournaments/{endpoint}/players",
+    private_fields = {"email": "registration@example.org", "paid": True}
+    dummy = DUMMY_PLAYER1.model_copy(
+        update={
+            "tournament_id": auth_context.tournament.id,
+            "club_id": auth_context.club.id,
+            "data": {"rank": "1D", **private_fields},
+        }
     )
-    assert "data" in response
-    assert "players" in response["data"]
+    async with inserted_player(dummy) as player:
+        status, public = await send_request_with_status(
+            HTTPMethod.GET, f"public/tournaments/{endpoint}/players"
+        )
+        assert status == 200
+        public_player = next(row for row in public["data"]["players"] if row["id"] == player.id)
+        assert public_player["name"] == player.name
+        assert public_player["data"] == {"rank": "1D"}
+
+        status, private = await send_request_with_status(
+            HTTPMethod.GET,
+            f"tournaments/{auth_context.tournament.id}/players",
+            headers=auth_context.headers,
+        )
+        assert status == 200
+        private_player = next(row for row in private["data"]["players"] if row["id"] == player.id)
+        assert private_player["data"] == {"rank": "1D", **private_fields}
 
 
 async def test_public_cannot_mutate_divisions(

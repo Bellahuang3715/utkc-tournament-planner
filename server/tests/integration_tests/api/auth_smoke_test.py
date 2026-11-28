@@ -2,12 +2,12 @@
 
 from uuid import uuid4
 
-from project.utils.dummy_records import DUMMY_TOURNAMENT
+from project.utils.dummy_records import DUMMY_PLAYER1, DUMMY_TOURNAMENT
 from project.utils.http import HTTPMethod
 from tests.integration_tests.api.shared import send_auth_request, send_request_with_status
 from tests.integration_tests.mocks import get_mock_user
 from tests.integration_tests.models import AuthContext
-from tests.integration_tests.sql import inserted_tournament, inserted_user
+from tests.integration_tests.sql import inserted_player, inserted_tournament, inserted_user
 
 
 async def test_invalid_token_rejected(
@@ -71,3 +71,24 @@ async def test_valid_firebase_token_without_local_account_is_rejected(
         headers={"Authorization": f"Bearer test:unregistered-{uuid4()}@example.org"},
     )
     assert (status, response) == (401, {"detail": "User not found"})
+
+
+async def test_outsider_cannot_delete_another_tournaments_player(
+    startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
+) -> None:
+    dummy = DUMMY_PLAYER1.model_copy(
+        update={"tournament_id": auth_context.tournament.id, "club_id": auth_context.club.id}
+    )
+    async with inserted_user(get_mock_user()) as outsider, inserted_player(dummy) as player:
+        roster = f"tournaments/{auth_context.tournament.id}/players"
+        status, _ = await send_request_with_status(
+            HTTPMethod.DELETE,
+            f"{roster}/{player.id}",
+            headers={"Authorization": f"Bearer test:{outsider.email}"},
+        )
+        assert status == 403
+        status, response = await send_request_with_status(
+            HTTPMethod.GET, roster, headers=auth_context.headers
+        )
+        assert status == 200
+        assert any(row["id"] == player.id for row in response["data"]["players"])

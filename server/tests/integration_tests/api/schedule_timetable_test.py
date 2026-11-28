@@ -1,10 +1,19 @@
 from uuid import uuid4
 
+from project.models.db.bracket import Bracket, BracketInsertable
+from project.schema import brackets
 from project.utils.dummy_records import DUMMY_COURT1, DUMMY_TOURNAMENT
 from project.utils.http import HTTPMethod
 from tests.integration_tests.api.shared import send_request_with_status
+from tests.integration_tests.mocks import get_mock_user
 from tests.integration_tests.models import AuthContext
-from tests.integration_tests.sql import inserted_court, inserted_tournament
+from tests.integration_tests.sql import (
+    inserted_court,
+    inserted_division,
+    inserted_generic,
+    inserted_tournament,
+    inserted_user,
+)
 
 
 async def test_schedule_replacement_is_public_and_rolls_back_on_invalid_reference(
@@ -71,7 +80,7 @@ async def test_schedule_replacement_is_public_and_rolls_back_on_invalid_referenc
                 },
             )
             assert status == 400
-            assert error == {"detail": "The schedule references a court that no longer exists"}
+            assert error == {"detail": "The schedule references a court outside this tournament"}
             assert await send_request_with_status(
                 HTTPMethod.GET, endpoint, headers=auth_context.headers
             ) == (200, replaced)
@@ -79,3 +88,127 @@ async def test_schedule_replacement_is_public_and_rolls_back_on_invalid_referenc
                 200,
                 replaced,
             )
+
+
+async def test_schedule_rejects_references_outside_the_tournament(
+    startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
+) -> None:
+    tournament_id = auth_context.tournament.id
+    endpoint = f"tournaments/{tournament_id}/schedule_timetable"
+    async with (
+        inserted_user(get_mock_user()) as outsider,
+        inserted_tournament(
+            DUMMY_TOURNAMENT.model_copy(
+                update={
+                    "creator_id": outsider.id,
+                    "dashboard_endpoint": f"other-schedule-{uuid4()}",
+                    "dashboard_preview_token": None,
+                }
+            )
+        ) as other_tournament,
+        inserted_court(
+            DUMMY_COURT1.model_copy(update={"tournament_id": other_tournament.id})
+        ) as other_court,
+        inserted_division(tournament_id=other_tournament.id) as other_division,
+        inserted_generic(
+            BracketInsertable(index=1, division_id=other_division.id, num_players=5),
+            brackets,
+            Bracket,
+        ) as other_bracket,
+    ):
+        empty = {"placements": [], "custom_blocks": []}
+        assert (await send_request_with_status(HTTPMethod.PUT, endpoint, json=empty))[0] == 401
+        assert (
+            await send_request_with_status(
+                HTTPMethod.PUT,
+                endpoint,
+                headers={"Authorization": f"Bearer test:{outsider.email}"},
+                json=empty,
+            )
+        )[0] == 403
+
+        placement = {
+            "id": "draft",
+            "court_id": None,
+            "start_time": "2026-06-01T09:00:00Z",
+            "duration_mins": 30,
+            "kind": "custom",
+            "label": "Warm-up",
+        }
+        headers = auth_context.headers
+        status, saved = await send_request_with_status(
+            HTTPMethod.PUT,
+            endpoint,
+            headers=headers,
+            json={"placements": [placement], "custom_blocks": []},
+        )
+        assert status == 200
+        try:
+            for field, value, resource in [
+                ("court_id", other_court.id, "court"),
+                ("division_id", other_division.id, "division"),
+                ("bracket_id", other_bracket.id, "bracket"),
+            ]:
+                assert await send_request_with_status(
+                    HTTPMethod.PUT,
+                    endpoint,
+                    headers=headers,
+                    json={"placements": [{**placement, field: value}], "custom_blocks": []},
+                ) == (
+                    400,
+                    {"detail": f"The schedule references a {resource} outside this tournament"},
+                )
+                assert await send_request_with_status(
+                    HTTPMethod.GET, endpoint, headers=headers
+                ) == (
+                    200,
+                    saved,
+                )
+            async with (
+                inserted_division(
+                    tournament_id=tournament_id, name="Scheduled division"
+                ) as division,
+                inserted_division(
+                    tournament_id=tournament_id, name="Different division", prefix=None
+                ) as different,
+                inserted_generic(
+                    BracketInsertable(index=1, division_id=division.id, num_players=5),
+                    brackets,
+                    Bracket,
+                ) as bracket,
+            ):
+                scheduled = {
+                    **placement,
+                    "kind": "division",
+                    "division_id": division.id,
+                    "bracket_id": bracket.id,
+                }
+                status, saved = await send_request_with_status(
+                    HTTPMethod.PUT,
+                    endpoint,
+                    headers=headers,
+                    json={"placements": [scheduled], "custom_blocks": []},
+                )
+                assert status == 200
+                assert saved["data"]["placements"][0]["bracket_id"] == bracket.id
+                status, error = await send_request_with_status(
+                    HTTPMethod.PUT,
+                    endpoint,
+                    headers=headers,
+                    json={
+                        "placements": [{**scheduled, "division_id": different.id}],
+                        "custom_blocks": [],
+                    },
+                )
+                assert (status, error) == (
+                    400,
+                    {"detail": "The schedule bracket does not belong to its selected division"},
+                )
+                assert await send_request_with_status(
+                    HTTPMethod.GET, endpoint, headers=headers
+                ) == (
+                    200,
+                    saved,
+                )
+        finally:
+            await send_request_with_status(HTTPMethod.PUT, endpoint, headers=headers, json=empty)

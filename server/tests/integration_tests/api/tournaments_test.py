@@ -7,6 +7,7 @@ import aiohttp
 from project.database import database
 from project.logic.tournaments import sql_delete_tournament_completely
 from project.models.db.tournament import Tournament
+from project.routes.tournaments import MAX_LOGO_BYTES
 from project.schema import tournaments
 from project.sql.tournaments import sql_get_tournament_by_endpoint_name
 from project.utils.db import fetch_one_parsed_certain
@@ -178,6 +179,29 @@ async def test_tournament_upload_and_remove_logo(
     logo_path = response["data"]["logo_path"]
     assert logo_path, f"Response: {response}"
     assert await aiofiles.os.path.exists(f"static/tournament-logos/{logo_path}")
+
+    for filename, content, expected_status in [
+        ("logo.txt", b"not an image", 415),
+        ("logo.png", b"not an image", 415),
+        ("logo.png", png_bytes.ljust(MAX_LOGO_BYTES + 1, b"\0"), 413),
+    ]:
+        invalid_file = aiohttp.FormData()
+        invalid_file.add_field("file", io.BytesIO(content), filename=filename)
+        status, _ = await send_request_with_status(
+            HTTPMethod.POST,
+            f"tournaments/{auth_context.tournament.id}/logo",
+            headers=auth_context.headers,
+            body=invalid_file,
+        )
+        assert status == expected_status
+        status, unchanged = await send_request_with_status(
+            HTTPMethod.GET,
+            f"tournaments/{auth_context.tournament.id}",
+            headers=auth_context.headers,
+        )
+        assert status == 200
+        assert unchanged["data"]["logo_path"] == logo_path
+        assert await aiofiles.os.path.exists(f"static/tournament-logos/{logo_path}")
 
     response = await send_tournament_request(
         method=HTTPMethod.POST, endpoint="logo", auth_context=auth_context, body=aiohttp.FormData()

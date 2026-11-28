@@ -79,9 +79,16 @@ async def public_list_players(
     preview: str | None = None,
 ) -> PlayersResponse:
     tournament = await _resolve_public_tournament(endpoint_name, preview)
+    players = await get_all_players_in_tournament(tournament.id)
+    public_players = []
+    for player in players:
+        rank = player.data.get("rank")
+        # Imported fields can contain registration details. Expose only the rank used by the roster.
+        public_data = {"rank": rank} if isinstance(rank, str) else {}
+        public_players.append(player.model_copy(update={"data": public_data}))
     return PlayersResponse(
         data=PaginatedPlayers(
-            players=await get_all_players_in_tournament(tournament.id),
+            players=public_players,
             count=await get_player_count(tournament.id),
         )
     )
