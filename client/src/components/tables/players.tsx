@@ -1,5 +1,5 @@
 import { useTranslation } from "next-i18next/pages";
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SWRResponse } from "swr";
 import {
   MantineReactTable,

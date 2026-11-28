@@ -1,6 +1,5 @@
 import { Center, Group, Image, Text, UnstyledButton } from '@mantine/core';
 import Link from 'next/link';
-import React from 'react';
 
 import { LOGO_SRC } from '../marketing/fixtures';
 
@@ -34,14 +33,6 @@ export function Brand() {
           </Text>
         </Group>
       </UnstyledButton>
-    </Center>
-  );
-}
-
-export function BrandFooter() {
-  return (
-    <Center mr="1rem">
-      <Image src={LOGO_SRC} alt="KenManage" h={28} w="auto" fit="contain" style={{ maxWidth: 140 }} />
     </Center>
   );
 }

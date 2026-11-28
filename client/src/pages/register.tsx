@@ -12,7 +12,7 @@ import { useForm } from "@mantine/form";
 import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import { useRouter } from "next/router";
-import React, { useState } from "react";
+import { useState } from "react";
 
 import { CircleFlag } from "react-circle-flags";
 

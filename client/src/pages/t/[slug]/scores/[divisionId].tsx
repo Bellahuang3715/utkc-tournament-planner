@@ -1,7 +1,7 @@
 import { Stack } from '@mantine/core';
 import { useRouter } from 'next/router';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 
 import ParticipantTournamentLayout, {
   useParticipantTournamentSlug,

@@ -2,7 +2,7 @@ import { Alert, Box, Center, Group, Loader, Text, TextInput, UnstyledButton } fr
 import Link from 'next/link';
 import { useMediaQuery } from '@mantine/hooks';
 import { IconInfoCircle, IconSearch } from '@tabler/icons-react';
-import React, { ReactNode, useEffect, useRef, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 
 import { PageHeader } from '../layout/page_header';
 import { DEFAULT_BOOKLET } from '../utils/brackets_editor/shared';

@@ -23,13 +23,6 @@ async def fetch_one_parsed_certain(
     return assert_some(await fetch_one_parsed(database, model, query))
 
 
-async def fetch_all_parsed(
-    database: Database, model: type[BaseModelT], query: Select
-) -> list[BaseModelT]:
-    records = await database.fetch_all(query)
-    return [model.model_validate(dict(record._mapping)) for record in records]
-
-
 async def insert_generic(
     database: Database, data_model: BaseModelT, table: Table, return_type: type[BaseModelT]
 ) -> tuple[int, BaseModelT]:

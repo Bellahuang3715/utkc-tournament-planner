@@ -1,6 +1,5 @@
 import { Stack } from '@mantine/core';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
-import React from 'react';
 
 import ParticipantTournamentLayout from '../../../components/participant/ParticipantTournamentLayout';
 import {

@@ -1,4 +1,3 @@
-import React from 'react';
 import HCaptcha from '@hcaptcha/react-hcaptcha';
 import { Center } from '@mantine/core';
 import { useRouter } from 'next/router';

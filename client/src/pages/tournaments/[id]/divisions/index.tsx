@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Accordion,
   ActionIcon,
@@ -121,7 +121,6 @@ function EditTreesControls({
 
 export default function BracketsPage() {
   const { t } = useTranslation();
-  const router = useRouter();
 
   // control which accordion item is open (so we can know collapsed/expanded)
   const [openItem, setOpenItem] = useState<string | null>(null);
@@ -460,10 +459,7 @@ export default function BracketsPage() {
                                 formatStyles={DEFAULT_BOOKLET}
                               />
                             ) : (
-                              <PosterGroupsSection
-                                brackets={brackets}
-                                formatStyles={DEFAULT_POSTER}
-                              />
+                              <PosterGroupsSection brackets={brackets} />
                             )}
                           </Stack>
                         </Stack>

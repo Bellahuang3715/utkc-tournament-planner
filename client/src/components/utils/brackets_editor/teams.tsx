@@ -24,7 +24,7 @@ import TournamentLayout from "../../../pages/tournaments/_tournament_layout";
 import { EmptyRoster } from "../../no_content/empty_table_info";
 import { PageHeader } from "../../layout/page_header";
 import { getTournamentIdFromRouter } from "../util";
-import { toUITeams, toUITeamNames } from "../../../services/bracket";
+import { toUITeamNames } from "../../../services/bracket";
 import {
   fetchDivisionBracketsWithTeams,
   replaceDivisionBracketsTeams,

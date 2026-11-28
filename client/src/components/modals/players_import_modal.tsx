@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Alert,
   Button,
@@ -66,7 +66,6 @@ const normalizeHeader = (s: string) =>
   s.trim().toLowerCase().replace(/\s+/g, " ");
 
 const detectNameCols = (
-  headers: string[],
   headerRowNum: number,
   wb: ExcelJS.Workbook | null,
   sheet: string,
@@ -113,7 +112,7 @@ const countPlayersUntilEmptyName = (
   const ws = wb.getWorksheet(sheet);
   if (!ws) return null;
 
-  const nameCols = detectNameCols([], headerRowNum, wb, sheet);
+  const nameCols = detectNameCols(headerRowNum, wb, sheet);
   if (!nameCols.name && !nameCols.first && !nameCols.last) {
     // no detectable name columns -> can't count reliably
     return null;

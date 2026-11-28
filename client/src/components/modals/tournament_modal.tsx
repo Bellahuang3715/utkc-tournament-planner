@@ -10,7 +10,7 @@ import { useForm } from "@mantine/form";
 import { GoPlus } from 'react-icons/go';
 import { IconCalendar } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next/pages";
-import React, { useState } from "react";
+import { useState } from "react";
 import { SWRResponse } from "swr";
 
 import { Tournament } from "../../interfaces/tournament";

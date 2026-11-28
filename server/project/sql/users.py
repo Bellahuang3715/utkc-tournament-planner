@@ -6,35 +6,8 @@ from project.schema import users
 from project.sql.clubs import get_clubs_owned_by_user_id, sql_delete_club
 from project.sql.tournaments import sql_get_tournaments
 from project.utils.db import fetch_one_parsed
-from project.utils.id_types import ClubId, TournamentId, UserId
+from project.utils.id_types import UserId
 from project.utils.types import assert_some
-
-
-async def get_user_access_to_tournament(tournament_id: TournamentId, user_id: UserId) -> bool:
-    query = """
-        SELECT id
-        FROM tournaments
-        WHERE id = :tournament_id
-          AND creator_id = :user_id
-        """
-    result = await database.fetch_one(
-        query=query, values={"tournament_id": tournament_id, "user_id": user_id}
-    )
-    return result is not None
-
-
-async def get_which_clubs_has_user_access_to(user_id: UserId) -> set[ClubId]:
-    query = """
-        SELECT id AS club_id
-        FROM clubs
-        WHERE creator_id = :user_id
-        """
-    result = await database.fetch_all(query=query, values={"user_id": user_id})
-    return {ClubId(row["club_id"]) for row in result}
-
-
-async def get_user_access_to_club(club_id: ClubId, user_id: UserId) -> bool:
-    return club_id in await get_which_clubs_has_user_access_to(user_id)
 
 
 async def update_user(user_id: UserId, user: UserToUpdate) -> None:

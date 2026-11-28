@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { removeIconAction, saveAction } from "../buttons/action_styles";
 import {
   Alert,

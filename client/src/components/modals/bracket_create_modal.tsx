@@ -31,7 +31,6 @@ import {
 } from "../../services/division";
 import {
   DivisionType,
-  DivisionPlayer,
   type Division,
   type IndividualsPlayerMembership,
 } from "../../interfaces/division";
@@ -39,7 +38,6 @@ import { getTournamentIdFromRouter } from "../utils/util";
 import {
   assignBrackets,
   getBracketSizeOptions,
-  pickBracketSizes,
   MIN_BRACKET_SIZE,
 } from "../utils/seeding";
 import { fetchDivisionPlayers } from "../../services/division";
@@ -298,13 +296,6 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
     () =>
       opened && selectedCount >= MIN_BRACKET_SIZE
         ? getBracketSizeOptions(selectedCount)
-        : [],
-    [opened, selectedCount]
-  );
-  const defaultSizes = useMemo(
-    () =>
-      opened && selectedCount >= MIN_BRACKET_SIZE
-        ? pickBracketSizes(selectedCount)
         : [],
     [opened, selectedCount]
   );

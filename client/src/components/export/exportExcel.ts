@@ -326,7 +326,7 @@ function remapSheetSharedStringIndexes(
   if (indexOffset === 0) return sheetXml;
   return sheetXml.replace(
     /<c\b([^>]*\bt="s"[^>]*)>([\s\S]*?)<\/c>/g,
-    (full, attrs: string, body: string) => {
+    (_match, attrs: string, body: string) => {
       const nextBody = body.replace(
         /<v>(\d+)<\/v>/,
         (_v, n: string) => `<v>${indexOffset + Number(n)}</v>`,

@@ -18,7 +18,6 @@ import {
 import { useTranslation } from 'next-i18next/pages';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import React from 'react';
 
 import { GITHUB_ISSUES_URL, GITHUB_URL } from '../marketing/fixtures';
 import { getBaseApiUrl } from '../../services/adapter';

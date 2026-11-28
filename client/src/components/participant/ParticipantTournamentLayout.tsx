@@ -11,9 +11,8 @@ import {
 import { Icon, IconCalendar, IconHome, IconList } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import React, { ReactNode, useMemo } from 'react';
+import { ReactNode, useMemo } from 'react';
 
-import { PageHeader } from '../layout/page_header';
 import { TournamentPublic } from '../../interfaces/tournament';
 import { getPublicTournamentByEndpoint } from '../../services/adapter';
 import { responseIsValid } from '../utils/util';
@@ -50,9 +49,6 @@ export function useParticipantTournamentSlug() {
     typeof router.query.preview === 'string' ? router.query.preview : null;
   return { slug, preview, previewQs: previewQuery(router.query.preview) };
 }
-
-/** @deprecated use useParticipantTournamentSlug */
-export const usePublicTournamentSlug = useParticipantTournamentSlug;
 
 export default function ParticipantTournamentLayout({
   children,
@@ -196,15 +192,3 @@ export default function ParticipantTournamentLayout({
     </AppShell>
   );
 }
-
-export function ParticipantComingSoon({ section }: { section: string }) {
-  return (
-    <PageHeader
-      title={section}
-      description={`Live ${section.toLowerCase()} will show here during the tournament.`}
-    />
-  );
-}
-
-/** @deprecated */
-export const ComingSoon = ParticipantComingSoon;

@@ -14,11 +14,10 @@ import { DateTimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { MdDelete } from "react-icons/md";
 import { IconCalendar, IconCalendarTime, IconCopy, IconRefresh, IconTrash } from "@tabler/icons-react";
-import assert from "assert";
 import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import { useRouter } from "next/router";
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { SWRResponse, mutate } from "swr";
 
 import { removeAction, saveAction } from "../../../components/buttons/action_styles";

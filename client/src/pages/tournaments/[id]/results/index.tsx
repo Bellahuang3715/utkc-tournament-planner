@@ -8,7 +8,6 @@ import {
 import { IconMedal, IconTrophy } from '@tabler/icons-react';
 import { useTranslation } from 'next-i18next/pages';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
-import React from 'react';
 
 import { PageHeader } from '../../../../components/layout/page_header';
 import { EmptyRoster } from '../../../../components/no_content/empty_table_info';

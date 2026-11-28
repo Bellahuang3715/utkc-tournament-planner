@@ -181,12 +181,10 @@ export function BracketPairsSection({
 
 export function PosterGroupsSection({
   brackets,
-  formatStyles,
   useCodeOnly,
   playerIdToDisplayCode,
 }: {
   brackets: BracketWithPlayers[] | null;
-  formatStyles?: FormatStyles;
   useCodeOnly?: boolean;
   playerIdToDisplayCode?: Record<number, string>;
 }) {
@@ -613,10 +611,7 @@ export default function BracketsEditorIndividuals({
               formatStyles={styles}
             />
           ) : (
-            <PosterGroupsSection
-              brackets={brackets}
-              formatStyles={styles}
-            />
+            <PosterGroupsSection brackets={brackets} />
           )}
         </Stack>
       </Stack>

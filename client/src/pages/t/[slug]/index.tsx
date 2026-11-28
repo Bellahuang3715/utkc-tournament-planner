@@ -9,12 +9,11 @@ import {
   IconUsers,
 } from '@tabler/icons-react';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
-import React from 'react';
 
 import ParticipantTournamentLayout, {
   useParticipantTournamentSlug,
 } from '../../../components/participant/ParticipantTournamentLayout';
-import { ParticipantLinkCard, ParticipantPageTitle } from '../../../components/participant/ParticipantUi';
+import { ParticipantLinkCard } from '../../../components/participant/ParticipantUi';
 import { GITHUB_ISSUES_URL } from '../../../components/marketing/fixtures';
 
 const SHORTCUTS = [

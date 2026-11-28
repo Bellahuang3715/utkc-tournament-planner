@@ -1,6 +1,6 @@
 import { Stack, Text } from '@mantine/core';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import ParticipantTournamentLayout, {
   useParticipantTournamentSlug,

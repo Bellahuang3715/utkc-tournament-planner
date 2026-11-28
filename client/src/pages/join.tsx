@@ -2,7 +2,7 @@ import { Alert, Anchor, Button, Stack, Text, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { serverSideTranslations } from 'next-i18next/pages/serverSideTranslations';
 import { useRouter } from 'next/router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { GuestEntryShell } from '../components/layout/guest_entry';
 import { createPublicAxios, getBaseApiUrl } from '../services/adapter';

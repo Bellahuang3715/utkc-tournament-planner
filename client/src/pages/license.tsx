@@ -1,4 +1,3 @@
-import React from "react";
 
 import { BRACKET_URL, GITHUB_URL, LICENSE_FILE_URL } from "../components/marketing/fixtures";
 import { marketingServerProps } from "../components/marketing/server_props";

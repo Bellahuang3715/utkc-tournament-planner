@@ -1,5 +1,4 @@
 import Link from "next/link";
-import React from "react";
 
 import { ProblemStudio } from "../components/marketing/demos";
 import { BRACKET_URL, GITHUB_URL } from "../components/marketing/fixtures";

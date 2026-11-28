@@ -7,7 +7,6 @@ import {
 import { useTranslation } from 'next-i18next/pages';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import React from 'react';
 
 import { useAuth } from '../../context/AuthContext';
 import classes from './_user_menu.module.css';

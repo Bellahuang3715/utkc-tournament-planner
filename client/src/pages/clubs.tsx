@@ -10,7 +10,7 @@ import ClubModal from "../components/modals/club_modal";
 import ClubsTable from "../components/tables/clubs";
 import { capitalize } from "../components/utils/util";
 import { Club } from "../interfaces/club";
-import { checkForAuthError, getClubs } from "../services/adapter";
+import { getClubs } from "../services/adapter";
 import Layout from "./_layout";
 
 export default function Clubs() {
@@ -23,8 +23,6 @@ export default function Clubs() {
     setEditingClub(club);
     setModalOpen(true);
   };
-
-  checkForAuthError(swrClubsResponse);
 
   return (
     <Layout>

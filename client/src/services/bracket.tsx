@@ -58,7 +58,7 @@ export function toUIPlayers(
   }
 
   // Fill blanks, then reorder to match tournament-brackets-ui layout (e.g. 12-person has non-sequential indices)
-  const filled = arr.map((p, i) => p ?? { id: `—`, name: `TBD`, club: null });
+  const filled = arr.map((p) => p ?? { id: `—`, name: `TBD`, club: null });
   return reorderForBracketComponent(filled, b.num_players);
 }
 

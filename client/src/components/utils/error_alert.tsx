@@ -1,6 +1,5 @@
 import { Alert } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
-import React from 'react';
 
 export function ErrorAlert({ title, message }: { title: string; message: string }) {
   return (

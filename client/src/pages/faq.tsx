@@ -1,5 +1,4 @@
 import Link from "next/link";
-import React from "react";
 
 import { Reveal } from "../components/marketing/reveal";
 import { marketingServerProps } from "../components/marketing/server_props";

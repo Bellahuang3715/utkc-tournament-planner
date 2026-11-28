@@ -13,7 +13,7 @@ import { IconCheck } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import { useRouter } from "next/router";
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 
 import { GuestEntryShell } from "../components/layout/guest_entry";
 import { useAuth } from "../context/AuthContext";

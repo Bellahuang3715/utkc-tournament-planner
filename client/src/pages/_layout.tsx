@@ -14,7 +14,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { Icon, IconMoonStars, IconSun } from "@tabler/icons-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import React, { ReactNode } from "react";
+import { ReactNode } from "react";
 
 import { CONTACT_EMAIL, CONTACT_MAILTO } from "../components/marketing/fixtures";
 import { Brand } from "../components/navbar/_brand";

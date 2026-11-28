@@ -11,7 +11,7 @@ import { useForm } from "@mantine/form";
 import { showNotification } from "@mantine/notifications";
 import { useTranslation } from "next-i18next/pages";
 import { useRouter } from "next/router";
-import React, { useState } from "react";
+import { useState } from "react";
 import { CircleFlag } from "react-circle-flags";
 
 import { useAuth } from "../../context/AuthContext";

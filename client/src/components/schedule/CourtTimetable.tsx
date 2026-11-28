@@ -1,6 +1,6 @@
 import { ActionIcon, Box, Button, ColorInput, Group, Menu, Modal, Stack, Text, TextInput } from '@mantine/core';
 import { IconChevronLeft, IconChevronRight, IconDots, IconPencil, IconTrash } from '@tabler/icons-react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { saveAction } from "../buttons/action_styles";
 import { Court } from '../../interfaces/court';

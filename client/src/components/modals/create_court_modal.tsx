@@ -2,7 +2,7 @@ import { Button, Modal, Stack, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { GoPlus } from 'react-icons/go';
 import { useTranslation } from 'next-i18next/pages';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { SWRResponse } from 'swr';
 
 import { saveAction } from "../buttons/action_styles";
