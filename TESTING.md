@@ -7,7 +7,7 @@ Integration tests call `metadata.drop_all()` on whatever `PG_DSN` is loaded from
 | Env file | Database | Used by |
 |----------|----------|---------|
 | `server/dev.env` | `bracket_dev` | Local app (`run.sh` / uvicorn) |
-| `server/ci.env` | `bracket_test` | pytest only |
+| `server/ci.env` | `bracket_test` | pytest and seeded Playwright |
 
 **Never point `ci.env` at `bracket_dev`.** Pytest also refuses to reinit databases whose name is not clearly a test DB (`*_test`, `*_ci`, or `test`).
 
@@ -36,10 +36,10 @@ psql postgres://localhost:5432/postgres -c "CREATE DATABASE bracket_test OWNER b
 | **Server lint** (`./check.sh`) | Code style / imports (ruff) | No | No |
 | **Server pytest** (`./ci_pytest.sh`) | API + DB behavior | No (spins its own test server) | Yes → `bracket_test` only |
 | **Client Vitest** | Pure TS/JS unit logic | No | No |
-| **Playwright e2e** | Real browser against the UI | Yes (`:3000`) | Usually yes for full flows |
+| **Playwright e2e** | Browser smoke and seeded scorekeeping | Yes (`:3000`) | Yes for seeded scorekeeping |
 | **OpenAPI regen** | Not a test — refreshes typed client | No | No |
 | **Manual QA** | Product flows humans care about | Yes | Yes → `bracket_dev` |
-| **GitHub Actions** | Lint + Vitest + pytest (+ soft e2e) on every PR/push | — | CI Postgres service |
+| **GitHub Actions** | Lint + Vitest + pytest + Playwright on every PR/push | — | CI Postgres service |
 
 ### Cheat sheet: “I just changed X → run Y”
 
@@ -72,7 +72,7 @@ Fast; no database. Use whenever you touch pure client code under `client/src/**/
 docker compose up -d postgres   # if not already running
 
 cd server
-./ci_pytest.sh                  # same green suite CI runs
+./ci_pytest.sh                  # same suite CI runs
 ```
 
 Or one file while debugging:
@@ -115,7 +115,7 @@ cd ../server && ./check.sh
 ./ci_pytest.sh
 ```
 
-If those three are green, the required CI jobs should pass.
+CI also runs the seeded Playwright workflow below against a production Next build.
 
 Optional if you changed UI flows:
 
@@ -160,14 +160,14 @@ Automated tests do not cover full kendo tournament UX.
 ```bash
 cd server
 pipenv install --dev
-./ci_pytest.sh          # same green suite + coverage as CI
-# or full tree (includes known-failing legacy tests):
+./ci_pytest.sh          # full suite with line and branch coverage, as in CI
+# or run the tests without coverage:
 # pipenv run pytest
 ```
 
 Uses `ci.env` → `bracket_test` when `pytest` is loaded.
 
-`ci_pytest.sh` still ignores JWT-era `auth_test` / `users_test`, cronjobs, and one index-lookup drift case. Players, courts, tournaments, and Firebase auth smoke are in the green suite.
+Pytest covers Firebase-era account routes, demo-account cleanup, and the database error lookups. The team roster migration test upgrades a seeded fixture from the preceding Alembic revision in a temporary schema.
 
 Focused suites:
 
@@ -191,10 +191,11 @@ STRICT=1 ./precommit.sh  # also mypy + vulture + pylint
 ```bash
 cd client
 yarn --ignore-engines test
+yarn --ignore-engines test:coverage   # line and branch coverage plus coverage/lcov.info
 # or: yarn --ignore-engines test:watch
 ```
 
-### Playwright smoke (e2e)
+### Playwright (e2e)
 
 ```bash
 cd client
@@ -202,7 +203,28 @@ yarn --ignore-engines playwright install chromium
 yarn --ignore-engines test:e2e
 ```
 
-Requires the app reachable at `E2E_BASE_URL` (default `http://localhost:3000`). Start backend + frontend first (`./run.sh` or equivalent).
+Requires the app reachable at `E2E_BASE_URL` (default `http://localhost:3000`). For a local smoke run, start the app with `./run.sh` or equivalent.
+
+For the CI scorekeeping flow, start PostgreSQL with `bracket_test` available. Run these in separate terminals from the repository root:
+
+```bash
+cd server
+ENVIRONMENT=CI pipenv run python -m tests.serve_scorekeeping_fixture
+```
+
+```bash
+cd client
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8400 yarn --ignore-engines build
+yarn --ignore-engines start
+```
+
+Run the browser suite from the client directory:
+
+```bash
+E2E_SCOREKEEPING=1 E2E_PUBLIC_SLUG=playwright-scorekeeping yarn --ignore-engines test:e2e
+```
+
+The fixture runs on port 8400 by default. Stop the local API first or set `E2E_API_PORT` and use the same port in `NEXT_PUBLIC_API_BASE_URL`. Restart the fixture API for each scorekeeping run so the seeded bracket starts empty.
 
 ### OpenAPI client regen
 
@@ -219,12 +241,14 @@ See `client/src/services/ping.ts` for a minimal example of calling the generated
 
 Workflow: [`.github/workflows/test.yml`](.github/workflows/test.yml) on push/PR to `main` / `master`.
 
-| Job | Local equivalent | Blocks merge? |
+| Job | Local equivalent | Fails the workflow on error? |
 | --- | --- | --- |
-| **Client unit (Vitest)** | `cd client && yarn test` | Yes |
+| **Client unit (Vitest)** | `cd client && yarn test:coverage` | Yes |
 | **Server lint (ruff)** | `cd server && ./check.sh` | Yes |
 | **Server API (pytest)** | `cd server && ./ci_pytest.sh` | Yes |
-| **Client e2e smoke (Playwright)** | build Next + `yarn test:e2e` | **No** (`continue-on-error`); build skips Firebase init when `NEXT_PUBLIC_FIREBASE_*` unset |
+| **Client smoke and scorekeeping (Playwright)** | Seeded API + production Next build + `yarn test:e2e` | Yes |
+
+Both coverage jobs upload line and branch data to Codecov with separate client and server flags. Coverage status is informational.
 
 A separate **Dependabot auto-merge** workflow merges Dependabot PRs; you do not run it yourself. Push a PR and watch the Checks tab for the Test workflow.
 
@@ -232,18 +256,18 @@ A separate **Dependabot auto-merge** workflow merges Dependabot PRs; you do not 
 
 ## Common confusions
 
-- **`pipenv run pytest`** (full tree) ≠ **`./ci_pytest.sh`**. The full tree still includes JWT-era `auth_test` / `users_test` and cronjobs that are ignored by CI.
+- **`pipenv run pytest`** and **`./ci_pytest.sh`** run the same tests. The script also produces coverage reports.
 - **`./check.sh`** = verify only. **`./precommit.sh`** = autofix then verify.
 - **Vitest** ≠ **Playwright**. Vitest = fast Node unit tests. Playwright = browser against a running Next app.
 - **OpenAPI commands** are codegen, not tests.
 - **`./run.sh` / process-compose** start the app; they do not run tests.
-- **`bracket_dev`** is for the running app and manual QA. **`bracket_test`** is for pytest only.
+- **`bracket_dev`** is for the running app and manual QA. **`bracket_test`** is for automated tests.
 
 ---
 
-## What automation covers (Phases 1–3)
+## What automation covers
 
-Automated in Vitest / green pytest (see suites under `client/src/**/*.test.ts` and `server/tests/integration_tests/api/`):
+Automated in Vitest / pytest (see suites under `client/src/**/*.test.ts` and `server/tests/integration_tests/api/`):
 
 | Invariant / flow | Automated? |
 | --- | --- |
@@ -265,6 +289,9 @@ Automated in Vitest / green pytest (see suites under `client/src/**/*.test.ts` a
 | Outsider denied on another owner's tournament | Yes |
 | Concurrent edit locks (claim 409, write block, release, TTL) | Yes (`edit_locks_test`) |
 | Scorekeeper redeem + score via `X-Scorekeeper-Token` | Yes (`scorekeeping_test`) |
+| Save and replace a populated schedule, keep the previous schedule after a failed write | Yes (`schedule_timetable_test`) |
+| Team bracket seed order, persisted advances, clear and unlock | Yes (`brackets_test`) |
+| Scorekeeper enters a score and a public visitor sees it after reload | Yes (seeded Playwright `scorekeeping.spec.ts`) |
 
 Client unit coverage: `score_status`, `score_notation`, `scorekeeper_access`, seeding assign (individuals + teams).
 

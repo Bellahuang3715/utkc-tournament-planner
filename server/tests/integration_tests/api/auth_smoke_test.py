@@ -1,4 +1,4 @@
-"""Firebase-era auth smoke tests (replaces JWT auth_test for the green suite)."""
+"""Firebase authentication and tournament access tests."""
 
 from uuid import uuid4
 
@@ -60,3 +60,14 @@ async def test_outsider_denied_tournament_players(
             )
             assert status == 403
             assert response == {"detail": "You don't have access to this resource"}
+
+
+async def test_valid_firebase_token_without_local_account_is_rejected(
+    startup_and_shutdown_uvicorn_server: None,
+) -> None:
+    status, response = await send_request_with_status(
+        HTTPMethod.GET,
+        "protected",
+        headers={"Authorization": f"Bearer test:unregistered-{uuid4()}@example.org"},
+    )
+    assert (status, response) == (401, {"detail": "User not found"})

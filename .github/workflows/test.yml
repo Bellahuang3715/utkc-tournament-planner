@@ -20,7 +20,15 @@ jobs:
           cache: yarn
           cache-dependency-path: client/yarn.lock
       - run: yarn install --frozen-lockfile --ignore-engines
-      - run: yarn --ignore-engines test
+      - run: yarn --ignore-engines test:coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: client/coverage/lcov.info
+          flags: client
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   server-lint:
     name: Server lint (ruff)
@@ -84,16 +92,36 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   client-e2e-smoke:
-    name: Client e2e smoke (Playwright)
+    name: Client smoke and scorekeeping (Playwright)
     runs-on: ubuntu-latest
     needs: [client-unit]
-    # Smoke against a production Next build; allow failure until Firebase/env is wired in CI.
-    continue-on-error: true
     defaults:
       run:
         working-directory: client
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: bracket_dev
+          POSTGRES_PASSWORD: bracket_dev
+          POSTGRES_DB: bracket_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bracket_dev -d bracket_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install server dependencies
+        working-directory: server
+        run: |
+          pip install pipenv
+          pipenv install --dev
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -105,18 +133,32 @@ jobs:
         run: yarn --ignore-engines build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
-          # Smoke does not need real Firebase; client skips init when unset.
-          NEXT_PUBLIC_API_BASE_URL: http://localhost:8400
-      - name: Start Next and run smoke tests
+          NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8400
+      - name: Start the seeded API and Next, then run Playwright
         run: |
-          yarn --ignore-engines start &
-          for i in $(seq 1 30); do
-            if curl -sf http://localhost:3000 >/dev/null; then
-              break
+          (cd ../server && exec pipenv run python -m tests.serve_scorekeeping_fixture) > "$RUNNER_TEMP/api.log" 2>&1 &
+          api_pid=$!
+          ./node_modules/.bin/next start --hostname 127.0.0.1 > "$RUNNER_TEMP/next.log" 2>&1 &
+          next_pid=$!
+          trap 'kill "$api_pid" "$next_pid" 2>/dev/null || true; wait "$api_pid" "$next_pid" 2>/dev/null || true' EXIT
+          for url in http://127.0.0.1:8400/ping "$E2E_BASE_URL"; do
+            if ! curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-connrefused "$url" > /dev/null; then
+              cat "$RUNNER_TEMP/api.log" "$RUNNER_TEMP/next.log"
+              exit 1
             fi
-            sleep 2
           done
           yarn --ignore-engines test:e2e
         env:
-          E2E_BASE_URL: http://localhost:3000
-          NEXT_PUBLIC_API_BASE_URL: http://localhost:8400
+          ENVIRONMENT: CI
+          E2E_BASE_URL: http://127.0.0.1:3000
+          E2E_PUBLIC_SLUG: playwright-scorekeeping
+          E2E_SCOREKEEPING: "1"
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failures
+          path: |
+            client/test-results/
+            ${{ runner.temp }}/api.log
+            ${{ runner.temp }}/next.log

@@ -10,6 +10,7 @@ from project.sql.schedule_timetable import (
     get_schedule_placements,
     replace_schedule,
 )
+from project.utils.errors import ForeignKey, check_foreign_key_violation
 from project.utils.id_types import TournamentId
 
 router = APIRouter(dependencies=[Depends(require_tournament_owner)])
@@ -60,11 +61,18 @@ async def put_schedule_timetable(
     body: TournamentScheduleBody,
     _: UserPublic = Depends(firebase_user_authenticated),
 ) -> TournamentScheduleResponse:
-    await replace_schedule(
-        tournament_id=tournament_id,
-        placements=body.placements,
-        custom_blocks=body.custom_blocks,
-    )
+    with check_foreign_key_violation(
+        {
+            ForeignKey.schedule_timeblocks_court_id_fkey,
+            ForeignKey.schedule_timeblocks_division_id_fkey,
+            ForeignKey.schedule_timeblocks_bracket_id_fkey,
+        }
+    ):
+        await replace_schedule(
+            tournament_id=tournament_id,
+            placements=body.placements,
+            custom_blocks=body.custom_blocks,
+        )
     placements = await get_schedule_placements(tournament_id)
     custom_blocks = await get_schedule_custom_blocks(tournament_id)
     return TournamentScheduleResponse(

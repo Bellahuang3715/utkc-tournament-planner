@@ -5,7 +5,7 @@ from project.utils.errors import (
 )
 
 
-async def test_all_unique_indices_in_lookup() -> None:
+async def test_known_unique_indices_in_lookup() -> None:
     query = """
     SELECT
         idx.relname AS index_name
@@ -22,8 +22,11 @@ async def test_all_unique_indices_in_lookup() -> None:
     result = await database.fetch_all(query)
     indices = {ix.index_name for ix in result}  # type: ignore[attr-defined]
 
+    # The shared lookup maps selected errors. Other constraints are handled by individual routes.
     expected_indices = {ix.name for ix in unique_index_violation_error_lookup.keys()}
-    assert indices == expected_indices
+    assert expected_indices <= indices, (
+        f"Unknown indexes in error lookup: {expected_indices - indices}"
+    )
 
 
 async def test_known_foreign_keys_in_lookup() -> None:

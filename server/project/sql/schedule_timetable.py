@@ -35,47 +35,53 @@ async def replace_schedule(
     placements: list[ScheduleTimeblockBody],
     custom_blocks: list[ScheduleCustomBlockBody],
 ) -> None:
-    await database.execute(
-        query="DELETE FROM schedule_timeblocks WHERE tournament_id = :tournament_id",
-        values={"tournament_id": tournament_id},
-    )
-    await database.execute(
-        query="DELETE FROM schedule_custom_blocks WHERE tournament_id = :tournament_id",
-        values={"tournament_id": tournament_id},
-    )
-
-    for p in placements:
+    async with database.transaction():
+        # Serialize complete replacements for the same tournament.
+        await database.fetch_val(
+            "SELECT id FROM tournaments WHERE id = :tournament_id FOR NO KEY UPDATE",
+            values={"tournament_id": tournament_id},
+        )
         await database.execute(
-            query="""
-                INSERT INTO schedule_timeblocks
-                    (tournament_id, court_id, start_time, duration_mins, kind, label, division_id, bracket_id, color)
-                VALUES
-                    (:tournament_id, :court_id, :start_time, :duration_mins, :kind, :label, :division_id, :bracket_id, :color)
-            """,
-            values={
-                "tournament_id": tournament_id,
-                "court_id": p.court_id,
-                "start_time": p.start_time,
-                "duration_mins": p.duration_mins,
-                "kind": p.kind,
-                "label": p.label,
-                "division_id": p.division_id,
-                "bracket_id": p.bracket_id,
-                "color": p.color,
-            },
+            query="DELETE FROM schedule_timeblocks WHERE tournament_id = :tournament_id",
+            values={"tournament_id": tournament_id},
+        )
+        await database.execute(
+            query="DELETE FROM schedule_custom_blocks WHERE tournament_id = :tournament_id",
+            values={"tournament_id": tournament_id},
         )
 
-    for b in custom_blocks:
-        await database.execute(
-            query="""
-                INSERT INTO schedule_custom_blocks
-                    (tournament_id, label, duration_mins)
-                VALUES
-                    (:tournament_id, :label, :duration_mins)
-            """,
-            values={
-                "tournament_id": tournament_id,
-                "label": b.label,
-                "duration_mins": b.duration_mins,
-            },
-        )
+        for p in placements:
+            await database.execute(
+                query="""
+                    INSERT INTO schedule_timeblocks
+                        (tournament_id, court_id, start_time, duration_mins, kind, label, division_id, bracket_id, color)
+                    VALUES
+                        (:tournament_id, :court_id, :start_time, :duration_mins, :kind, :label, :division_id, :bracket_id, :color)
+                """,
+                values={
+                    "tournament_id": tournament_id,
+                    "court_id": p.court_id,
+                    "start_time": p.start_time,
+                    "duration_mins": p.duration_mins,
+                    "kind": p.kind,
+                    "label": p.label,
+                    "division_id": p.division_id,
+                    "bracket_id": p.bracket_id,
+                    "color": p.color,
+                },
+            )
+
+        for b in custom_blocks:
+            await database.execute(
+                query="""
+                    INSERT INTO schedule_custom_blocks
+                        (tournament_id, label, duration_mins)
+                    VALUES
+                        (:tournament_id, :label, :duration_mins)
+                """,
+                values={
+                    "tournament_id": tournament_id,
+                    "label": b.label,
+                    "duration_mins": b.duration_mins,
+                },
+            )

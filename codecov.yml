@@ -10,3 +10,6 @@ coverage:
 ignore:
   - "server/alembic"
   - "server/tests/integration_tests/conftest.py"
+
+fixes:
+  - "src/::client/src/"

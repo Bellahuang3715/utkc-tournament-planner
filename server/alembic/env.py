@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import Connection, engine_from_config, pool
 
 from alembic import context
 
@@ -24,20 +24,25 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+def run_migrations_on_connection(connection: Connection) -> None:
+    context.configure(connection=connection, target_metadata=Base.metadata, compare_type=True)
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
 def run_migrations_online() -> None:
+    existing_connection = ALEMBIC_CONFIG.attributes.get("connection")
+    if existing_connection is not None:
+        run_migrations_on_connection(existing_connection)
+        return
+
     config_ini_section = ALEMBIC_CONFIG.get_section(ALEMBIC_CONFIG.config_ini_section)
     config_ini_section["sqlalchemy.url"] = str(config.pg_dsn)  # type: ignore[index]
 
     engine = engine_from_config(config_ini_section, prefix="sqlalchemy.", poolclass=pool.NullPool)
-
-    connection = engine.connect()
-    context.configure(connection=connection, target_metadata=Base.metadata, compare_type=True)
-
-    try:
-        with context.begin_transaction():
-            context.run_migrations()
-    finally:
-        connection.close()
+    with engine.connect() as connection:
+        run_migrations_on_connection(connection)
 
 
 if context.is_offline_mode():

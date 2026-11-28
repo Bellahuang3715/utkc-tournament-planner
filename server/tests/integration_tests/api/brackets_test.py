@@ -1,3 +1,5 @@
+from contextlib import AsyncExitStack
+
 from project.models.db.division import DivisionType
 from project.utils.dummy_records import (
     DUMMY_PLAYER1,
@@ -295,10 +297,9 @@ async def test_prefixed_brackets_include_player_codes(
                             assert codes == {"A01", "A02", "A03", "A04", "A05"}
 
 
-async def test_create_team_brackets_valid_size(
+async def test_team_bracket_seeding_advances_and_clear(
     startup_and_shutdown_uvicorn_server: None, auth_context: AuthContext
 ) -> None:
-    team_dummies = [DUMMY_TEAM1, DUMMY_TEAM2, DUMMY_TEAM3, DUMMY_TEAM4]
     async with (
         inserted_division(
             tournament_id=auth_context.tournament.id,
@@ -306,106 +307,114 @@ async def test_create_team_brackets_valid_size(
             prefix=None,
             division_type=DivisionType.TEAMS,
         ) as division,
-        inserted_team_category(auth_context.tournament.id) as cat,
+        inserted_team_category(auth_context.tournament.id) as category,
+        AsyncExitStack() as stack,
     ):
         teams = []
-        async with inserted_team(
-            team_dummies[0].model_copy(
-                update={
-                    "tournament_id": auth_context.tournament.id,
-                    "club_id": auth_context.club.id,
-                    "category_id": cat.id,
-                    "code": "T1",
-                }
-            )
-        ) as t0:
-            async with inserted_team(
-                team_dummies[1].model_copy(
-                    update={
-                        "tournament_id": auth_context.tournament.id,
-                        "club_id": auth_context.club.id,
-                        "category_id": cat.id,
-                        "code": "T2",
-                    }
-                )
-            ) as t1:
-                async with inserted_team(
-                    team_dummies[2].model_copy(
+        for index, dummy in enumerate(
+            [DUMMY_TEAM1, DUMMY_TEAM2, DUMMY_TEAM3, DUMMY_TEAM4, DUMMY_TEAM1], start=1
+        ):
+            team = await stack.enter_async_context(
+                inserted_team(
+                    dummy.model_copy(
                         update={
                             "tournament_id": auth_context.tournament.id,
                             "club_id": auth_context.club.id,
-                            "category_id": cat.id,
-                            "code": "T3",
+                            "category_id": category.id,
+                            "code": f"T{index}",
                         }
                     )
-                ) as t2:
-                    async with inserted_team(
-                        team_dummies[3].model_copy(
-                            update={
-                                "tournament_id": auth_context.tournament.id,
-                                "club_id": auth_context.club.id,
-                                "category_id": cat.id,
-                                "code": "T4",
-                            }
-                        )
-                    ) as t3:
-                        async with inserted_team(
-                            DUMMY_TEAM1.model_copy(
-                                update={
-                                    "tournament_id": auth_context.tournament.id,
-                                    "club_id": auth_context.club.id,
-                                    "category_id": cat.id,
-                                    "code": "T5",
-                                }
-                            )
-                        ) as t4:
-                            teams = [t0, t1, t2, t3, t4]
-                            attach = await send_request(
-                                HTTPMethod.POST,
-                                f"divisions/{division.id}/teams",
-                                json={"team_ids": [t.id for t in teams]},
-                                headers=auth_context.headers,
-                            )
-                            assert attach == SUCCESS_RESPONSE
+                )
+            )
+            teams.append(team)
 
-                            body = {
-                                "brackets": [
-                                    {
-                                        "index": 1,
-                                        "num_players": 5,
-                                        "title": "Group 1",
-                                        "teams": [
-                                            {"team_id": t.id, "bracket_idx": i}
-                                            for i, t in enumerate(teams)
-                                        ],
-                                    }
-                                ]
-                            }
-                            response = await send_request(
-                                HTTPMethod.POST,
-                                f"divisions/{division.id}/brackets/teams",
-                                json=body,
-                                headers=auth_context.headers,
-                            )
-                            assert len(response["data"]) == 1
-                            assert response["data"][0]["num_players"] == 5
+        division_path = f"divisions/{division.id}"
+        attach = await send_request(
+            HTTPMethod.POST,
+            f"{division_path}/teams",
+            json={"team_ids": [team.id for team in teams]},
+            headers=auth_context.headers,
+        )
+        assert attach == SUCCESS_RESPONSE
 
-                            under_min_status, under_min = await send_request_with_status(
-                                HTTPMethod.POST,
-                                f"divisions/{division.id}/brackets/teams?replace=true",
-                                json={
-                                    "brackets": [
-                                        {
-                                            "index": 1,
-                                            "num_players": 4,
-                                            "teams": [
-                                                {"team_id": t.id, "bracket_idx": i}
-                                                for i, t in enumerate(teams[:4])
-                                            ],
-                                        }
-                                    ]
-                                },
-                                headers=auth_context.headers,
-                            )
-                            assert under_min_status == 400
-                            assert "at least 5" in str(under_min.get("detail", "")).lower()
+        slots = [{"team_id": team.id, "bracket_idx": i} for i, team in enumerate(teams)]
+        bracket = {"index": 1, "num_players": len(slots), "title": "Group 1", "teams": slots}
+        response = await send_request(
+            HTTPMethod.POST,
+            f"{division_path}/brackets/teams",
+            json={"brackets": [bracket]},
+            headers=auth_context.headers,
+        )
+        assert len(response["data"]) == 1
+        assert response["data"][0]["num_players"] == 5
+        bracket_id = response["data"][0]["id"]
+
+        status, error = await send_request_with_status(
+            HTTPMethod.POST,
+            f"{division_path}/brackets/teams?replace=true",
+            json={"brackets": [{**bracket, "num_players": 4, "teams": slots[:4]}]},
+            headers=auth_context.headers,
+        )
+        assert status == 400
+        assert "at least 5" in str(error["detail"]).lower()
+
+        seeded = await send_request(
+            HTTPMethod.GET, f"{division_path}/brackets/with-teams", headers=auth_context.headers
+        )
+        assert [(team["team_id"], team["bracket_idx"]) for team in seeded["data"][0]["teams"]] == [
+            (team.id, i) for i, team in enumerate(teams)
+        ]
+
+        bracket_cells = f"brackets/{bracket_id}/team-cells"
+        division_cells = f"{division_path}/team-bracket-cells"
+        advance = {"slot_idx": 5, "team_id": teams[0].id}
+        assert (
+            await send_request(
+                HTTPMethod.PUT,
+                bracket_cells,
+                headers=auth_context.headers,
+                json={"cells": [advance]},
+            )
+            == SUCCESS_RESPONSE
+        )
+        saved = await send_request(HTTPMethod.GET, bracket_cells, headers=auth_context.headers)
+        assert len(saved["data"]) == 1
+        assert saved["data"][0]["slot_idx"] == 5
+        assert saved["data"][0]["team_id"] == teams[0].id
+        assert (
+            await send_request(HTTPMethod.GET, division_cells, headers=auth_context.headers)
+            == saved
+        )
+
+        advance = {"slot_idx": 5, "team_id": teams[1].id}
+        assert (
+            await send_request(
+                HTTPMethod.PUT,
+                division_cells,
+                headers=auth_context.headers,
+                json={"brackets": [{"bracket_id": bracket_id, "cells": [advance]}]},
+            )
+            == SUCCESS_RESPONSE
+        )
+        public = await send_request(
+            HTTPMethod.GET,
+            f"public/tournaments/{auth_context.tournament.dashboard_endpoint}/{division_cells}",
+        )
+        assert len(public["data"]) == 1
+        assert public["data"][0]["team_id"] == teams[1].id
+
+        lock = await send_request(
+            HTTPMethod.GET, f"{division_path}/lock", headers=auth_context.headers
+        )
+        assert lock["data"]["locked"] is True
+        assert (
+            await send_request(HTTPMethod.DELETE, division_cells, headers=auth_context.headers)
+            == SUCCESS_RESPONSE
+        )
+        assert await send_request(HTTPMethod.GET, bracket_cells, headers=auth_context.headers) == {
+            "data": []
+        }
+        unlocked = await send_request(
+            HTTPMethod.GET, f"{division_path}/lock", headers=auth_context.headers
+        )
+        assert unlocked["data"]["locked"] is False
