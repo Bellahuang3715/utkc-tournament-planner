@@ -22,6 +22,12 @@ import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import { Expanded, EXPANDED_SIZES_INDIVIDUALS, EXPANDED_SIZES_TEAMS } from "tournament-brackets-ui";
 
+import {
+  cancelAction,
+  editAction,
+  removeAction,
+  saveAction,
+} from "../../../../../components/buttons/action_styles";
 import { showNotification } from "@mantine/notifications";
 import { PageHeader } from "../../../../../components/layout/page_header";
 import { EmptyRoster } from "../../../../../components/no_content/empty_table_info";
@@ -947,8 +953,7 @@ export default function DivisionScoresEditorPage() {
                   {t("division_locked", "Locked")}
                 </Badge>
                 <Button
-                  variant="light"
-                  color="orange"
+                  {...removeAction}
                   size="sm"
                   loading={unlocking}
                   onClick={() => void unlockDivision()}
@@ -1064,7 +1069,7 @@ export default function DivisionScoresEditorPage() {
                         {isEditingBracket(b.id) ? (
                           <>
                             <Button
-                              variant="default"
+                              {...cancelAction}
                               size="xs"
                               disabled={saving}
                               onClick={() => void cancelEditBracket(b.id)}
@@ -1072,6 +1077,7 @@ export default function DivisionScoresEditorPage() {
                               {t("cancel", "Cancel")}
                             </Button>
                             <Button
+                              {...saveAction}
                               size="xs"
                               loading={saving}
                               onClick={() => void saveEdit()}
@@ -1081,6 +1087,7 @@ export default function DivisionScoresEditorPage() {
                           </>
                         ) : (
                           <Button
+                            {...editAction}
                             size="xs"
                             disabled={!!lockHeldByOther(b.id)}
                             onClick={() => void enterEditGroup(b.id)}
@@ -1146,7 +1153,7 @@ export default function DivisionScoresEditorPage() {
                         {isEditingBracket(b.id) ? (
                           <>
                             <Button
-                              variant="default"
+                              {...cancelAction}
                               size="xs"
                               disabled={saving}
                               onClick={() => void cancelEditBracket(b.id)}
@@ -1154,6 +1161,7 @@ export default function DivisionScoresEditorPage() {
                               {t("cancel", "Cancel")}
                             </Button>
                             <Button
+                              {...saveAction}
                               size="xs"
                               loading={saving}
                               onClick={() => void saveEdit()}
@@ -1163,6 +1171,7 @@ export default function DivisionScoresEditorPage() {
                           </>
                         ) : (
                           <Button
+                            {...editAction}
                             size="xs"
                             disabled={!!lockHeldByOther(b.id)}
                             onClick={() => void enterEditGroup(b.id)}
@@ -1238,7 +1247,7 @@ export default function DivisionScoresEditorPage() {
                       {finalsEditing && finalsBracketId != null ? (
                         <>
                           <Button
-                            variant="default"
+                            {...cancelAction}
                             size="xs"
                             disabled={saving}
                             onClick={() => void cancelEditBracket(finalsBracketId)}
@@ -1246,6 +1255,7 @@ export default function DivisionScoresEditorPage() {
                             {t("cancel", "Cancel")}
                           </Button>
                           <Button
+                            {...saveAction}
                             size="xs"
                             loading={saving}
                             onClick={() => void saveEdit()}
@@ -1255,6 +1265,7 @@ export default function DivisionScoresEditorPage() {
                         </>
                       ) : (
                         <Button
+                          {...editAction}
                           size="xs"
                           disabled={!!finalsOther}
                           onClick={() => void enterEditFinals(stage.size)}

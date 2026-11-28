@@ -5,6 +5,7 @@ import { useTranslation } from 'next-i18next/pages';
 import React, { useState } from 'react';
 import { SWRResponse } from 'swr';
 
+import { saveAction } from "../buttons/action_styles";
 import { createCourt } from '../../services/court';
 import ModalFooter from './modal_footer';
 
@@ -55,14 +56,14 @@ export default function CourtModal({
           </Stack>
           <ModalFooter
             onCancel={() => setOpened(false)}
+            primaryAction="save"
             primaryLabel={t('save_button')}
             primaryType="submit"
           />
         </form>
       </Modal>
       <Button
-        variant="outline"
-        color="green"
+        {...saveAction}
         size={buttonSize}
         style={{ marginRight: 10 }}
         onClick={() => setOpened(true)}

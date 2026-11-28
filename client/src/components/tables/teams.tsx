@@ -26,6 +26,12 @@ import {
 } from "@tabler/icons-react";
 import { mkConfig, generateCsv, download } from "export-to-csv";
 
+import {
+  editIconAction,
+  removeAction,
+  removeIconAction,
+  saveAction,
+} from "../buttons/action_styles";
 import { TeamInterface } from "../../interfaces/team";
 import { TournamentMinimal } from "../../interfaces/tournament";
 import { deleteTeam } from "../../services/team";
@@ -210,8 +216,7 @@ export default function TeamsTable({
           <Group gap={4} wrap="nowrap">
             <Tooltip label={t("edit_team_button", "Edit")}>
               <ActionIcon
-                variant="subtle"
-                color="green"
+                {...editIconAction}
                 aria-label={t("edit_team_button", "Edit")}
                 onClick={() => openEdit(row.original)}
               >
@@ -220,8 +225,7 @@ export default function TeamsTable({
             </Tooltip>
             <Tooltip label={t("delete_button", "Delete")}>
               <ActionIcon
-                variant="subtle"
-                color="red"
+                {...removeIconAction}
                 aria-label={t("delete_button", "Delete")}
                 onClick={() => void handleDeleteRows([row])}
               >
@@ -254,8 +258,8 @@ export default function TeamsTable({
       return (
         <Group gap="xs">
           <Button
+            {...saveAction}
             leftSection={<IconPlus size={16} />}
-            variant="filled"
             onClick={openCreate}
           >
             {t("add_team_button", "Add team")}
@@ -269,8 +273,7 @@ export default function TeamsTable({
           </Button>
           <Button
             leftSection={<IconTrash size={16} />}
-            variant="light"
-            color="red"
+            {...removeAction}
             disabled={!selected.length}
             onClick={async () => {
               await handleDeleteRows(selected);
@@ -322,7 +325,7 @@ export default function TeamsTable({
       {teams.length === 0 ? (
         <Stack gap="md">
           <Group gap="xs">
-            <Button leftSection={<IconPlus size={16} />} onClick={openCreate}>
+            <Button {...saveAction} leftSection={<IconPlus size={16} />} onClick={openCreate}>
               {t("add_team_button", "Add team")}
             </Button>
             <Button

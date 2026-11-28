@@ -21,6 +21,7 @@ import { useRouter } from "next/router";
 import React, { useEffect } from "react";
 import { SWRResponse, mutate } from "swr";
 
+import { removeAction, saveAction } from "../../../components/buttons/action_styles";
 import { PageHeader } from "../../../components/layout/page_header";
 import { toIsoFromPicker } from "../../../components/utils/datetime";
 import NotFoundTitle from "../../404";
@@ -377,8 +378,7 @@ function GeneralTournamentForm({
                 : t("generate_code_button", "Generate code")}
             </Button>
             <Button
-              variant="outline"
-              color="red"
+              {...removeAction}
               disabled={!tournament.scorekeeper_token}
               leftSection={<IconTrash size="1.1rem" stroke={1.5} />}
               onClick={async () => {
@@ -409,8 +409,7 @@ function GeneralTournamentForm({
           <TournamentLogo tournament={tournament} />
         </Box>
         <Button
-          variant="outline"
-          color="red"
+          {...removeAction}
           onClick={async () => {
             await removeTournamentLogo(tournament.id);
             await swrTournamentResponse.mutate();
@@ -472,8 +471,7 @@ function GeneralTournamentForm({
           </Text>
           <Button
             type="button"
-            variant="outline"
-            color="red"
+            {...removeAction}
             leftSection={<MdDelete size={20} />}
             onClick={async () => {
               if (
@@ -498,7 +496,7 @@ function GeneralTournamentForm({
         </Stack>
       </Fieldset>
 
-      <Button fullWidth color="green" type="submit">
+      <Button {...saveAction} fullWidth type="submit">
         {t("save_button")}
       </Button>
       </Stack>

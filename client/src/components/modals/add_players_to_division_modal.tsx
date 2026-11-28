@@ -171,6 +171,7 @@ export default function AddPlayersToDivisionModal({
             />
             <ModalFooter
               onCancel={onClose}
+              primaryAction="save"
               primaryLabel={t("add_selected", "Add selected")}
               primaryDisabled={!canAddExisting}
               primaryLoading={adding}

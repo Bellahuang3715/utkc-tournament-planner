@@ -18,6 +18,7 @@ import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next/pages';
 import { CircleFlag } from 'react-circle-flags';
 
+import { saveAction } from "../buttons/action_styles";
 import { UserInterface } from '../../interfaces/user';
 import { updatePassword, updateUser } from '../../services/user';
 import {
@@ -205,7 +206,7 @@ export default function UserForm({ user }: { user: UserInterface }) {
           </Grid>
         </Fieldset>
 
-        <Button fullWidth mt="lg" color="green" type="submit">
+        <Button {...saveAction} fullWidth mt="lg" type="submit">
           {t('save_button')}
         </Button>
       </form>
@@ -248,7 +249,7 @@ export default function UserForm({ user }: { user: UserInterface }) {
             })}
           >
             <PasswordStrength form={passwordForm} />
-            <Button fullWidth mt="md" color="green" type="submit">
+            <Button {...saveAction} fullWidth mt="md" type="submit">
               {t('update_password_button', 'Update password')}
             </Button>
           </form>

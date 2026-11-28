@@ -212,6 +212,7 @@ export default function AddNewTeamModal({
         {error ? <WarningAlert>{error}</WarningAlert> : null}
         <ModalFooter
           onCancel={handleClose}
+          primaryAction="save"
           primaryLabel={t("create_team", "Create team")}
           primaryLoading={submitting}
           onPrimary={() => void handleSubmit()}

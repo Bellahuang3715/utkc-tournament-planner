@@ -231,6 +231,7 @@ function SinglePlayerTab({
 
         <ModalFooter
           onCancel={() => setOpened(false)}
+          primaryAction="save"
           primaryLabel={
             isEdit ? t("save_button", "Save") : t("create_button", "Create")
           }

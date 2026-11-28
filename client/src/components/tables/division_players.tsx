@@ -7,6 +7,7 @@ import {
 } from "mantine-react-table-open";
 import { useTranslation } from "next-i18next/pages";
 
+import { removeAction, saveAction } from "../buttons/action_styles";
 import {
   getPlayerFields,
   getDivisionPlayers,
@@ -331,8 +332,8 @@ export default function DivisionPlayersTable({
       return (
         <Group gap="xs">
           <Button
+            {...saveAction}
             type="button"
-            variant="light"
             onClick={handleAddPlayersClick}
             disabled={locked}
           >
@@ -340,8 +341,7 @@ export default function DivisionPlayersTable({
           </Button>
           <Button
             type="button"
-            variant="light"
-            color="red"
+            {...removeAction}
             onClick={() => void handleRemoveSelected(tableInstance, selected)}
             disabled={locked || !selected.length}
           >

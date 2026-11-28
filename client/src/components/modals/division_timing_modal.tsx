@@ -394,6 +394,7 @@ export default function DivisionTimingModal({
           <ModalFooter
             onCancel={() => setConfirm(null)}
             cancelLabel={t("back", "Back")}
+            primaryAction="save"
             primaryLabel={t("update_block_lengths", "Update block lengths")}
             primaryLoading={saving}
             onPrimary={() => void applyConfirm(true)}
@@ -461,6 +462,7 @@ export default function DivisionTimingModal({
           )}
           <ModalFooter
             onCancel={close}
+            primaryAction="save"
             primaryLabel={t("save")}
             primaryLoading={saving}
             primaryDisabled={!timingValid || saving}

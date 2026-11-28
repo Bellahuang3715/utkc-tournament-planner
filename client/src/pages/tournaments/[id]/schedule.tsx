@@ -20,6 +20,11 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SWRResponse } from 'swr';
 import { v4 as uuidv4 } from 'uuid';
 
+import {
+  cancelAction,
+  removeIconAction,
+  saveAction,
+} from "../../../components/buttons/action_styles";
 import { PageHeader } from '../../../components/layout/page_header';
 import { EmptyRoster } from '../../../components/no_content/empty_table_info';
 import CourtModal from '../../../components/modals/create_court_modal';
@@ -503,7 +508,7 @@ export default function SchedulePage() {
               onChange={(ev) => setRenameCourtName(ev.currentTarget.value)}
               autoFocus
             />
-            <Button type="submit" fullWidth mt="md" color="green">
+            <Button {...saveAction} type="submit" fullWidth mt="md">
               {t('save_button')}
             </Button>
           </form>
@@ -539,14 +544,14 @@ export default function SchedulePage() {
                   </Text>
                   <Group gap="xs">
                     <Button
-                      variant="default"
+                      {...cancelAction}
                       size="xs"
                       disabled={!dirty || saving}
                       onClick={cancelScheduleEdits}
                     >
                       Cancel
                     </Button>
-                    <Button size="xs" disabled={!dirty} loading={saving} onClick={() => void saveSchedule()}>
+                    <Button {...saveAction} size="xs" disabled={!dirty} loading={saving} onClick={() => void saveSchedule()}>
                       Save
                     </Button>
                     <Tooltip
@@ -650,6 +655,7 @@ export default function SchedulePage() {
                   />
                 </Group>
                 <Button
+                  {...saveAction}
                   mt="sm"
                   size="xs"
                   fullWidth
@@ -696,9 +702,8 @@ export default function SchedulePage() {
                       </Text>
                     </div>
                     <ActionIcon
+                      {...removeIconAction}
                       size="sm"
-                      variant="subtle"
-                      color="red"
                       onClick={(e) => {
                         e.stopPropagation();
                         setCustomBlocks((prev) => prev.filter((x) => x.id !== b.id));

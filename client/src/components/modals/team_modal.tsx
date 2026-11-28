@@ -27,6 +27,7 @@ import {
 import { useTranslation } from "next-i18next/pages";
 import { SWRResponse } from "swr";
 
+import { removeIconAction, saveAction } from "../buttons/action_styles";
 import { Player } from "../../interfaces/player";
 import {
   getClubs,
@@ -658,6 +659,7 @@ export default function TeamModal({
 
       <ModalFooter
         onCancel={() => setOpened(false)}
+        primaryAction="save"
         primaryLabel={t("save_button")}
         primaryType="submit"
         primaryLoading={singleSubmitting}
@@ -700,8 +702,7 @@ export default function TeamModal({
                 </Text>
                 {drafts.length > 1 && (
                   <ActionIcon
-                    variant="subtle"
-                    color="red"
+                    {...removeIconAction}
                     aria-label={t("remove", "Remove")}
                     onClick={() => removeDraft(draft.key)}
                   >
@@ -820,7 +821,7 @@ export default function TeamModal({
             </Stack>
           ))}
           <Button
-            variant="light"
+            {...saveAction}
             leftSection={<IconPlus size={16} />}
             onClick={addDraft}
             disabled={catList.length === 0}
@@ -834,6 +835,7 @@ export default function TeamModal({
       )}
       <ModalFooter
         onCancel={() => setOpened(false)}
+        primaryAction="save"
         primaryLabel={t("create_teams", "Create teams")}
         primaryLoading={multiSubmitting}
         primaryDisabled={!multiClubId || drafts.length === 0}

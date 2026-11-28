@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { removeIconAction, saveAction } from "../buttons/action_styles";
 import {
   Alert,
   Modal,
@@ -209,7 +210,7 @@ export default function PlayerFieldsConfigModal({
           }}
           style={{ flex: 1 }}
         />
-        <Button variant="light" onClick={addField}>
+        <Button {...saveAction} onClick={addField}>
           {t("add_field_button", "Add field")}
         </Button>
       </Flex>
@@ -292,6 +293,7 @@ export default function PlayerFieldsConfigModal({
                   >
                     <Text size="xs">{opt}</Text>
                     <ActionIcon
+                      {...removeIconAction}
                       size="xs"
                       onClick={() => removeOption(field.key, i)}
                     >
@@ -319,6 +321,7 @@ export default function PlayerFieldsConfigModal({
                   style={{ flex: 1 }}
                 />
                 <Button
+                  {...saveAction}
                   size="xs"
                   ml="xs"
                   onClick={() =>
@@ -343,6 +346,7 @@ export default function PlayerFieldsConfigModal({
 
       <ModalFooter
         onCancel={requestClose}
+        primaryAction="save"
         primaryLabel={t("save", "Save")}
         primaryDisabled={emptyDropdowns.length > 0}
         onPrimary={() => void handleSave()}

@@ -18,6 +18,7 @@ import {
 import { IconMail, IconPencil, IconTrash } from "@tabler/icons-react";
 import { CircleFlag } from "react-circle-flags";
 
+import { editIconAction, removeAction, removeIconAction } from "../buttons/action_styles";
 import { Club } from "../../interfaces/club";
 import { requestSucceeded } from "../../services/adapter";
 import { deleteClub } from "../../services/club";
@@ -133,8 +134,7 @@ export default function ClubsTable({
           <Group gap={4} wrap="nowrap">
             <Tooltip label={t("edit_button", "Edit")}>
               <ActionIcon
-                variant="subtle"
-                color="green"
+                {...editIconAction}
                 aria-label={t("edit_button", "Edit")}
                 onClick={() => onEditClub(row.original)}
               >
@@ -143,8 +143,7 @@ export default function ClubsTable({
             </Tooltip>
             <Tooltip label={t("delete_button", "Delete")}>
               <ActionIcon
-                variant="subtle"
-                color="red"
+                {...removeIconAction}
                 aria-label={t("delete_button", "Delete")}
                 onClick={() => void handleDeleteRows([row])}
               >
@@ -178,8 +177,7 @@ export default function ClubsTable({
       return (
         <Button
           leftSection={<IconTrash size={16} />}
-          variant="light"
-          color="red"
+          {...removeAction}
           disabled={!selected.length}
           onClick={() => void handleDeleteRows(selected)}
         >

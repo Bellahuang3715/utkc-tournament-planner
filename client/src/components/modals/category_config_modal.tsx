@@ -12,6 +12,7 @@ import {
 import { IconPlus, IconTrash } from "@tabler/icons-react";
 import { useTranslation } from "next-i18next/pages";
 
+import { removeIconAction, saveAction } from "../buttons/action_styles";
 import { getTeamCategories, requestSucceeded } from "../../services/adapter";
 import type { TeamCategoryInterface } from "../../interfaces/team_category";
 import {
@@ -156,14 +157,14 @@ export default function CategoryConfigModal({
                 style={{ flex: 1 }}
                 size="xs"
               />
-              <ActionIcon color="red" onClick={() => handleDelete(cat)}>
+              <ActionIcon {...removeIconAction} onClick={() => handleDelete(cat)}>
                 <IconTrash size={16} />
               </ActionIcon>
             </Group>
           ))}
           <Button
+            {...saveAction}
             leftSection={<IconPlus size={16} />}
-            variant="outline"
             onClick={handleAdd}
           >
             {t("add_category", "Add category")}
@@ -173,6 +174,7 @@ export default function CategoryConfigModal({
 
       <ModalFooter
         onCancel={onClose}
+        primaryAction="save"
         primaryLabel={t("save_changes", "Save changes")}
         primaryLoading={saving}
         onPrimary={() => void handleSave()}

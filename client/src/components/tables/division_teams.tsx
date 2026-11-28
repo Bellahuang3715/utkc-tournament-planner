@@ -8,6 +8,7 @@ import {
 } from "mantine-react-table-open";
 import { useTranslation } from "next-i18next/pages";
 
+import { removeAction, saveAction } from "../buttons/action_styles";
 import { getDivisionTeams, getTeams, getDivisionLock } from "../../services/adapter";
 import AddNewTeamModal from "../modals/add_new_team_modal";
 import RequestErrorAlert from "../utils/error_alert";
@@ -344,7 +345,7 @@ export default function DivisionTeamsTable({
       return (
         <Group gap="xs">
           <Button
-            variant="light"
+            {...saveAction}
             size="xs"
             onClick={() => setAddNewTeamModalOpen(true)}
             disabled={locked}
@@ -352,7 +353,7 @@ export default function DivisionTeamsTable({
             {t("add_new_team", "Add new team")}
           </Button>
           <Button
-            variant="light"
+            {...saveAction}
             size="xs"
             onClick={handleAddTeams}
             disabled={locked}
@@ -360,8 +361,7 @@ export default function DivisionTeamsTable({
             {t("add_teams_to_division", "Add teams to division")}
           </Button>
           <Button
-            variant="light"
-            color="red"
+            {...removeAction}
             size="xs"
             onClick={() => void handleRemoveSelected(tableInstance, selected)}
             disabled={locked || !selected.length}
@@ -393,7 +393,7 @@ export default function DivisionTeamsTable({
         )}
         <Group mb="sm" justify="flex-start" gap="xs">
           <Button
-            variant="light"
+            {...saveAction}
             size="sm"
             onClick={() => setAddNewTeamModalOpen(true)}
             disabled={locked}
@@ -401,7 +401,7 @@ export default function DivisionTeamsTable({
             {t("add_new_team", "Add new team")}
           </Button>
           <Button
-            variant="light"
+            {...saveAction}
             size="sm"
             onClick={handleAddTeams}
             disabled={locked}

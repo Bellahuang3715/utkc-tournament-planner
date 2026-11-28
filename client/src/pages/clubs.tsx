@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 
+import { saveAction } from "../components/buttons/action_styles";
 import { PageHeader } from "../components/layout/page_header";
 import ClubModal from "../components/modals/club_modal";
 import ClubsTable from "../components/tables/clubs";
@@ -38,6 +39,7 @@ export default function Clubs() {
           actions={
             <Group gap="sm" className={classes.fullWithMobile}>
               <Button
+                {...saveAction}
                 leftSection={<IconPlus size={16} />}
                 onClick={() => openClub(null)}
               >

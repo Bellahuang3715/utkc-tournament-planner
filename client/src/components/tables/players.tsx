@@ -25,6 +25,12 @@ import {
 } from "@tabler/icons-react";
 import { mkConfig, generateCsv, download } from "export-to-csv";
 
+import {
+  editIconAction,
+  removeAction,
+  removeIconAction,
+  saveAction,
+} from "../buttons/action_styles";
 import PlayerCreateModal, {
   PlayerEditModal,
 } from "../modals/player_create_modal";
@@ -194,8 +200,7 @@ export default function PlayersTable({
         <Group gap={4} wrap="nowrap">
           <Tooltip label={t("edit_player_title", "Edit player")}>
             <ActionIcon
-              variant="subtle"
-              color="green"
+              {...editIconAction}
               aria-label={t("edit_player_title", "Edit player")}
               onClick={() => {
                 setEditingPlayer(row.original);
@@ -207,8 +212,7 @@ export default function PlayersTable({
           </Tooltip>
           <Tooltip label={t("delete_button", "Delete")}>
             <ActionIcon
-              variant="subtle"
-              color="red"
+              {...removeIconAction}
               aria-label={t("delete_button", "Delete")}
               onClick={() => void handleDeleteRows([row])}
             >
@@ -245,8 +249,8 @@ export default function PlayersTable({
       return (
         <Group gap="xs">
           <Button
+            {...saveAction}
             leftSection={<IconPlus size={16} />}
-            variant="filled"
             onClick={handleAddPlayer}
           >
             {t("add_player_button", "Add player")}
@@ -260,8 +264,7 @@ export default function PlayersTable({
           </Button>
           <Button
             leftSection={<IconTrash size={16} />}
-            variant="light"
-            color="red"
+            {...removeAction}
             disabled={!selected.length}
             onClick={async () => {
               tableInstance.resetRowSelection();
@@ -347,6 +350,7 @@ export default function PlayersTable({
         <Stack gap="md">
           <Group gap="xs">
             <Button
+              {...saveAction}
               leftSection={<IconPlus size={16} />}
               onClick={handleAddPlayer}
             >

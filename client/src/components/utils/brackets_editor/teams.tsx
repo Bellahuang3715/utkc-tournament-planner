@@ -17,6 +17,7 @@ import { useRouter } from "next/router";
 import { useTranslation } from "next-i18next/pages";
 import { CollapsedLeft, CollapsedRight, Expanded } from "tournament-brackets-ui";
 
+import { cancelAction, removeAction, saveAction } from "../../buttons/action_styles";
 import { IconBrackets } from "@tabler/icons-react";
 
 import TournamentLayout from "../../../pages/tournaments/_tournament_layout";
@@ -486,17 +487,16 @@ export default function BracketsEditorTeams() {
               </Group>
               <Group gap="xs">
                 <Button
-                  color="red"
-                  variant="outline"
+                  {...removeAction}
                   onClick={regenerateAll}
                   disabled={locked}
                 >
                   {t("regenerate_all", "Regenerate All")}
                 </Button>
-                <Button variant="default" onClick={cancel}>
+                <Button {...cancelAction} onClick={cancel}>
                   {t("cancel")}
                 </Button>
-                <Button loading={saving} onClick={save} disabled={locked}>
+                <Button {...saveAction} loading={saving} onClick={save} disabled={locked}>
                   {t("save", "Save")}
                 </Button>
               </Group>

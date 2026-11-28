@@ -2,6 +2,7 @@ import { ActionIcon, Box, Button, ColorInput, Group, Menu, Modal, Stack, Text, T
 import { IconChevronLeft, IconChevronRight, IconDots, IconPencil, IconTrash } from '@tabler/icons-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { saveAction } from "../buttons/action_styles";
 import { Court } from '../../interfaces/court';
 import type {
   SchedulePlacement,
@@ -1038,7 +1039,7 @@ export default function CourtTimetable({
               {editError}
             </Text>
           )}
-          <Button onClick={applyEditor}>Save</Button>
+          <Button {...saveAction} onClick={applyEditor}>Save</Button>
         </Stack>
       </Modal>
     </Box>

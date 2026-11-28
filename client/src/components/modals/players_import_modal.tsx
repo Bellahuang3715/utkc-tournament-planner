@@ -26,6 +26,7 @@ import {
 import { useTranslation } from "next-i18next/pages";
 import ExcelJS from "exceljs";
 
+import { removeIconAction, saveAction } from "../buttons/action_styles";
 import { getClubs, getPlayerFields } from "../../services/adapter";
 import ClubModal from "./club_modal";
 import { Club } from "../../interfaces/club";
@@ -596,7 +597,7 @@ export default function PlayersImportModal({
             />
           )}
 
-          <Button onClick={handleAdd} disabled={!canAdd}>
+          <Button {...saveAction} onClick={handleAdd} disabled={!canAdd}>
             {t("add_club", "Add")}
           </Button>
         </Group>
@@ -785,6 +786,7 @@ export default function PlayersImportModal({
                     </Text>
                   </Stack>
                   <ActionIcon
+                    {...removeIconAction}
                     onClick={() =>
                       setUploads((list) => {
                         const next = list.filter((_, i) => i !== idx);
@@ -805,6 +807,7 @@ export default function PlayersImportModal({
         {/* 5) Final Import */}
         <ModalFooter
           hideCancel
+          primaryAction="save"
           primaryLabel={t("import_all", "Import All Clubs")}
           primaryDisabled={uploads.length === 0}
           onPrimary={async () => {

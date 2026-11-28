@@ -23,6 +23,7 @@ import { IconInfoCircle } from "@tabler/icons-react";
 import { useRouter } from "next/router";
 import { useTranslation } from "next-i18next/pages";
 
+import { saveAction } from "../buttons/action_styles";
 import {
   createDivision,
   addPlayersToDivision,
@@ -479,6 +480,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
       >
         <span>
           <Button
+            {...saveAction}
             leftSection={<BuildIcon />}
             disabled={tooFewPlayers}
             onClick={open}
@@ -773,6 +775,7 @@ export function GenerateBracketsButton<TRow extends RowWithId>({
                     close();
                     resetWizard();
                   }}
+                  primaryAction="save"
                   primaryLabel={t("generate", "Generate")}
                   primaryType="submit"
                   leftSection={
@@ -974,6 +977,7 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
       >
         <span>
           <Button
+            {...saveAction}
             leftSection={<BuildIcon />}
             disabled={tooFewTeams}
             onClick={open}
@@ -1203,6 +1207,7 @@ export function GenerateBracketsButtonTeams<TRow extends RowWithId>({
                     close();
                     resetWizard();
                   }}
+                  primaryAction="save"
                   primaryLabel={t("generate", "Generate")}
                   primaryType="submit"
                   leftSection={

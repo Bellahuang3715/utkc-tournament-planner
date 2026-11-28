@@ -146,6 +146,7 @@ export default function ClubModal({
           </Stack>
           <ModalFooter
             onCancel={() => setOpened(false)}
+            primaryAction="save"
             primaryLabel={t('save_button')}
             primaryType="submit"
           />

@@ -122,6 +122,7 @@ function GeneralTournamentForm({
 
       <ModalFooter
         onCancel={() => setOpened(false)}
+        primaryAction="save"
         primaryLabel={t("save_button")}
         primaryType="submit"
       />

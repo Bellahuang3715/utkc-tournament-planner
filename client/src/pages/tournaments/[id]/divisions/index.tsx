@@ -17,6 +17,7 @@ import {
 import { useTranslation } from "next-i18next/pages";
 import { IconBrackets, IconDownload, IconPencil, IconTrash } from "@tabler/icons-react";
 
+import { editAction, removeIconAction } from "../../../../components/buttons/action_styles";
 import { PageHeader } from "../../../../components/layout/page_header";
 import { EmptyRoster } from "../../../../components/no_content/empty_table_info";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
@@ -103,7 +104,7 @@ function EditTreesControls({
           )}
         </Text>
         <Button
-          variant="light"
+          {...editAction}
           size="sm"
           leftSection={<IconPencil size={16} />}
           disabled={locked}
@@ -343,8 +344,7 @@ export default function BracketsPage() {
                           </Tooltip>
                           <Tooltip label={t("delete", "Delete")}>
                             <ActionIcon
-                              variant="subtle"
-                              color="red"
+                              {...removeIconAction}
                               aria-label={t("delete", "Delete")}
                               onClick={async () => {
                                 if (
